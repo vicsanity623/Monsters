@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEXUS | Compound SOTA</title>
+    <title>NEXUS | US Terminal</title>
     
     <!-- Libraries -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -62,20 +62,23 @@
                 <i class="fa-solid fa-layer-group text-trade-accent text-xl"></i>
                 <div class="relative">
                     <button @click="toggleAssetMenu" class="flex items-center gap-2 font-bold text-lg leading-none hover:text-trade-accent transition">
-                        {{ currentPair.replace('usdt', '').toUpperCase() }}
-                        <span class="text-xs text-gray-500 font-normal">/USDT</span>
+                        {{ currentPair.replace('USD', '').toUpperCase() }}
+                        <span class="text-xs text-gray-500 font-normal">/USD</span>
                         <i class="fa-solid fa-caret-down text-xs"></i>
                     </button>
                     <div v-if="assetMenuOpen" class="absolute top-full left-0 mt-3 w-48 bg-dark-800 rounded-lg shadow-2xl border border-dark-700 overflow-hidden z-50">
                         <div v-for="pair in availablePairs" :key="pair" @click="changePair(pair)" class="px-4 py-3 hover:bg-dark-700 cursor-pointer border-b border-dark-700 last:border-0 flex justify-between">
-                            <span class="font-bold">{{ pair.replace('usdt', '').toUpperCase() }}</span>
+                            <span class="font-bold">{{ pair.replace('USD', '').toUpperCase() }}</span>
                         </div>
                     </div>
                 </div>
             </div>
             
             <div class="flex flex-col items-end">
-                <span class="text-lg number-font font-bold tracking-tight" :class="priceColor">{{ formatPrice(currentPrice) }}</span>
+                <span class="text-lg number-font font-bold tracking-tight" :class="priceColor">
+                    {{ formatPrice(currentPrice) }}
+                </span>
+                <span v-if="connectionStatus === 'connecting'" class="text-[9px] text-yellow-500">CONNECTING...</span>
             </div>
         </div>
     </header>
@@ -85,6 +88,7 @@
         
         <!-- LEFT: CHART -->
         <main class="relative w-full h-[45vh] lg:h-full lg:flex-1 bg-dark-950 flex flex-col border-b lg:border-b-0 lg:border-r border-dark-800">
+            <!-- Controls -->
             <div class="absolute top-3 left-3 z-10 flex gap-1 p-1 bg-dark-900 rounded border border-dark-700 shadow-lg">
                 <button v-for="tf in timeframes" :key="tf.val" 
                         @click="changeTimeframe(tf.val)"
@@ -94,13 +98,16 @@
                 </button>
                 <div class="w-[1px] bg-dark-700 mx-1"></div>
                 <button @click="toggleIndicators" class="px-2 py-1 text-[10px] text-trade-accent font-bold hover:text-white">
-                    <i class="fa-solid fa-chart-line mr-1"></i> Indicators
+                    <i class="fa-solid fa-chart-line mr-1"></i>
                 </button>
             </div>
 
-            <div v-if="isLoading" class="absolute inset-0 z-0 flex items-center justify-center bg-dark-950">
+            <!-- Loader / Error Message -->
+            <div v-if="isLoading" class="absolute inset-0 z-0 flex items-center justify-center bg-dark-950 pointer-events-none">
                 <div class="loader"></div>
             </div>
+            
+            <!-- Chart Container -->
             <div id="chart-container" class="w-full h-full"></div>
         </main>
 
@@ -134,7 +141,7 @@
 
                     <div class="space-y-3">
                         <div class="bg-dark-950 rounded border border-dark-700 p-2 focus-within:border-trade-accent transition-colors">
-                            <label class="text-[10px] text-gray-500 block mb-1">Order Value (USDT)</label>
+                            <label class="text-[10px] text-gray-500 block mb-1">Order Value (USD)</label>
                             <div class="flex items-center">
                                 <input type="number" v-model.number="orderAmount" class="bg-transparent w-full text-white font-bold text-lg outline-none number-font" placeholder="0.00">
                                 <span class="text-xs text-gray-500 font-bold">USD</span>
@@ -162,7 +169,7 @@
                 </div>
             </div>
 
-            <!-- TAB 2: COMPOUND GROWTH (NEW) -->
+            <!-- TAB 2: COMPOUND GROWTH -->
             <div v-show="activeTab === 'compound'" class="flex flex-col h-full overflow-y-auto bg-dark-900 relative">
                 
                 <!-- Setup Screen -->
@@ -171,7 +178,7 @@
                         <i class="fa-solid fa-fire"></i>
                     </div>
                     <h3 class="text-xl font-bold text-white mb-2">Compound Master</h3>
-                    <p class="text-sm text-gray-400 mb-6 px-4">Start small. Reinvest 100% of profits per step. One loss resets to step 1, but you only lose the initial risk.</p>
+                    <p class="text-sm text-gray-400 mb-6 px-4">Start small. Reinvest 100% of profits. One loss resets streak, but preserves capital.</p>
                     
                     <div class="w-full bg-dark-950 p-4 rounded-lg border border-dark-700 mb-6">
                         <label class="text-xs text-gray-500 mb-2 block text-left">Initial Risk Amount</label>
@@ -188,7 +195,6 @@
 
                 <!-- Active Streak Screen -->
                 <div v-else class="flex flex-col h-full">
-                    <!-- Status Header -->
                     <div class="bg-gradient-to-b from-dark-800 to-dark-900 p-4 border-b border-dark-800">
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-xs font-bold text-trade-fire uppercase tracking-widest">Streak Active <i class="fa-solid fa-fire animate-pulse"></i></span>
@@ -200,32 +206,27 @@
                                 <div class="text-3xl font-bold text-white number-font">${{ formatMoney(streak.currentPot) }}</div>
                             </div>
                             <div class="text-right">
-                                <div class="text-gray-400 text-xs">Actual Risk</div>
+                                <div class="text-gray-400 text-xs">Risk</div>
                                 <div class="text-sm text-gray-300 number-font">${{ formatMoney(streak.initialRisk) }}</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- The Ladder Visual -->
                     <div class="flex-1 overflow-y-auto p-4 relative">
-                        <!-- Connecting Line drawn via CSS -->
                         <div class="space-y-6 ml-2 pt-2">
-                            <!-- Previous Steps (Completed) -->
                             <div v-for="n in (streak.step - 1)" :key="n" class="streak-step completed pl-8 opacity-50">
                                 <div class="streak-dot"></div>
                                 <div class="text-xs text-trade-buy font-bold">Step {{ n }} Complete</div>
                             </div>
 
-                            <!-- Current Step (Active) -->
                             <div class="streak-step active pl-8">
                                 <div class="streak-dot"></div>
                                 <div class="text-trade-accent font-bold text-sm">Step {{ streak.step }} (Current)</div>
                                 <div class="text-xs text-gray-400 mt-1">
-                                    Next Win: <span class="text-white number-font">~${{ formatMoney(streak.currentPot * 1.5) }}</span> (Est)
+                                    Next: <span class="text-white number-font">~${{ formatMoney(streak.currentPot * 1.5) }}</span>
                                 </div>
                             </div>
 
-                            <!-- Future Steps -->
                             <div v-for="n in 3" :key="n + streak.step" class="streak-step pl-8 opacity-30">
                                 <div class="streak-dot"></div>
                                 <div class="text-xs text-gray-500 font-bold">Step {{ streak.step + n }}</div>
@@ -233,13 +234,11 @@
                         </div>
                     </div>
 
-                    <!-- Action Buttons -->
                     <div class="p-4 bg-dark-950 border-t border-dark-800 z-10">
                         <div v-if="hasOpenStreakPos" class="text-center py-4 text-yellow-500 font-bold text-sm animate-pulse">
                             Trade in Progress...
                         </div>
                         <div v-else>
-                            <p class="text-[10px] text-center text-gray-500 mb-2">Betting Full Pot: ${{ formatMoney(streak.currentPot) }}</p>
                             <div class="grid grid-cols-2 gap-3">
                                 <button @click="executeTrade('buy', true)" class="bg-trade-buy hover:brightness-110 text-white py-4 rounded font-bold shadow-lg active:scale-95 transition-all">
                                     Step Up (Buy)
@@ -262,7 +261,6 @@
                     </div>
 
                     <div v-for="pos in positions" :key="pos.id" class="bg-dark-950 p-3 mb-2 rounded border border-dark-800 hover:border-dark-600 transition-colors relative overflow-hidden">
-                        <!-- Streak Indicator -->
                         <div v-if="pos.isStreak" class="absolute right-0 top-0 bg-trade-fire text-dark-950 text-[9px] font-bold px-2 py-0.5 rounded-bl">STREAK</div>
                         
                         <div class="flex justify-between items-center mb-2">
@@ -314,15 +312,17 @@
             const isLoading = ref(true);
             const showLogin = ref(false);
             const notification = ref('');
+            const connectionStatus = ref('connecting');
+            const chartError = ref(false);
             
-            // Data
-            const availablePairs = ['btcusdt', 'ethusdt', 'solusdt', 'bnbusdt', 'dogeusdt', 'xrpusdt'];
-            const currentPair = ref('btcusdt');
+            // Data - USING BINANCE US PAIRS
+            const availablePairs = ['BTCUSD', 'ETHUSD', 'SOLUSD', 'DOGEUSD'];
+            const currentPair = ref('BTCUSD');
             const currentPrice = ref(0);
             const prevPrice = ref(0);
             const timeframes = [
-                { label: '1s', val: '1s' }, { label: '1m', val: '1m' }, { label: '5m', val: '5m' },
-                { label: '15m', val: '15m' }, { label: '1h', val: '1h' }, { label: '4h', val: '4h' }, { label: '12h', val: '12h' }
+                { label: '1m', val: '1m' }, { label: '5m', val: '5m' },
+                { label: '15m', val: '15m' }, { label: '1h', val: '1h' }, { label: '4h', val: '4h' }, { label: '1d', val: '1d' }
             ];
             const currentTimeframe = ref('15m');
 
@@ -390,7 +390,12 @@
                     showLogin.value = true;
                 }
                 initChart();
-                loadMarketData();
+                
+                // IMPORTANT: Connect WS immediately first!
+                connectWebSocket();
+                
+                // Then try to fetch history in background
+                fetchHistory();
             });
 
             // --- STREAK LOGIC ---
@@ -446,7 +451,7 @@
                 const qty = amount / currentPrice.value;
                 positions.value.unshift({
                     id: Date.now(),
-                    symbol: currentPair.value.replace('usdt',''),
+                    symbol: currentPair.value.replace('USD',''),
                     side: side,
                     qty: qty,
                     entryPrice: currentPrice.value,
@@ -502,6 +507,11 @@
                 volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
                 smaSeries = chart.addLineSeries({ color: '#fcd535', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
 
+                // Force Resize on mount
+                setTimeout(() => {
+                   chart.resize(container.clientWidth, container.clientHeight); 
+                }, 100);
+
                 new ResizeObserver(entries => {
                     if (entries.length === 0 || entries[0].target !== container) return;
                     const newRect = entries[0].contentRect;
@@ -509,36 +519,55 @@
                 }).observe(container);
             };
 
-            const loadMarketData = async () => {
+            // Switch to Binance US API
+            const fetchHistory = async () => {
                 isLoading.value = true;
-                if(ws) ws.close();
+                chartError.value = false;
                 try {
-                    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentPair.value.toUpperCase()}&interval=${currentTimeframe.value}&limit=500`);
+                    // Binance US API Endpoint
+                    const res = await fetch(`https://api.binance.us/api/v3/klines?symbol=${currentPair.value.toUpperCase()}&interval=${currentTimeframe.value}&limit=300`);
+                    if(!res.ok) throw new Error("Fetch failed");
+                    
                     const rawData = await res.json();
                     const candles = rawData.map(d => ({ time: d[0] / 1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
                     const volumes = rawData.map(d => ({ time: d[0] / 1000, value: parseFloat(d[5]), color: parseFloat(d[4]) >= parseFloat(d[1]) ? 'rgba(14, 203, 129, 0.3)' : 'rgba(246, 70, 93, 0.3)' }));
+                    
                     candleSeries.setData(candles);
                     volumeSeries.setData(volumes);
                     updateSMA(candles);
-                    currentPrice.value = candles[candles.length - 1].close;
-                } catch (e) { console.error(e); }
+                } catch (e) { 
+                    console.log("History load failed. Using Live Data build.");
+                    chartError.value = true;
+                }
                 isLoading.value = false;
-                connectWebSocket();
             };
 
             const connectWebSocket = () => {
-                ws = new WebSocket(`wss://stream.binance.com:9443/ws/${currentPair.value}@kline_${currentTimeframe.value}/${currentPair.value}@aggTrade`);
+                if(ws) ws.close();
+                connectionStatus.value = 'connecting';
+                
+                // Binance US WebSocket Endpoint
+                ws = new WebSocket(`wss://stream.binance.us:9443/ws/${currentPair.value.toLowerCase()}@kline_${currentTimeframe.value}/${currentPair.value.toLowerCase()}@aggTrade`);
+                
+                ws.onopen = () => { connectionStatus.value = 'connected'; };
+                
                 ws.onmessage = (event) => {
                     const data = JSON.parse(event.data);
+                    
                     if (data.e === 'kline') {
                         const k = data.k;
                         const candle = { time: k.t / 1000, open: parseFloat(k.o), high: parseFloat(k.h), low: parseFloat(k.l), close: parseFloat(k.c) };
+                        
                         candleSeries.update(candle);
                         volumeSeries.update({ time: candle.time, value: parseFloat(k.v), color: candle.close >= candle.open ? 'rgba(14, 203, 129, 0.3)' : 'rgba(246, 70, 93, 0.3)' });
+                        
                         prevPrice.value = currentPrice.value;
                         currentPrice.value = parseFloat(k.c);
                     }
                     if (data.e === 'aggTrade') {
+                        // Backup price update if kline is slow
+                        if(!currentPrice.value) currentPrice.value = parseFloat(data.p);
+                        
                         marketTrades.value.unshift(data);
                         if(marketTrades.value.length > 20) marketTrades.value.pop();
                     }
@@ -558,9 +587,21 @@
                 smaSeries.setData(smaData);
             };
 
-            const changePair = (pair) => { currentPair.value = pair; assetMenuOpen.value = false; loadMarketData(); };
-            const changeTimeframe = (tf) => { currentTimeframe.value = tf; loadMarketData(); };
-            const toggleIndicators = () => { showIndicators.value = !showIndicators.value; loadMarketData(); };
+            const changePair = (pair) => { 
+                currentPair.value = pair; 
+                assetMenuOpen.value = false; 
+                // Reset chart logic
+                connectWebSocket();
+                fetchHistory();
+            };
+            
+            const changeTimeframe = (tf) => { 
+                currentTimeframe.value = tf; 
+                connectWebSocket();
+                fetchHistory();
+            };
+            
+            const toggleIndicators = () => { showIndicators.value = !showIndicators.value; fetchHistory(); };
             const toggleAssetMenu = () => { assetMenuOpen.value = !assetMenuOpen.value; };
             
             const getPnl = (pos) => { const diff = currentPrice.value - pos.entryPrice; return pos.side === 'buy' ? diff * pos.qty : -diff * pos.qty; };
@@ -571,7 +612,7 @@
             const saveData = () => localStorage.setItem('nexus_sota_compound', JSON.stringify({ account: account.value, positions: positions.value, streak: streak.value }));
 
             return {
-                activeTab, assetMenuOpen, availablePairs, currentPair, currentPrice, priceColor, timeframes, currentTimeframe, isLoading,
+                activeTab, assetMenuOpen, availablePairs, currentPair, currentPrice, priceColor, timeframes, currentTimeframe, isLoading, chartError, connectionStatus,
                 account, showLogin, notification, orderAmount, positions, marketTrades, equity, streak, hasOpenStreakPos,
                 toggleAssetMenu, changePair, changeTimeframe, toggleIndicators, createAccount, setAmount, 
                 startStreak, endStreak, executeTrade, closePosition,
