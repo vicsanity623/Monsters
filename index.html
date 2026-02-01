@@ -234,7 +234,15 @@
         .stage-dot.locked { opacity: 0.3; cursor: default; }
         .arena { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; z-index: 1; gap: 30px; }
         .unit { width: 140px; display: flex; flex-direction: column; align-items: center; position: relative; }
-        .unit img { width: 100%; max-height: 160px; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0,0,0,0.8)); }
+        .unit img { width: 100%; max-height: 160px; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0,0,0,0.8)); transition: transform 0.1s; }
+        
+        /* Death Animation */
+        .dead-anim { animation: dissolve 1s forwards; }
+        @keyframes dissolve {
+            0% { opacity: 1; filter: grayscale(0%); transform: scale(1); }
+            100% { opacity: 0; filter: grayscale(100%); transform: scale(0.8); }
+        }
+
         .beam { position: absolute; height: 60px; background: linear-gradient(to bottom, #fff, #00d2ff, #fff); width: 0; left: 50%; top: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 50px #00d2ff; z-index: 10; border-radius: 30px; pointer-events: none; }
         .pop { position: absolute; color: yellow; font-family: 'Bangers'; font-size: 2.2rem; animation: popUp 0.7s forwards; z-index: 20; text-shadow: 2px 2px black; }
         @keyframes popUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-80px); } }
@@ -245,6 +253,19 @@
         .menu-btn { background: var(--dbz-orange); border: 2px solid white; color: white; padding: 15px 30px; font-family: 'Bangers'; font-size: 1.5rem; margin: 10px; cursor: pointer; width: 80%; }
         .menu-btn.exit { background: #c0392b; }
         #start-prompt { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'Bangers'; font-size: 2rem; color: white; text-align: center; text-shadow: 2px 2px black; z-index: 5; display: none; }
+
+        /* Rewards Box */
+        .rewards-box {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #555;
+            border-radius: 10px;
+            padding: 10px;
+            width: 80%;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .reward-row { font-family: 'Orbitron'; font-size: 0.9rem; color: white; margin: 5px 0; }
+        .reward-val { color: var(--dbz-yellow); font-weight: bold; }
     </style>
 </head>
 <body onload="initGame()">
@@ -367,7 +388,15 @@
         
         <!-- Post Battle Menu -->
         <div id="battle-menu">
-            <div id="menu-title" style="color:var(--dbz-yellow); font-family:'Bangers'; font-size:3rem; margin-bottom:20px;">VICTORY!</div>
+            <div id="menu-title" style="color:var(--dbz-yellow); font-family:'Bangers'; font-size:3rem; margin-bottom:10px;">VICTORY!</div>
+            
+            <!-- Rewards Section -->
+            <div class="rewards-box">
+                <div class="reward-row">XP GAINED: <span id="r-xp" class="reward-val">0</span></div>
+                <div class="reward-row">COINS: <span id="r-coins" class="reward-val">0</span></div>
+                <div class="reward-row">DROPS: <span id="r-drops" style="color:cyan; font-size:0.8rem;">NONE</span></div>
+            </div>
+
             <button class="menu-btn" onclick="autoStartNext()">NEXT STAGE (<span id="auto-timer">3</span>)</button>
             <button class="menu-btn exit" onclick="exitBattle()">EXIT</button>
         </div>
@@ -657,6 +686,7 @@
         document.getElementById('start-prompt').style.display = 'none';
         document.getElementById('battle-menu').style.display = 'none';
         document.getElementById('e-img').style.display = 'block';
+        document.getElementById('e-img').classList.remove('dead-anim'); // Reset Anim
 
         const log = document.getElementById('log');
         log.innerHTML = `Stage ${battle.stage}: Finding guardian...`;
@@ -700,7 +730,10 @@
         
         if(player.charge >= 100) await executeSpecial(); else executeStrike('p');
         
-        if(battle.enemy.hp <= 0) { handleWin(); return; }
+        if(battle.enemy.hp <= 0) { 
+            // Win handled inside strike functions to allow animation
+            return; 
+        }
 
         await new Promise(r => setTimeout(r, 1000));
         if(!battle.active || battle.isTransitioning) return;
@@ -728,6 +761,15 @@
         const el = document.getElementById(isP ? 'p-box' : 'e-box');
         el.style.transform = isP ? 'translateX(25px)' : 'translateX(-25px)';
         setTimeout(() => el.style.transform = 'translateX(0)', 100);
+
+        // CHECK LETHAL ON ENEMY
+        if(isP && battle.enemy.hp <= 0) {
+            battle.active = false; // Stop Loop
+            setTimeout(() => {
+                document.getElementById('e-img').classList.add('dead-anim');
+                setTimeout(handleWin, 1000); // Wait for dissolve
+            }, 600); // Wait for hit
+        }
     }
 
     async function executeSpecial() {
@@ -745,21 +787,34 @@
         popDamage(dmg, 'e-box');
         updateBars();
         beam.style.width = "0";
+
+        // CHECK LETHAL
+        if(battle.enemy.hp <= 0) {
+            battle.active = false; // Stop Loop
+            setTimeout(() => {
+                document.getElementById('e-img').classList.add('dead-anim');
+                setTimeout(handleWin, 1000); // Wait for dissolve
+            }, 600);
+        }
     }
 
     function handleWin() {
         battle.active = false;
         const xpGain = 100 * battle.stage * battle.world;
+        const coinGain = 250;
         player.xp += xpGain; 
-        player.coins += 250;
+        player.coins += coinGain;
         
         document.getElementById('log').innerHTML = `<div style="color:cyan">> VICTORY! +${xpGain} XP</div>` + document.getElementById('log').innerHTML;
         
+        // Item Drop Logic
+        let dropText = "NONE";
         if(Math.random() < 0.35) {
             player.inv.push({
                 n: "Saiyan Gear", type: Math.random() > 0.5 ? 'w' : 'a', 
                 val: 700 * battle.world, rarity: 1 
             });
+            dropText = "BASIC GEAR";
         }
         
         if(player.xp >= player.nextXp) {
@@ -768,6 +823,12 @@
         }
 
         syncUI();
+        
+        // Populate Menu Info
+        document.getElementById('r-xp').innerText = xpGain;
+        document.getElementById('r-coins').innerText = coinGain;
+        document.getElementById('r-drops').innerText = dropText;
+
         const menu = document.getElementById('battle-menu');
         menu.style.display = 'flex';
         document.getElementById('menu-title').innerText = "STAGE CLEARED!";
