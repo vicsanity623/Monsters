@@ -501,7 +501,9 @@
     }
 
     function saveGame() {
+        // Update the timestamp on the player object before saving
         player.lastSave = Date.now(); 
+        
         const saveData = {
             player: player,
             battle: { stage: battle.stage, world: battle.world, maxStage: battle.maxStage }
@@ -520,6 +522,7 @@
                     battle.world = parsed.battle.world || 1;
                     battle.maxStage = parsed.battle.maxStage || 1;
                 }
+                // Backwards compatibility for stacking
                 player.inv.forEach(i => { if(!i.qty) i.qty = 1; });
             } catch (e) { console.error("Save file corrupted", e); }
         }
@@ -546,7 +549,9 @@
         syncUI();
     }
 
+    // --- NEW INVENTORY LOGIC ---
     function addToInventory(item) {
+        // Try to stack
         const found = player.inv.find(i => i.n === item.n && i.type === item.type && i.val === item.val && i.rarity === item.rarity && i.qty < 99);
         if(found) {
             found.qty++;
@@ -578,6 +583,7 @@
         const xpPct = (player.xp / player.nextXp) * 100;
         document.getElementById('bar-xp').style.width = xpPct + "%";
         
+        // RENDER INVENTORY
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
         
@@ -610,6 +616,8 @@
 
         if(player.selected !== -1) {
             const sItem = player.inv[player.selected];
+            
+            // Check count for merge (Stacks + other slots)
             let totalCount = 0;
             player.inv.forEach(i => {
                 if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) {
@@ -657,6 +665,7 @@
         
         if(player.coins < cost) { alert("Not enough coins!"); return; }
 
+        // Recalculate count
         let totalCount = 0;
         player.inv.forEach(i => {
             if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) totalCount += i.qty;
@@ -664,7 +673,10 @@
 
         if(totalCount >= 3) {
             player.coins -= cost;
+            
+            // Remove 3 items (decrement from stacks)
             let needed = 3;
+            // Iterate backwards to safely remove from array if empty
             for(let i = player.inv.length - 1; i >= 0; i--) {
                 if(needed <= 0) break;
                 let item = player.inv[i];
@@ -680,6 +692,7 @@
                 }
             }
 
+            // Create new better item
             const newRarity = sItem.rarity + 1;
             let mult = (newRarity === 2) ? 2 : 2.5; 
             const newVal = Math.floor(sItem.val * mult);
@@ -703,19 +716,39 @@
 
     function doEquip() {
         if(player.selected === -1) return;
-        const stackItem = player.inv[player.selected];
+        
+        const stackItem = player.inv[player.selected]; // This is the stack
+        
+        // Create a single instance to equip (clone basic props)
         const itemToEquip = { 
-            n: stackItem.n, type: stackItem.type, val: stackItem.val, rarity: stackItem.rarity, qty: 1 
+            n: stackItem.n, 
+            type: stackItem.type, 
+            val: stackItem.val, 
+            rarity: stackItem.rarity,
+            qty: 1 
         };
-        const old = player.gear[stackItem.type];
+
+        const old = player.gear[stackItem.type]; // Currently equipped
+        
+        // Equip new
         player.gear[stackItem.type] = itemToEquip;
+        
+        // Remove 1 from inventory stack
         stackItem.qty--;
-        if(stackItem.qty <= 0) { player.inv.splice(player.selected, 1); }
-        if(old) { addToInventory(old); }
+        if(stackItem.qty <= 0) {
+            player.inv.splice(player.selected, 1);
+        }
+
+        // Put old gear back in inventory
+        if(old) {
+            addToInventory(old);
+        }
+
         player.selected = -1;
         syncUI();
     }
 
+    // --- REAL-TIME BATTLE SYSTEM ---
     function buildStageSelector() {
         const container = document.getElementById('ui-stage-selector');
         container.innerHTML = '';
@@ -763,11 +796,31 @@
         }
         startBattle();
     }
+    
+    // NEW: Function to restart from Stage 1 immediately on death
+    function restartGame() {
+        // Heal
+        const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+        player.hp = maxHp;
+        
+        // Reset Charge (Penalty for losing)
+        player.charge = 0;
+
+        // Reset to Stage 1
+        battle.stage = 1;
+        
+        document.getElementById('battle-menu').style.display = 'none';
+        if(battle.autoTimerId) clearTimeout(battle.autoTimerId);
+        
+        startBattle();
+    }
 
     async function startBattle() {
         stopCombat(); 
         battle.active = true;
-        player.charge = 0;
+        
+        // NOTE: removed player.charge = 0; to allow carry over between stages
+        
         document.getElementById('start-prompt').style.display = 'none';
         document.getElementById('battle-menu').style.display = 'none';
         document.getElementById('e-img').style.display = 'block';
@@ -875,6 +928,11 @@
     }
 
     function handleWin() {
+        // RESET TITLE & BUTTON STYLE (In case previous was defeat)
+        const tEl = document.getElementById('menu-title');
+        tEl.innerText = "STAGE CLEARED!";
+        tEl.style.color = "var(--dbz-yellow)";
+
         const xpGain = 100 * battle.stage * battle.world;
         const coinGain = 250;
         player.xp += xpGain; 
@@ -891,21 +949,11 @@
             dropText = "BASIC GEAR";
         }
         
-        // CHECK LEVEL UP
         if(player.xp >= player.nextXp) {
-            player.lvl++; 
-            player.xp -= player.nextXp; // FIX: overflow carry over
-            player.nextXp = Math.floor(player.nextXp * 1.2);
-            
-            // STAT GROWTH
-            player.bHp += 100;
-            player.bAtk += 10;
-            player.bDef += 5;
-
-            // HEAL ON LEVEL UP (Fixes the "Stat Drop" look)
+            player.lvl++; player.xp -= player.nextXp; player.nextXp = Math.floor(player.nextXp * 1.2);
+            player.bHp += 100; player.bAtk += 10; player.bDef += 5;
             const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
             player.hp = maxHp;
-            
             if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
         }
 
@@ -915,7 +963,6 @@
         document.getElementById('r-coins').innerText = coinGain;
         document.getElementById('r-drops').innerText = dropText;
 
-        // UPDATE XP BAR IN BATTLE MENU
         document.getElementById('r-lvl').innerText = player.lvl;
         document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(player.nextXp)}`;
         const xpPct = Math.min(100, (player.xp / player.nextXp) * 100);
@@ -923,23 +970,64 @@
 
         const menu = document.getElementById('battle-menu');
         menu.style.display = 'flex';
-        document.getElementById('menu-title').innerText = "STAGE CLEARED!";
+        
+        // Reset Button to NEXT STAGE
+        const btnNext = document.querySelector('#battle-menu .menu-btn:first-of-type');
+        btnNext.innerText = "NEXT STAGE (3)";
+        btnNext.onclick = autoStartNext; // Reset function
         
         let time = 3;
-        document.getElementById('auto-timer').innerText = time;
+        btnNext.innerText = `NEXT STAGE (${time})`;
         battle.autoTimerId = setInterval(() => {
             time--;
-            document.getElementById('auto-timer').innerText = time;
+            btnNext.innerText = `NEXT STAGE (${time})`;
             if(time <= 0) { clearInterval(battle.autoTimerId); autoStartNext(); }
         }, 1000);
     }
 
+    // UPDATED DEFEAT HANDLER
     function handleDefeat() {
-        alert("GOKU WAS DEFEATED!");
-        showTab('char');
+        stopCombat();
+        
+        // AUTO HEAL so player can restart immediately
         const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
-        player.hp = maxHp;
+        player.hp = maxHp; 
         syncUI();
+
+        // Change Title
+        const tEl = document.getElementById('menu-title');
+        tEl.innerText = "DEFEATED";
+        tEl.style.color = "#c0392b"; // Red
+
+        // Show Stats (No gains)
+        document.getElementById('r-lvl').innerText = player.lvl;
+        document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(player.nextXp)}`;
+        const xpPct = Math.min(100, (player.xp / player.nextXp) * 100);
+        document.getElementById('r-bar-xp').style.width = xpPct + "%";
+
+        document.getElementById('r-xp').innerText = "0";
+        document.getElementById('r-coins').innerText = "0";
+        document.getElementById('r-drops').innerText = "NONE";
+
+        // Update Buttons for Defeat
+        const btnNext = document.querySelector('#battle-menu .menu-btn:first-of-type');
+        btnNext.onclick = restartGame; // Change function
+        
+        let time = 5; // Longer time for defeat
+        btnNext.innerText = `RESTART (STAGE 1) (${time})`;
+        
+        // Show Menu
+        document.getElementById('battle-menu').style.display = 'flex';
+
+        // Auto restart timer
+        battle.autoTimerId = setInterval(() => {
+            time--;
+            btnNext.innerText = `RESTART (STAGE 1) (${time})`;
+            if(time <= 0) { 
+                clearInterval(battle.autoTimerId); 
+                restartGame(); 
+            }
+        }, 1000);
     }
 
     function updateBars() {
