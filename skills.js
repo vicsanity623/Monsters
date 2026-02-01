@@ -1,0 +1,1 @@
+// skill.js Handles all skill functions
