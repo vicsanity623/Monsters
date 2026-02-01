@@ -11,6 +11,9 @@
             --dbz-yellow: #FFD700;
             --dbz-blue: #0047AB;
             --bg-dark: #050505;
+            --rarity-common: #ffffff;
+            --rarity-rare: #00d2ff;
+            --rarity-legendary: #ff00ff;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -74,11 +77,19 @@
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(30,30,30,0.9); padding: 12px; border-radius: 10px; border: 1px solid #333; }
         .train-btn { background: #27ae60; border: none; color: white; padding: 6px 12px; border-radius: 4px; font-family: 'Bangers'; cursor: pointer; font-size: 1rem; }
+        .merge-btn { background: #8e44ad; border: none; color: white; padding: 6px 12px; border-radius: 4px; font-family: 'Bangers'; cursor: pointer; font-size: 1rem; margin-left: 5px;}
 
-        .bar-wrap { width: 100%; background: #222; height: 15px; border-radius: 8px; margin: 5px 0; overflow: hidden; border: 1px solid #444; }
+        .bar-wrap { width: 100%; background: #222; height: 15px; border-radius: 8px; margin: 5px 0; overflow: hidden; border: 1px solid #444; position: relative;}
         .bar-fill { height: 100%; width: 0%; transition: width 0.3s ease-in-out; }
         .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
         .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
+        /* Charged Attack Meter Style */
+        .charge-f { background: linear-gradient(to right, #FFD700, #ff8c00); box-shadow: 0 0 10px #FFD700; }
+
+        /* Inventory Item Rarities */
+        .item-basic { color: var(--rarity-common); border-color: #555 !important; }
+        .item-rare { color: var(--rarity-rare); border-color: var(--rarity-rare) !important; box-shadow: inset 0 0 5px var(--rarity-rare); }
+        .item-legendary { color: var(--rarity-legendary); border-color: var(--rarity-legendary) !important; box-shadow: inset 0 0 8px var(--rarity-legendary); }
 
         /* --- BATTLE SCREEN --- */
         #view-battle { 
@@ -139,6 +150,26 @@
             font-family: 'Bangers'; font-size: 4rem; color: var(--dbz-yellow);
             text-shadow: 4px 4px black; z-index: 100; display: none;
         }
+
+        /* Post Battle Menu */
+        #battle-menu {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 50;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .menu-btn {
+            background: var(--dbz-orange); border: 2px solid white; color: white;
+            padding: 15px 30px; font-family: 'Bangers'; font-size: 1.5rem;
+            margin: 10px; cursor: pointer; width: 80%;
+        }
+        .menu-btn.exit { background: #c0392b; }
+        
+        /* Start Prompt */
+        #start-prompt {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-family: 'Bangers'; font-size: 2rem; color: white; text-align: center;
+            text-shadow: 2px 2px black; z-index: 5; display: none;
+        }
     </style>
 </head>
 <body onload="initGame()">
@@ -180,34 +211,53 @@
             </div>
             <div style="text-align:right;">
                 <div style="color:gold; font-family:'Bangers'; font-size:1.6rem;">COINS: <span id="ui-coins">0</span></div>
-                <button class="train-btn" style="background:var(--dbz-orange); margin-top:5px;" onclick="doEquip()">EQUIP GEAR</button>
+                <div style="margin-top:5px;">
+                    <button id="btn-merge" class="merge-btn" style="display:none;" onclick="mergeItems()">MERGE (3)</button>
+                    <button class="train-btn" style="background:var(--dbz-orange);" onclick="doEquip()">EQUIP</button>
+                </div>
             </div>
         </div>
         <div id="inv-grid" style="display:grid; grid-template-columns: repeat(4,1fr); gap:5px; margin-top:10px; height: 60px; overflow-y:auto;"></div>
+        <div style="text-align:center; font-size:0.7rem; color:#666; margin-top:5px;">Merge 3 identical items to increase Rarity!</div>
     </div>
 
     <!-- BATTLE SCREEN -->
     <div id="view-battle" class="screen">
         <div class="battle-overlay"></div>
         
+        <!-- Post Battle Menu -->
+        <div id="battle-menu">
+            <div id="menu-title" style="color:var(--dbz-yellow); font-family:'Bangers'; font-size:3rem; margin-bottom:20px;">VICTORY!</div>
+            <button class="menu-btn" onclick="autoStartNext()">NEXT STAGE (<span id="auto-timer">3</span>)</button>
+            <button class="menu-btn exit" onclick="exitBattle()">EXIT</button>
+        </div>
+
         <!-- STAGE SELECTOR -->
         <div class="stage-selector" id="ui-stage-selector">
             <!-- Populated by JS -->
         </div>
 
+        <div id="start-prompt">SELECT A STAGE<br>TO BEGIN FIGHT!</div>
+
         <div class="arena">
             <div id="fx-beam" class="beam"></div>
             
             <div class="unit" id="p-box">
-                <div class="bar-wrap" style="height:10px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
+                <!-- HP -->
+                <div class="bar-wrap" style="height:10px; margin-bottom: 2px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
+                <!-- CHARGE METER -->
+                <div class="bar-wrap" style="height:6px; border-color: gold; margin-top:0;">
+                    <div id="btl-p-charge" class="bar-fill charge-f" style="width:0%"></div>
+                </div>
+                
                 <img id="btl-p-sprite" src="IMG_0054.png" style="transform: scaleX(-1);">
                 <div style="font-family:'Bangers'; font-size:1rem; margin-top:5px;">GOKU</div>
             </div>
 
             <div class="unit" id="e-box">
                 <div class="bar-wrap" style="height:10px;"><div id="btl-e-hp" class="bar-fill hp-f" style="width:100%"></div></div>
-                <img id="e-img" src="">
-                <div id="e-name" style="font-family:'Bangers'; font-size:1rem; margin-top:5px; color:red; text-shadow: 1px 1px black;">...</div>
+                <img id="e-img" src="" style="display:none;"> <!-- Hidden initially -->
+                <div id="e-name" style="font-family:'Bangers'; font-size:1rem; margin-top:5px; color:red; text-shadow: 1px 1px black;"></div>
             </div>
         </div>
 
@@ -223,7 +273,7 @@
     let apiData = { characters: [], planets: [] };
     let player = {
         lvl: 1, rank: 0, xp: 0, nextXp: 100, coins: 500,
-        bAtk: 40, bDef: 25, bHp: 500, hp: 500,
+        bAtk: 40, bDef: 25, bHp: 500, hp: 500, charge: 0,
         inv: [], gear: { w: null, a: null }, selected: -1
     };
     let battle = { 
@@ -232,7 +282,8 @@
         maxStage: 1, 
         active: false, 
         enemy: null,
-        isTransitioning: false 
+        isTransitioning: false,
+        autoTimerId: null
     };
 
     async function initGame() {
@@ -259,9 +310,20 @@
         document.getElementById('tab-' + t).classList.add('active');
         
         if(t === 'battle') {
-            if(!battle.active) startBattle(); 
+            // Do NOT auto start. Show prompt if not active.
+            if(!battle.active) {
+                document.getElementById('start-prompt').style.display = 'block';
+                document.getElementById('e-img').style.display = 'none'; // hide enemy
+                document.getElementById('e-name').innerText = "";
+            }
         } else {
-            battle.active = false; 
+            // Leaving battle tab pauses/exits
+            if(battle.active) {
+                battle.active = false; // Pause battle logic
+                document.getElementById('log').innerHTML += `<div style="color:orange">> Paused.</div>`;
+            }
+            if(battle.autoTimerId) clearTimeout(battle.autoTimerId);
+            document.getElementById('battle-menu').style.display = 'none';
         }
         syncUI();
     }
@@ -290,14 +352,80 @@
         
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
+        
+        // Check for merge capability
+        let mergeBtn = document.getElementById('btn-merge');
+        mergeBtn.style.display = 'none';
+
         player.inv.forEach((item, i) => {
             const d = document.createElement('div');
-            d.style.cssText = "background:#222; border:1px solid #444; padding:5px; font-size:0.6rem; text-align:center; border-radius:3px;";
-            if(player.selected === i) d.style.borderColor = "var(--dbz-yellow)";
-            d.innerText = item.n;
-            d.onclick = () => { player.selected = i; syncUI(); };
+            // Add Rarity Class
+            let rClass = 'item-basic';
+            if(item.rarity === 2) rClass = 'item-rare';
+            if(item.rarity === 3) rClass = 'item-legendary';
+            
+            d.className = rClass;
+            d.style.cssText = "background:#222; border:1px solid; padding:5px; font-size:0.6rem; text-align:center; border-radius:3px;";
+            
+            if(player.selected === i) d.style.borderColor = "var(--dbz-yellow)"; // Highlight selection
+            
+            // Show Rarity Name
+            let rName = item.rarity === 3 ? " [L]" : (item.rarity === 2 ? " [R]" : "");
+            d.innerText = item.n + rName;
+            
+            d.onclick = () => { 
+                player.selected = i; 
+                syncUI(); 
+            };
             grid.appendChild(d);
         });
+
+        // Merge Logic Check
+        if(player.selected !== -1) {
+            const sItem = player.inv[player.selected];
+            const count = player.inv.filter(x => x.n === sItem.n && x.type === sItem.type && x.rarity === sItem.rarity).length;
+            if(count >= 3 && sItem.rarity < 3) {
+                mergeBtn.style.display = 'inline-block';
+                mergeBtn.innerText = `MERGE (3) $${sItem.rarity * 500}`;
+            }
+        }
+    }
+
+    function mergeItems() {
+        if(player.selected === -1) return;
+        const sItem = player.inv[player.selected];
+        const cost = sItem.rarity * 500;
+        
+        if(player.coins < cost) { alert("Not enough coins!"); return; }
+
+        // Find 3 indices to remove
+        let toRemove = [];
+        player.inv.forEach((item, idx) => {
+            if(toRemove.length < 3 && item.n === sItem.n && item.type === sItem.type && item.rarity === sItem.rarity) {
+                toRemove.push(idx);
+            }
+        });
+
+        if(toRemove.length === 3) {
+            player.coins -= cost;
+            // Remove items (sort desc to remove safely)
+            toRemove.sort((a,b) => b-a).forEach(idx => player.inv.splice(idx, 1));
+            
+            // Add upgraded item
+            const newRarity = sItem.rarity + 1;
+            // Boost value: Rare = 2x, Legendary = 5x
+            let mult = (newRarity === 2) ? 2 : 2.5; 
+            const newVal = Math.floor(sItem.val * mult);
+            
+            player.inv.push({
+                n: sItem.n, 
+                type: sItem.type, 
+                val: newVal, 
+                rarity: newRarity
+            });
+            player.selected = -1;
+            syncUI();
+        }
     }
 
     function train(s) {
@@ -328,9 +456,14 @@
             dot.className = `stage-dot ${i > battle.maxStage ? 'locked' : ''} ${i === battle.stage ? 'active' : ''}`;
             dot.innerText = i;
             dot.onclick = () => {
-                if(i <= battle.maxStage && !battle.isTransitioning) {
+                // Allow switching if unlocked
+                if(i <= battle.maxStage) {
                     battle.stage = i;
-                    battle.active = false;
+                    // Reset menu if open
+                    document.getElementById('battle-menu').style.display = 'none';
+                    if(battle.autoTimerId) clearTimeout(battle.autoTimerId);
+                    
+                    // Manually start battle
                     startBattle();
                 }
             };
@@ -338,13 +471,44 @@
         }
     }
 
+    function exitBattle() {
+        document.getElementById('battle-menu').style.display = 'none';
+        if(battle.autoTimerId) clearTimeout(battle.autoTimerId);
+        showTab('char');
+    }
+
+    function autoStartNext() {
+        document.getElementById('battle-menu').style.display = 'none';
+        if(battle.autoTimerId) clearTimeout(battle.autoTimerId);
+        
+        // Progression logic
+        if(battle.stage === battle.maxStage && battle.maxStage < 20) {
+            battle.maxStage++;
+            battle.stage++;
+        } else if(battle.stage === 20) {
+            battle.stage = 1;
+            battle.world++;
+            battle.maxStage = 1;
+        } else if (battle.stage < battle.maxStage) {
+             battle.stage++;
+        }
+        
+        startBattle();
+    }
+
     async function startBattle() {
+        // Reset state
         battle.active = true;
         battle.isTransitioning = true;
+        player.charge = 0; // Reset charge
+        document.getElementById('start-prompt').style.display = 'none';
+        document.getElementById('battle-menu').style.display = 'none';
+        document.getElementById('e-img').style.display = 'block';
+
         const log = document.getElementById('log');
         log.innerHTML = `Stage ${battle.stage}: Finding guardian...`;
         
-        buildStageSelector();
+        buildStageSelector(); // Update active dot
 
         if(apiData.planets.length > 0) {
             const pIdx = (battle.world - 1) % apiData.planets.length;
@@ -352,6 +516,7 @@
         }
 
         spawnPersistentEnemy();
+        updateBars();
         
         const banner = document.getElementById('ready-msg');
         banner.style.display = "block";
@@ -368,9 +533,6 @@
 
     function spawnPersistentEnemy() {
         const scale = Math.pow(1.8, battle.stage) * Math.pow(25, battle.world - 1);
-        
-        // PERSISTENCE LOGIC: 
-        // Use a fixed index based on the stage number so it's always the same for that stage.
         const charIdx = (battle.stage + (battle.world * 3)) % apiData.characters.length;
         let dat = apiData.characters[charIdx] || {name:"Guardian", image:""};
         
@@ -378,14 +540,19 @@
         
         document.getElementById('e-img').src = battle.enemy.i;
         document.getElementById('e-name').innerText = battle.enemy.name;
-        updateBars();
     }
 
     async function battleLoop() {
         if(!battle.active || battle.isTransitioning) return;
         
         // Goku Turn
-        if(Math.random() < 0.2) await executeSpecial(); else executeStrike('p');
+        // Check Charge for Special
+        if(player.charge >= 100) {
+            await executeSpecial();
+        } else {
+            executeStrike('p');
+        }
+        
         if(battle.enemy.hp <= 0) { handleWin(); return; }
 
         await new Promise(r => setTimeout(r, 1000));
@@ -404,6 +571,11 @@
         const target = isP ? battle.enemy : player;
         const targetId = isP ? 'e-box' : 'p-box';
         
+        // Charge Logic: Both dealing and taking damage charges the meter
+        if(isP) player.charge += 15; // Hit
+        else player.charge += 10;    // Get Hit
+        if(player.charge > 100) player.charge = 100;
+
         const dmg = Math.floor(atkVal * (0.8 + Math.random() * 0.4));
         target.hp -= dmg;
         popDamage(dmg, targetId);
@@ -420,6 +592,9 @@
         const move = (player.rank >= 1) ? "SUPER KAMEHAMEHA!!!" : "KAIOKEN X4!!!";
         log.innerHTML = `<div style="color:var(--dbz-yellow)">> ${move}</div>` + log.innerHTML;
         
+        player.charge = 0; // Reset Charge
+        updateBars();
+
         beam.style.width = "320px";
         
         await new Promise(r => setTimeout(r, 600));
@@ -439,7 +614,13 @@
         document.getElementById('log').innerHTML = `<div style="color:cyan">> VICTORY! +${xpGain} XP</div>` + document.getElementById('log').innerHTML;
         
         if(Math.random() < 0.35) {
-            player.inv.push({n: "Saiyan Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 700 * battle.world});
+            // Drop Basic Item (Rarity 1)
+            player.inv.push({
+                n: "Saiyan Gear", 
+                type: Math.random() > 0.5 ? 'w' : 'a', 
+                val: 700 * battle.world,
+                rarity: 1 
+            });
         }
         
         // Check Level up
@@ -450,26 +631,24 @@
             if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
         }
 
-        // Logic for progression
-        if(battle.stage === battle.maxStage && battle.maxStage < 20) {
-            battle.maxStage++;
-            battle.stage++;
-        } else if(battle.stage === 20) {
-            battle.stage = 1;
-            battle.world++;
-            battle.maxStage = 1; // Reset progression for new harder world
-        } else {
-            // Replay mode - just stay on current stage or auto-advance if not max
-            if(battle.stage < battle.maxStage) battle.stage++;
-        }
-
         syncUI();
-
-        setTimeout(() => {
-            if(document.getElementById('view-battle').classList.contains('active-screen')) {
-                startBattle();
+        
+        // Show Post Battle Menu
+        const menu = document.getElementById('battle-menu');
+        menu.style.display = 'flex';
+        document.getElementById('menu-title').innerText = "STAGE CLEARED!";
+        
+        // Auto Start Timer
+        let time = 3;
+        document.getElementById('auto-timer').innerText = time;
+        battle.autoTimerId = setInterval(() => {
+            time--;
+            document.getElementById('auto-timer').innerText = time;
+            if(time <= 0) {
+                clearInterval(battle.autoTimerId);
+                autoStartNext();
             }
-        }, 1200);
+        }, 1000);
     }
 
     function handleDefeat() {
@@ -486,6 +665,8 @@
         const m = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
         document.getElementById('btl-p-hp').style.width = Math.max(0, (player.hp / m * 100)) + "%";
         document.getElementById('btl-e-hp').style.width = Math.max(0, (battle.enemy.hp / battle.enemy.maxHp * 100)) + "%";
+        // Update Charge bar
+        document.getElementById('btl-p-charge').style.width = player.charge + "%";
     }
 
     function popDamage(dmg, id) {
