@@ -521,11 +521,14 @@
         const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
         const atk = player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0);
         
+        // FIXED: Now correctly adds gear armor value to defense stat
+        const def = player.bDef + (player.rank * 150) + (player.gear.a?.val || 0);
+
         document.getElementById('ui-rank-badge').innerText = RANKS[player.rank].substring(0,2);
         document.getElementById('ui-name').innerText = player.rank > 0 ? "Goku " + RANKS[player.rank] : "Goku";
         document.getElementById('ui-lvl').innerText = player.lvl;
         document.getElementById('ui-atk').innerText = atk;
-        document.getElementById('ui-def').innerText = player.bDef + (player.rank * 150);
+        document.getElementById('ui-def').innerText = def;
         document.getElementById('ui-coins').innerText = player.coins;
         document.getElementById('ui-hp-txt').innerText = `${Math.floor(player.hp)}`;
         document.getElementById('ui-power').innerText = (atk * 30 + maxHp).toLocaleString();
