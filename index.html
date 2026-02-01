@@ -36,8 +36,6 @@
             overflow: hidden;
             height: 100vh;
             width: 100vw;
-            
-            /* FIX FOR IPHONE LAYOUT: Use Flex column to manage header height */
             display: flex;
             flex-direction: column;
         }
@@ -52,34 +50,29 @@
         .load-bar { width: 70%; height: 10px; border: 1px solid white; border-radius: 5px; margin: 20px 0; overflow: hidden; }
         .load-fill { height: 100%; width: 0%; background: var(--dbz-yellow); transition: width 0.2s; }
 
-        /* --- NAVIGATION (UPDATED FOR IPHONE NOTCH) --- */
+        /* --- NAVIGATION --- */
         nav {
             display: flex; 
             background: #111; 
             border-bottom: 3px solid var(--dbz-orange);
             width: 100%; 
             z-index: 1000;
-            flex-shrink: 0; /* Prevent nav from shrinking */
-            
-            /* ADD PADDING FOR NOTCH/STATUS BAR */
+            flex-shrink: 0; 
             padding-top: env(safe-area-inset-top);
-            padding-top: constant(safe-area-inset-top); /* Old iOS fallback */
-            
-            /* Allow height to grow based on safe area */
+            padding-top: constant(safe-area-inset-top);
             height: auto;
             min-height: 60px; 
         }
         nav button {
             flex: 1; background: transparent; border: none;
             color: #555; font-family: 'Bangers'; font-size: 1.4rem; cursor: pointer;
-            height: 60px; /* Ensure click target stays large */
+            height: 60px; 
         }
         nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
 
-        /* --- SCREEN WRAPPERS (UPDATED FOR FLEX) --- */
+        /* --- SCREEN WRAPPERS --- */
         .screen { 
             display: none; 
-            /* Fill remaining space after Nav */
             flex: 1;
             width: 100%;
             flex-direction: column; 
@@ -90,13 +83,12 @@
         }
         .active-screen { display: flex; }
 
-        /* --- GACHA HUB STYLES (NEW) --- */
+        /* --- GACHA HUB STYLES --- */
         #view-char {
             background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%);
             padding: 0;
         }
 
-        /* Top Overlay info */
         .hub-overlay {
             position: absolute; top: 10px; left: 10px; z-index: 10;
             display: flex; align-items: flex-start; gap: 10px;
@@ -114,7 +106,6 @@
             border: 1px solid var(--dbz-orange); font-size: 0.9rem; color: white; display: flex; align-items: center; gap: 5px;
         }
 
-        /* Right Side Actions */
         .side-menu {
             position: absolute; top: 80px; right: 10px; z-index: 10;
             display: flex; flex-direction: column; gap: 15px;
@@ -126,7 +117,6 @@
         }
         .side-btn i { font-size: 1.2rem; margin-bottom: 2px; }
 
-        /* Main Sprite Area */
         .gacha-view { 
             flex: 1; position: relative; display: flex; justify-content: center; align-items: center; 
             margin-top: 10px; min-height: 300px;
@@ -140,7 +130,6 @@
         @keyframes auraPulse { from { transform: scale(1); opacity: 0.4; } to { transform: scale(1.2); opacity: 0.8; } }
         .main-sprite { height: 90%; z-index: 2; filter: drop-shadow(0 0 15px rgba(0,0,0,0.8)); transition: transform 0.3s; }
 
-        /* Bottom White Panel */
         .bottom-panel {
             background: #eef2f5; 
             border-top-left-radius: 25px; border-top-right-radius: 25px;
@@ -150,7 +139,6 @@
             min-height: 320px;
         }
 
-        /* Stats Row */
         .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .lvl-badge { 
             background: #6c5ce7; color: white; padding: 5px 10px; border-radius: 8px; 
@@ -166,7 +154,6 @@
         .stat-row { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 0.9rem; color: #555; }
         .stat-icon { width: 20px; text-align: center; }
 
-        /* Equip Slots Visuals */
         .equip-slots { display: flex; gap: 10px; justify-content: flex-end; flex: 1.5; }
         .slot-box {
             width: 50px; height: 50px; background: #dfe6e9; border: 2px solid #b2bec3;
@@ -177,7 +164,6 @@
         .slot-filled img { width: 80%; height: 80%; object-fit: contain; }
         .slot-label { position: absolute; bottom: 1px; right: 2px; font-size: 0.5rem; color: #777; font-family: sans-serif; }
 
-        /* Big Action Button */
         .action-btn {
             width: 100%; background: linear-gradient(to bottom, #f1c40f, #f39c12);
             border: none; border-radius: 12px; height: 50px;
@@ -188,7 +174,6 @@
         }
         .action-btn:active { transform: translateY(4px); box-shadow: none; }
 
-        /* Inventory Scroll Area */
         .inv-scroll {
             background: #dfe6e9; border-radius: 10px; padding: 8px;
             height: 80px; overflow-y: hidden; overflow-x: auto;
@@ -204,7 +189,6 @@
         }
         .inv-item.selected { border-color: var(--dbz-orange); box-shadow: 0 0 5px var(--dbz-orange); }
 
-        /* Bottom Nav Icons */
         .bot-nav { display: flex; justify-content: space-around; margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px; }
         .nav-icon { 
             display: flex; flex-direction: column; align-items: center; color: #777; 
@@ -215,9 +199,9 @@
             display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 1.2rem;
         }
 
-        /* --- BATTLE SCREEN & OTHERS (Existing) --- */
+        /* --- BATTLE SCREEN --- */
         .bar-wrap { width: 100%; background: #222; height: 15px; border-radius: 8px; margin: 5px 0; overflow: hidden; border: 1px solid #444; position: relative;}
-        .bar-fill { height: 100%; width: 0%; transition: width 0.3s ease-in-out; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.1s linear; } /* Faster transition for RT battle */
         .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
         .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
         .charge-f { background: linear-gradient(to right, #FFD700, #ff8c00); box-shadow: 0 0 10px #FFD700; }
@@ -233,20 +217,38 @@
         .stage-dot.active { background: var(--dbz-orange); color: white; border-color: white; }
         .stage-dot.locked { opacity: 0.3; cursor: default; }
         .arena { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; z-index: 1; gap: 30px; }
-        .unit { width: 140px; display: flex; flex-direction: column; align-items: center; position: relative; }
+        
+        .unit { width: 140px; display: flex; flex-direction: column; align-items: center; position: relative; transition: transform 0.05s; }
         .unit img { width: 100%; max-height: 160px; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0,0,0,0.8)); transition: transform 0.1s; }
         
-        /* Death Animation */
-        .dead-anim { animation: dissolve 1s forwards; }
+        .dead-anim { animation: dissolve 0.5s forwards; }
         @keyframes dissolve {
             0% { opacity: 1; filter: grayscale(0%); transform: scale(1); }
             100% { opacity: 0; filter: grayscale(100%); transform: scale(0.8); }
         }
 
-        .beam { position: absolute; height: 60px; background: linear-gradient(to bottom, #fff, #00d2ff, #fff); width: 0; left: 50%; top: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 50px #00d2ff; z-index: 10; border-radius: 30px; pointer-events: none; }
-        .pop { position: absolute; color: yellow; font-family: 'Bangers'; font-size: 2.2rem; animation: popUp 0.7s forwards; z-index: 20; text-shadow: 2px 2px black; }
-        @keyframes popUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-80px); } }
+        .beam { position: absolute; height: 80px; background: linear-gradient(to bottom, #fff, #00d2ff, #fff); width: 0; left: 50%; top: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 50px #00d2ff; z-index: 10; border-radius: 40px; pointer-events: none; transition: width 0.1s; }
+        
+        /* Updated Pop Text for Fast Paced */
+        .pop { 
+            position: absolute; 
+            color: yellow; 
+            font-family: 'Bangers'; 
+            font-size: 2rem; 
+            animation: popUp 0.6s forwards; 
+            z-index: 20; 
+            text-shadow: 2px 2px black; 
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        @keyframes popUp { 
+            0% { opacity: 1; transform: scale(0.5) translateY(0); } 
+            20% { transform: scale(1.5) translateY(-10px); }
+            100% { opacity: 0; transform: scale(1) translateY(-60px); } 
+        }
+
         #log { background: rgba(0,0,0,0.95); height: 120px; min-height: 120px; overflow-y: auto; padding: 10px; border-top: 3px solid var(--dbz-orange); font-size: 0.85rem; color: #00ff00; z-index: 5; }
+        
         .ready-banner { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'Bangers'; font-size: 4rem; color: var(--dbz-yellow); text-shadow: 4px 4px black; z-index: 100; display: none; }
         
         #battle-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 50; display: none; flex-direction: column; align-items: center; justify-content: center; }
@@ -254,7 +256,6 @@
         .menu-btn.exit { background: #c0392b; }
         #start-prompt { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'Bangers'; font-size: 2rem; color: white; text-align: center; text-shadow: 2px 2px black; z-index: 5; display: none; }
 
-        /* Rewards Box */
         .rewards-box {
             background: rgba(0,0,0,0.5);
             border: 1px solid #555;
@@ -284,8 +285,6 @@
 
     <!-- GACHA STYLE HUB SCREEN -->
     <div id="view-char" class="screen active-screen">
-        
-        <!-- Header Info -->
         <div class="hub-overlay">
             <div class="rank-badge" id="ui-rank-badge">B</div>
             <div class="info-stack">
@@ -294,7 +293,6 @@
             </div>
         </div>
 
-        <!-- Right Side Menu (Visual) -->
         <div class="side-menu">
             <div class="side-btn" onclick="alert('Coming soon!')">
                 <i>📜</i> Strategy
@@ -307,13 +305,11 @@
             </div>
         </div>
 
-        <!-- Sprite Area -->
         <div class="gacha-view">
             <div id="ui-aura" class="aura"></div>
             <img id="ui-sprite" src="IMG_0054.png" class="main-sprite">
         </div>
 
-        <!-- Bottom Stats & Control Panel -->
         <div class="bottom-panel">
             <div class="panel-header">
                 <div class="lvl-badge">LV <span id="ui-lvl">1</span></div>
@@ -325,14 +321,12 @@
             </div>
 
             <div class="stats-container">
-                <!-- Stats -->
                 <div class="stats-col">
                     <div class="stat-row"><span class="stat-icon">❤️</span> <span id="ui-hp-txt">500</span></div>
                     <div class="stat-row"><span class="stat-icon">⚔️</span> <span id="ui-atk">40</span> <small style="color:#27ae60; cursor:pointer;" onclick="train('atk')">[+]</small></div>
                     <div class="stat-row"><span class="stat-icon">🛡️</span> <span id="ui-def">25</span> <small style="color:#27ae60; cursor:pointer;" onclick="train('def')">[+]</small></div>
                 </div>
 
-                <!-- Equip Slots (Visual) -->
                 <div class="equip-slots">
                     <div class="slot-box" id="slot-w">
                         <span>⚔️</span>
@@ -345,7 +339,6 @@
                 </div>
             </div>
 
-            <!-- Big Main Button -->
             <button class="action-btn" id="btn-action" onclick="doEquip()">
                 <span>EQUIP SELECTED</span>
             </button>
@@ -353,14 +346,12 @@
                 <span>MERGE (3)</span>
             </button>
 
-            <!-- Inventory Grid (Horizontal Scroll) -->
             <div style="font-size:0.75rem; color:#777; margin-bottom:5px; display:flex; justify-content:space-between;">
                 <span>GEAR INVENTORY</span>
                 <span style="font-size:0.7rem;">Tap to Select</span>
             </div>
             <div id="inv-grid" class="inv-scroll"></div>
 
-            <!-- Bottom Nav (Visual) -->
             <div class="bot-nav">
                 <div class="nav-icon" onclick="train('atk')">
                     <div class="nav-circle" style="color:#e74c3c;">💪</div>
@@ -386,25 +377,18 @@
     <div id="view-battle" class="screen">
         <div class="battle-overlay"></div>
         
-        <!-- Post Battle Menu -->
         <div id="battle-menu">
             <div id="menu-title" style="color:var(--dbz-yellow); font-family:'Bangers'; font-size:3rem; margin-bottom:10px;">VICTORY!</div>
-            
-            <!-- Rewards Section -->
             <div class="rewards-box">
                 <div class="reward-row">XP GAINED: <span id="r-xp" class="reward-val">0</span></div>
                 <div class="reward-row">COINS: <span id="r-coins" class="reward-val">0</span></div>
                 <div class="reward-row">DROPS: <span id="r-drops" style="color:cyan; font-size:0.8rem;">NONE</span></div>
             </div>
-
             <button class="menu-btn" onclick="autoStartNext()">NEXT STAGE (<span id="auto-timer">3</span>)</button>
             <button class="menu-btn exit" onclick="exitBattle()">EXIT</button>
         </div>
 
-        <!-- STAGE SELECTOR -->
-        <div class="stage-selector" id="ui-stage-selector">
-            <!-- Populated by JS -->
-        </div>
+        <div class="stage-selector" id="ui-stage-selector"></div>
 
         <div id="start-prompt">SELECT A STAGE<br>TO BEGIN FIGHT!</div>
 
@@ -412,20 +396,18 @@
             <div id="fx-beam" class="beam"></div>
             
             <div class="unit" id="p-box">
-                <!-- HP -->
                 <div class="bar-wrap" style="height:10px; margin-bottom: 2px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
-                <!-- CHARGE METER -->
                 <div class="bar-wrap" style="height:6px; border-color: gold; margin-top:0;">
                     <div id="btl-p-charge" class="bar-fill charge-f" style="width:0%"></div>
                 </div>
-                
+                <!-- FIXED: Removed transform scaleX(-1) -->
                 <img id="btl-p-sprite" src="IMG_0054.png">
                 <div style="font-family:'Bangers'; font-size:1rem; margin-top:5px;">GOKU</div>
             </div>
 
             <div class="unit" id="e-box">
                 <div class="bar-wrap" style="height:10px;"><div id="btl-e-hp" class="bar-fill hp-f" style="width:100%"></div></div>
-                <img id="e-img" src="" style="display:none;"> <!-- Hidden initially -->
+                <img id="e-img" src="" style="display:none;">
                 <div id="e-name" style="font-family:'Bangers'; font-size:1rem; margin-top:5px; color:red; text-shadow: 1px 1px black;"></div>
             </div>
         </div>
@@ -434,12 +416,9 @@
     </div>
 
 <script>
-    // --- SERVICE WORKER REGISTRATION ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('SW registered!', reg))
-            .catch(err => console.log('SW failed', err));
+            navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed', err));
         });
     }
 
@@ -460,8 +439,10 @@
         maxStage: 1, 
         active: false, 
         enemy: null,
-        isTransitioning: false,
-        autoTimerId: null
+        autoTimerId: null,
+        // New timers for Real Time
+        pInterval: null,
+        eInterval: null
     };
 
     async function initGame() {
@@ -473,15 +454,13 @@
             const planJson = await planRes.json();
             apiData.planets = planJson.items;
             
-            // Auto-load here
             loadGame();
             
             document.getElementById('loader').style.display = 'none';
             syncUI();
             buildStageSelector();
             
-            // Start Auto-Save Interval
-            setInterval(saveGame, 30000); // 30 seconds
+            setInterval(saveGame, 30000);
             
         } catch (e) {
             console.error("API Error", e);
@@ -489,21 +468,14 @@
         }
     }
 
-    // Save Logic
     function saveGame() {
         const saveData = {
             player: player,
-            battle: {
-                stage: battle.stage,
-                world: battle.world,
-                maxStage: battle.maxStage
-            }
+            battle: { stage: battle.stage, world: battle.world, maxStage: battle.maxStage }
         };
         localStorage.setItem('dbz_gacha_save', JSON.stringify(saveData));
-        console.log('Game Saved: ' + new Date().toLocaleTimeString());
     }
 
-    // Load Logic
     function loadGame() {
         const saved = localStorage.getItem('dbz_gacha_save');
         if (saved) {
@@ -515,17 +487,11 @@
                     battle.world = parsed.battle.world || 1;
                     battle.maxStage = parsed.battle.maxStage || 1;
                 }
-                console.log('Game Loaded from Save');
-            } catch (e) {
-                console.error("Save file corrupted", e);
-            }
+            } catch (e) { console.error("Save file corrupted", e); }
         }
     }
 
-    // Save on exit
-    window.addEventListener('beforeunload', () => {
-        saveGame();
-    });
+    window.addEventListener('beforeunload', () => saveGame());
 
     function showTab(t) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
@@ -540,11 +506,7 @@
                 document.getElementById('e-name').innerText = "";
             }
         } else {
-            if(battle.active) {
-                battle.active = false;
-                document.getElementById('log').innerHTML += `<div style="color:orange">> Paused.</div>`;
-            }
-            if(battle.autoTimerId) clearTimeout(battle.autoTimerId);
+            stopCombat();
             document.getElementById('battle-menu').style.display = 'none';
         }
         syncUI();
@@ -559,7 +521,6 @@
         const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
         const atk = player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0);
         
-        // New Gacha UI Mappings
         document.getElementById('ui-rank-badge').innerText = RANKS[player.rank].substring(0,2);
         document.getElementById('ui-name').innerText = player.rank > 0 ? "Goku " + RANKS[player.rank] : "Goku";
         document.getElementById('ui-lvl').innerText = player.lvl;
@@ -572,42 +533,32 @@
         const xpPct = (player.xp / player.nextXp) * 100;
         document.getElementById('bar-xp').style.width = xpPct + "%";
         
-        // Render Inventory Grid
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
         
         let mergeBtn = document.getElementById('btn-merge');
         let equipBtn = document.getElementById('btn-action');
         mergeBtn.style.display = 'none';
-        equipBtn.style.display = 'flex'; // Default show equip
+        equipBtn.style.display = 'flex'; 
 
         player.inv.forEach((item, i) => {
             const d = document.createElement('div');
             let rClass = 'item-basic';
             if(item.rarity === 2) rClass = 'item-rare';
             if(item.rarity === 3) rClass = 'item-legendary';
-            
             d.className = `inv-item ${rClass} ${player.selected === i ? 'selected' : ''}`;
             let rName = item.rarity === 3 ? "L" : (item.rarity === 2 ? "R" : "B");
-            
             d.innerHTML = `<span>${item.type === 'w' ? '⚔️' : '🛡️'}</span><span>${rName}</span>`;
-            
-            d.onclick = () => { 
-                player.selected = i; 
-                syncUI(); 
-            };
+            d.onclick = () => { player.selected = i; syncUI(); };
             grid.appendChild(d);
         });
 
-        // Visual Slots Update
         updateVisualSlot('w', 'slot-w');
         updateVisualSlot('a', 'slot-a');
 
-        // Logic for Buttons
         if(player.selected !== -1) {
             const sItem = player.inv[player.selected];
             const count = player.inv.filter(x => x.n === sItem.n && x.type === sItem.type && x.rarity === sItem.rarity).length;
-            
             if(count >= 3 && sItem.rarity < 3) {
                 mergeBtn.style.display = 'flex';
                 equipBtn.style.display = 'none';
@@ -639,14 +590,11 @@
         if(player.selected === -1) return;
         const sItem = player.inv[player.selected];
         const cost = sItem.rarity * 500;
-        
         if(player.coins < cost) { alert("Not enough coins!"); return; }
 
         let toRemove = [];
         player.inv.forEach((item, idx) => {
-            if(toRemove.length < 3 && item.n === sItem.n && item.type === sItem.type && item.rarity === sItem.rarity) {
-                toRemove.push(idx);
-            }
+            if(toRemove.length < 3 && item.n === sItem.n && item.type === sItem.type && item.rarity === sItem.rarity) toRemove.push(idx);
         });
 
         if(toRemove.length === 3) {
@@ -682,7 +630,7 @@
         syncUI();
     }
 
-    // --- BATTLE SYSTEM ---
+    // --- REAL-TIME BATTLE SYSTEM ---
     function buildStageSelector() {
         const container = document.getElementById('ui-stage-selector');
         container.innerHTML = '';
@@ -700,6 +648,12 @@
             };
             container.appendChild(dot);
         }
+    }
+
+    function stopCombat() {
+        battle.active = false;
+        clearInterval(battle.pInterval);
+        clearInterval(battle.eInterval);
     }
 
     function exitBattle() {
@@ -726,13 +680,13 @@
     }
 
     async function startBattle() {
+        stopCombat(); // Clear old intervals
         battle.active = true;
-        battle.isTransitioning = true;
         player.charge = 0;
         document.getElementById('start-prompt').style.display = 'none';
         document.getElementById('battle-menu').style.display = 'none';
         document.getElementById('e-img').style.display = 'block';
-        document.getElementById('e-img').classList.remove('dead-anim'); // Reset Anim
+        document.getElementById('e-img').classList.remove('dead-anim');
 
         const log = document.getElementById('log');
         log.innerHTML = `Stage ${battle.stage}: Finding guardian...`;
@@ -752,12 +706,27 @@
         banner.innerText = "READY?";
         await new Promise(r => setTimeout(r, 1000));
         banner.innerText = "FIGHT!";
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 600));
         banner.style.display = "none";
         
-        log.innerHTML = `<div style="color:white">Battle Started: Stage ${battle.stage}</div>`;
-        battle.isTransitioning = false;
-        battleLoop();
+        log.innerHTML = `<div style="color:white">Battle Started!</div>`;
+        
+        // --- START REAL TIME LOOPS ---
+        // Player loop: attacks fast (~400ms)
+        battle.pInterval = setInterval(() => {
+            if(!battle.active) return;
+            if(player.charge >= 100) {
+                executeSpecial();
+            } else {
+                executeStrike('p');
+            }
+        }, 400);
+
+        // Enemy loop: attacks slightly slower (~500ms)
+        battle.eInterval = setInterval(() => {
+            if(!battle.active) return;
+            executeStrike('e');
+        }, 500);
     }
 
     function spawnPersistentEnemy() {
@@ -771,89 +740,69 @@
         document.getElementById('e-name').innerText = battle.enemy.name;
     }
 
-    async function battleLoop() {
-        if(!battle.active || battle.isTransitioning) return;
-        
-        if(player.charge >= 100) await executeSpecial(); else executeStrike('p');
-        
-        if(battle.enemy.hp <= 0) { 
-            // Win handled inside strike functions to allow animation
-            return; 
-        }
-
-        await new Promise(r => setTimeout(r, 1000));
-        if(!battle.active || battle.isTransitioning) return;
-
-        executeStrike('e');
-        if(player.hp <= 0) { handleDefeat(); return; }
-
-        setTimeout(battleLoop, 1200);
-    }
-
     function executeStrike(side) {
+        if(!battle.active) return;
+
         const isP = (side === 'p');
         const atkVal = isP ? (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) : battle.enemy.atk;
         const target = isP ? battle.enemy : player;
         const targetId = isP ? 'e-box' : 'p-box';
         
-        if(isP) player.charge += 15; else player.charge += 10;
+        if(isP) player.charge += 12; // Fast charging
         if(player.charge > 100) player.charge = 100;
 
-        const dmg = Math.floor(atkVal * (0.8 + Math.random() * 0.4));
+        // Damage Calculation with variance
+        const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
         target.hp -= dmg;
+        
         popDamage(dmg, targetId);
         updateBars();
         
-        const el = document.getElementById(isP ? 'p-box' : 'e-box');
-        el.style.transform = isP ? 'translateX(25px)' : 'translateX(-25px)';
-        setTimeout(() => el.style.transform = 'translateX(0)', 100);
+        // Short Shake Animation
+        const el = document.getElementById(isP ? 'p-box' : 'e-box'); // The attacker lunges
+        el.style.transform = isP ? 'translateX(30px)' : 'translateX(-30px)';
+        setTimeout(() => el.style.transform = 'translateX(0)', 50);
 
-        // CHECK LETHAL ON ENEMY
-        if(isP && battle.enemy.hp <= 0) {
-            battle.active = false; // Stop Loop
-            setTimeout(() => {
-                document.getElementById('e-img').classList.add('dead-anim');
-                setTimeout(handleWin, 1000); // Wait for dissolve
-            }, 600); // Wait for hit
+        // CHECK DEATH
+        if(battle.enemy.hp <= 0) {
+            stopCombat();
+            document.getElementById('e-img').classList.add('dead-anim');
+            setTimeout(handleWin, 600);
+        } else if(player.hp <= 0) {
+            stopCombat();
+            handleDefeat();
         }
     }
 
-    async function executeSpecial() {
+    function executeSpecial() {
+        if(!battle.active) return;
         const beam = document.getElementById('fx-beam');
-        const log = document.getElementById('log');
-        const move = (player.rank >= 1) ? "SUPER KAMEHAMEHA!!!" : "KAIOKEN X4!!!";
-        log.innerHTML = `<div style="color:var(--dbz-yellow)">> ${move}</div>` + log.innerHTML;
         
         player.charge = 0; updateBars();
-        beam.style.width = "320px";
+        beam.style.width = "320px"; // Instant beam
         
-        await new Promise(r => setTimeout(r, 600));
-        const dmg = (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) * 7;
+        const dmg = (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) * 6;
         battle.enemy.hp -= dmg;
-        popDamage(dmg, 'e-box');
+        popDamage(dmg, 'e-box', true); // true = crit/special style
         updateBars();
-        beam.style.width = "0";
 
-        // CHECK LETHAL
+        setTimeout(() => beam.style.width = "0", 200);
+
         if(battle.enemy.hp <= 0) {
-            battle.active = false; // Stop Loop
-            setTimeout(() => {
-                document.getElementById('e-img').classList.add('dead-anim');
-                setTimeout(handleWin, 1000); // Wait for dissolve
-            }, 600);
+            stopCombat();
+            document.getElementById('e-img').classList.add('dead-anim');
+            setTimeout(handleWin, 600);
         }
     }
 
     function handleWin() {
-        battle.active = false;
         const xpGain = 100 * battle.stage * battle.world;
         const coinGain = 250;
         player.xp += xpGain; 
         player.coins += coinGain;
         
-        document.getElementById('log').innerHTML = `<div style="color:cyan">> VICTORY! +${xpGain} XP</div>` + document.getElementById('log').innerHTML;
+        document.getElementById('log').innerHTML = `<div style="color:cyan">> WON! +${xpGain} XP</div>`;
         
-        // Item Drop Logic
         let dropText = "NONE";
         if(Math.random() < 0.35) {
             player.inv.push({
@@ -870,7 +819,6 @@
 
         syncUI();
         
-        // Populate Menu Info
         document.getElementById('r-xp').innerText = xpGain;
         document.getElementById('r-coins').innerText = coinGain;
         document.getElementById('r-drops').innerText = dropText;
@@ -889,7 +837,6 @@
     }
 
     function handleDefeat() {
-        battle.active = false;
         alert("GOKU WAS DEFEATED!");
         showTab('char');
         const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
@@ -904,11 +851,25 @@
         document.getElementById('btl-p-charge').style.width = player.charge + "%";
     }
 
-    function popDamage(dmg, id) {
+    function popDamage(dmg, id, isSpecial = false) {
         const d = document.createElement('div');
-        d.className = 'pop'; d.innerText = "-" + Math.floor(dmg);
+        d.className = 'pop';
+        d.innerText = "-" + Math.floor(dmg);
+        
+        if(isSpecial) {
+            d.style.color = 'cyan';
+            d.style.fontSize = '3rem';
+            d.style.zIndex = 30;
+        }
+
+        // Random offset for "Cloud" effect
+        const randomX = (Math.random() * 40) - 20; 
+        const randomY = (Math.random() * 40) - 20;
+        d.style.left = `calc(50% + ${randomX}px)`;
+        d.style.top = `calc(20% + ${randomY}px)`;
+
         document.getElementById(id).appendChild(d);
-        setTimeout(() => d.remove(), 700);
+        setTimeout(() => d.remove(), 600);
     }
 </script>
 </body>
