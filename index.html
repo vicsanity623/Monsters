@@ -22,6 +22,9 @@
             --rarity-common: #ffffff;
             --rarity-rare: #00d2ff;
             --rarity-legendary: #ff00ff;
+            --rarity-s: #e74c3c;
+            --rarity-ss: #f1c40f;
+            --rarity-sss: #00ffff;
             --panel-bg: #f0f0f0;
             --text-dark: #333;
         }
@@ -189,6 +192,16 @@
         }
         .inv-item.selected { border-color: var(--dbz-orange); box-shadow: 0 0 5px var(--dbz-orange); }
 
+        /* Inventory Stack Badge */
+        .qty-badge {
+            position: absolute; top: -5px; right: -5px;
+            background: #e74c3c; color: white; border: 1px solid white;
+            border-radius: 50%; width: 22px; height: 22px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; font-weight: bold; z-index: 10;
+            box-shadow: 1px 1px 3px black;
+        }
+
         .bot-nav { display: flex; justify-content: space-around; margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px; }
         .nav-icon { 
             display: flex; flex-direction: column; align-items: center; color: #777; 
@@ -201,14 +214,20 @@
 
         /* --- BATTLE SCREEN --- */
         .bar-wrap { width: 100%; background: #222; height: 15px; border-radius: 8px; margin: 5px 0; overflow: hidden; border: 1px solid #444; position: relative;}
-        .bar-fill { height: 100%; width: 0%; transition: width 0.1s linear; } /* Faster transition for RT battle */
+        .bar-fill { height: 100%; width: 0%; transition: width 0.1s linear; }
         .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
         .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
         .charge-f { background: linear-gradient(to right, #FFD700, #ff8c00); box-shadow: 0 0 10px #FFD700; }
 
+        /* RARITY STYLES */
         .item-basic { color: var(--rarity-common); border-color: #555 !important; }
         .item-rare { color: var(--rarity-rare); border-color: var(--rarity-rare) !important; box-shadow: inset 0 0 5px var(--rarity-rare); }
         .item-legendary { color: var(--rarity-legendary); border-color: var(--rarity-legendary) !important; box-shadow: inset 0 0 8px var(--rarity-legendary); }
+        .item-s { color: var(--rarity-s); border-color: var(--rarity-s) !important; box-shadow: inset 0 0 8px var(--rarity-s); }
+        .item-ss { color: var(--rarity-ss); border-color: var(--rarity-ss) !important; box-shadow: inset 0 0 10px var(--rarity-ss); }
+        .item-sss { color: var(--rarity-sss); border-color: var(--rarity-sss) !important; box-shadow: inset 0 0 15px var(--rarity-sss); animation: pulseSSS 1.5s infinite; }
+
+        @keyframes pulseSSS { 0% { box-shadow: inset 0 0 10px var(--rarity-sss); } 50% { box-shadow: inset 0 0 20px var(--rarity-sss), 0 0 10px var(--rarity-sss); } 100% { box-shadow: inset 0 0 10px var(--rarity-sss); } }
 
         #view-battle { background-size: cover; background-position: center; background-repeat: no-repeat; padding: 0; }
         .battle-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 0; }
@@ -229,7 +248,6 @@
 
         .beam { position: absolute; height: 80px; background: linear-gradient(to bottom, #fff, #00d2ff, #fff); width: 0; left: 50%; top: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 50px #00d2ff; z-index: 10; border-radius: 40px; pointer-events: none; transition: width 0.1s; }
         
-        /* Updated Pop Text for Fast Paced */
         .pop { 
             position: absolute; 
             color: yellow; 
@@ -400,7 +418,6 @@
                 <div class="bar-wrap" style="height:6px; border-color: gold; margin-top:0;">
                     <div id="btl-p-charge" class="bar-fill charge-f" style="width:0%"></div>
                 </div>
-                <!-- FIXED: Removed transform scaleX(-1) -->
                 <img id="btl-p-sprite" src="IMG_0054.png">
                 <div style="font-family:'Bangers'; font-size:1rem; margin-top:5px;">GOKU</div>
             </div>
@@ -424,8 +441,9 @@
 
     const API_BASE = "https://dragonball-api.com/api";
     const GOKU_BASE = "IMG_0061.png";
-    const GOKU_SSJ = "IMG_0081.png";
+    const GOKU_SSJ = "IMG_0062.png";
     const RANKS = ["BASE", "S", "SS", "SS2", "SS3", "SSG", "SSB", "UI", "MUI", "SSS", "SSS10"];
+    const RARITY_NAMES = {1:"B", 2:"R", 3:"L", 4:"S", 5:"SS", 6:"SSS"};
 
     let apiData = { characters: [], planets: [] };
     let player = {
@@ -440,7 +458,6 @@
         active: false, 
         enemy: null,
         autoTimerId: null,
-        // New timers for Real Time
         pInterval: null,
         eInterval: null
     };
@@ -487,6 +504,8 @@
                     battle.world = parsed.battle.world || 1;
                     battle.maxStage = parsed.battle.maxStage || 1;
                 }
+                // Backwards compatibility for stacking
+                player.inv.forEach(i => { if(!i.qty) i.qty = 1; });
             } catch (e) { console.error("Save file corrupted", e); }
         }
     }
@@ -512,6 +531,18 @@
         syncUI();
     }
 
+    // --- NEW INVENTORY LOGIC ---
+    function addToInventory(item) {
+        // Try to stack
+        const found = player.inv.find(i => i.n === item.n && i.type === item.type && i.val === item.val && i.rarity === item.rarity && i.qty < 99);
+        if(found) {
+            found.qty++;
+        } else {
+            item.qty = 1;
+            player.inv.push(item);
+        }
+    }
+
     function syncUI() {
         const sprite = (player.rank >= 1) ? GOKU_SSJ : GOKU_BASE;
         document.getElementById('ui-sprite').src = sprite;
@@ -520,8 +551,6 @@
         
         const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
         const atk = player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0);
-        
-        // FIXED: Now correctly adds gear armor value to defense stat
         const def = player.bDef + (player.rank * 150) + (player.gear.a?.val || 0);
 
         document.getElementById('ui-rank-badge').innerText = RANKS[player.rank].substring(0,2);
@@ -536,6 +565,7 @@
         const xpPct = (player.xp / player.nextXp) * 100;
         document.getElementById('bar-xp').style.width = xpPct + "%";
         
+        // RENDER INVENTORY
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
         
@@ -549,9 +579,16 @@
             let rClass = 'item-basic';
             if(item.rarity === 2) rClass = 'item-rare';
             if(item.rarity === 3) rClass = 'item-legendary';
+            if(item.rarity === 4) rClass = 'item-s';
+            if(item.rarity === 5) rClass = 'item-ss';
+            if(item.rarity === 6) rClass = 'item-sss';
+            
             d.className = `inv-item ${rClass} ${player.selected === i ? 'selected' : ''}`;
-            let rName = item.rarity === 3 ? "L" : (item.rarity === 2 ? "R" : "B");
-            d.innerHTML = `<span>${item.type === 'w' ? '⚔️' : '🛡️'}</span><span>${rName}</span>`;
+            let rName = RARITY_NAMES[item.rarity] || "B";
+            
+            let qtyHtml = item.qty > 1 ? `<div class="qty-badge">x${item.qty}</div>` : '';
+            
+            d.innerHTML = `<span>${item.type === 'w' ? '⚔️' : '🛡️'}</span><span>${rName}</span>${qtyHtml}`;
             d.onclick = () => { player.selected = i; syncUI(); };
             grid.appendChild(d);
         });
@@ -561,8 +598,16 @@
 
         if(player.selected !== -1) {
             const sItem = player.inv[player.selected];
-            const count = player.inv.filter(x => x.n === sItem.n && x.type === sItem.type && x.rarity === sItem.rarity).length;
-            if(count >= 3 && sItem.rarity < 3) {
+            
+            // Check count for merge (Stacks + other slots)
+            let totalCount = 0;
+            player.inv.forEach(i => {
+                if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) {
+                    totalCount += i.qty;
+                }
+            });
+
+            if(totalCount >= 3 && sItem.rarity < 6) {
                 mergeBtn.style.display = 'flex';
                 equipBtn.style.display = 'none';
                 mergeBtn.innerHTML = `<span>⬆️ MERGE (3) - $${sItem.rarity * 500}</span>`;
@@ -579,7 +624,13 @@
         const item = player.gear[type];
         if(item) {
             el.className = 'slot-box slot-filled';
-            let rColor = item.rarity === 3 ? '#ff00ff' : (item.rarity === 2 ? '#00d2ff' : '#333');
+            let rColor = '#333';
+            if(item.rarity === 2) rColor = '#00d2ff';
+            if(item.rarity === 3) rColor = '#ff00ff';
+            if(item.rarity === 4) rColor = '#e74c3c';
+            if(item.rarity === 5) rColor = '#f1c40f';
+            if(item.rarity === 6) rColor = '#00ffff';
+
             el.style.borderColor = rColor;
             el.innerHTML = `<span>${type === 'w' ? '⚔️' : '🛡️'}</span><div class="slot-label" style="color:${rColor}">${item.val}</div>`;
         } else {
@@ -593,20 +644,43 @@
         if(player.selected === -1) return;
         const sItem = player.inv[player.selected];
         const cost = sItem.rarity * 500;
+        
         if(player.coins < cost) { alert("Not enough coins!"); return; }
 
-        let toRemove = [];
-        player.inv.forEach((item, idx) => {
-            if(toRemove.length < 3 && item.n === sItem.n && item.type === sItem.type && item.rarity === sItem.rarity) toRemove.push(idx);
+        // Recalculate count
+        let totalCount = 0;
+        player.inv.forEach(i => {
+            if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) totalCount += i.qty;
         });
 
-        if(toRemove.length === 3) {
+        if(totalCount >= 3) {
             player.coins -= cost;
-            toRemove.sort((a,b) => b-a).forEach(idx => player.inv.splice(idx, 1));
+            
+            // Remove 3 items (decrement from stacks)
+            let needed = 3;
+            // Iterate backwards to safely remove from array if empty
+            for(let i = player.inv.length - 1; i >= 0; i--) {
+                if(needed <= 0) break;
+                let item = player.inv[i];
+                if(item.n === sItem.n && item.type === sItem.type && item.rarity === sItem.rarity) {
+                    if(item.qty >= needed) {
+                        item.qty -= needed;
+                        needed = 0;
+                        if(item.qty === 0) player.inv.splice(i, 1);
+                    } else {
+                        needed -= item.qty;
+                        player.inv.splice(i, 1);
+                    }
+                }
+            }
+
+            // Create new better item
             const newRarity = sItem.rarity + 1;
             let mult = (newRarity === 2) ? 2 : 2.5; 
             const newVal = Math.floor(sItem.val * mult);
-            player.inv.push({ n: sItem.n, type: sItem.type, val: newVal, rarity: newRarity });
+            
+            addToInventory({ n: sItem.n, type: sItem.type, val: newVal, rarity: newRarity });
+            
             player.selected = -1;
             syncUI();
         }
@@ -624,11 +698,34 @@
 
     function doEquip() {
         if(player.selected === -1) return;
-        const item = player.inv[player.selected];
-        const old = player.gear[item.type];
-        player.gear[item.type] = item;
-        player.inv.splice(player.selected, 1);
-        if(old) player.inv.push(old);
+        
+        const stackItem = player.inv[player.selected]; // This is the stack
+        
+        // Create a single instance to equip (clone basic props)
+        const itemToEquip = { 
+            n: stackItem.n, 
+            type: stackItem.type, 
+            val: stackItem.val, 
+            rarity: stackItem.rarity,
+            qty: 1 
+        };
+
+        const old = player.gear[stackItem.type]; // Currently equipped
+        
+        // Equip new
+        player.gear[stackItem.type] = itemToEquip;
+        
+        // Remove 1 from inventory stack
+        stackItem.qty--;
+        if(stackItem.qty <= 0) {
+            player.inv.splice(player.selected, 1);
+        }
+
+        // Put old gear back in inventory
+        if(old) {
+            addToInventory(old);
+        }
+
         player.selected = -1;
         syncUI();
     }
@@ -683,7 +780,7 @@
     }
 
     async function startBattle() {
-        stopCombat(); // Clear old intervals
+        stopCombat(); 
         battle.active = true;
         player.charge = 0;
         document.getElementById('start-prompt').style.display = 'none';
@@ -714,8 +811,6 @@
         
         log.innerHTML = `<div style="color:white">Battle Started!</div>`;
         
-        // --- START REAL TIME LOOPS ---
-        // Player loop: attacks fast (~400ms)
         battle.pInterval = setInterval(() => {
             if(!battle.active) return;
             if(player.charge >= 100) {
@@ -725,7 +820,6 @@
             }
         }, 400);
 
-        // Enemy loop: attacks slightly slower (~500ms)
         battle.eInterval = setInterval(() => {
             if(!battle.active) return;
             executeStrike('e');
@@ -751,22 +845,19 @@
         const target = isP ? battle.enemy : player;
         const targetId = isP ? 'e-box' : 'p-box';
         
-        if(isP) player.charge += 12; // Fast charging
+        if(isP) player.charge += 12; 
         if(player.charge > 100) player.charge = 100;
 
-        // Damage Calculation with variance
         const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
         target.hp -= dmg;
         
         popDamage(dmg, targetId);
         updateBars();
         
-        // Short Shake Animation
-        const el = document.getElementById(isP ? 'p-box' : 'e-box'); // The attacker lunges
+        const el = document.getElementById(isP ? 'p-box' : 'e-box');
         el.style.transform = isP ? 'translateX(30px)' : 'translateX(-30px)';
         setTimeout(() => el.style.transform = 'translateX(0)', 50);
 
-        // CHECK DEATH
         if(battle.enemy.hp <= 0) {
             stopCombat();
             document.getElementById('e-img').classList.add('dead-anim');
@@ -782,11 +873,11 @@
         const beam = document.getElementById('fx-beam');
         
         player.charge = 0; updateBars();
-        beam.style.width = "320px"; // Instant beam
+        beam.style.width = "320px";
         
         const dmg = (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) * 6;
         battle.enemy.hp -= dmg;
-        popDamage(dmg, 'e-box', true); // true = crit/special style
+        popDamage(dmg, 'e-box', true);
         updateBars();
 
         setTimeout(() => beam.style.width = "0", 200);
@@ -807,8 +898,9 @@
         document.getElementById('log').innerHTML = `<div style="color:cyan">> WON! +${xpGain} XP</div>`;
         
         let dropText = "NONE";
+        // Use helper to add stackable item
         if(Math.random() < 0.35) {
-            player.inv.push({
+            addToInventory({
                 n: "Saiyan Gear", type: Math.random() > 0.5 ? 'w' : 'a', 
                 val: 700 * battle.world, rarity: 1 
             });
@@ -865,7 +957,6 @@
             d.style.zIndex = 30;
         }
 
-        // Random offset for "Cloud" effect
         const randomX = (Math.random() * 40) - 20; 
         const randomY = (Math.random() * 40) - 20;
         d.style.left = `calc(50% + ${randomX}px)`;
