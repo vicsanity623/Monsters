@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Geo Horror GO - RPG Update</title>
+<title>Geo Horror GO - Ultimate Edition</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1a1a2e">
 
@@ -18,7 +18,7 @@ html,body { margin:0; height:100%; background:#050505; font-family:'Segoe UI', T
 /* HUD TOP */
 .hud-top {
     position: fixed; top: 0; left: 0; right: 0; padding: 10px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.95), transparent);
     z-index: 1000; display: flex; align-items: center; gap: 10px; pointer-events: none;
 }
 .player-avatar {
@@ -58,22 +58,31 @@ html,body { margin:0; height:100%; background:#050505; font-family:'Segoe UI', T
 }
 
 /* MODALS */
-.modal { position:fixed; inset:0; background:rgba(0,0,0,.95); display:none; flex-direction:column; color:#fff; z-index:2000; backdrop-filter: blur(5px); }
+.modal { position:fixed; inset:0; background:rgba(10,10,15,0.98); display:none; flex-direction:column; color:#fff; z-index:2000; backdrop-filter: blur(5px); }
 .modal.active { display:flex; }
 header { padding:15px; font-size:18px; font-weight:bold; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center; background:#111; }
-.modal-content { flex:1; overflow:auto; padding:15px; }
+.modal-content { flex:1; overflow:auto; padding:15px; position:relative; }
 
 /* ROSTER GRID */
 .roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; }
 .monster-card {
     background: #1c1c28; border: 1px solid #333; border-radius: 8px; padding: 5px;
     display: flex; flex-direction: column; align-items: center; text-align: center; font-size: 11px;
-    position: relative;
+    position: relative; transition: background 0.2s;
 }
-.monster-card.selected { border: 2px solid #ffd700; background: #333; }
+.monster-card:active { background: #333; }
 .monster-card img { width: 64px; height: 64px; }
 .hp-bar-mini { width: 100%; height: 4px; background: #333; margin-top: 2px; }
 .hp-fill-mini { height: 100%; background: #0f0; }
+
+/* DETAIL VIEW */
+.detail-view { display:none; flex-direction: column; align-items: center; text-align: center; height: 100%; }
+.detail-view.active { display:flex; }
+.detail-img { width: 150px; height: 150px; filter: drop-shadow(0 0 15px rgba(255,255,255,0.2)); }
+.stat-row { display: flex; justify-content: space-between; width: 100%; max-width: 300px; margin: 5px 0; border-bottom: 1px solid #333; padding-bottom: 5px; }
+.action-btn { width: 100%; max-width: 300px; padding: 12px; margin-top: 10px; border-radius: 8px; border: none; font-weight: bold; font-size: 14px; cursor: pointer; }
+.btn-power { background: #4CAF50; color: white; }
+.btn-evolve { background: linear-gradient(45deg, #FFD700, #FFA500); color: black; }
 
 /* CATCH SCREEN OVERLAY */
 .catch-screen {
@@ -109,7 +118,7 @@ header { padding:15px; font-size:18px; font-weight:bold; border-bottom:1px solid
         <img src="https://img.pokemondb.net/sprites/heartgold-soulsilver/normal/pikachu.png" alt="Player">
     </div>
     <div class="stats-container">
-        <div><b id="lvlDisplay">LVL 1</b> <span id="playerName">Trainer</span></div>
+        <div><b id="lvlDisplay">LVL 1</b> <span id="playerName">Ash</span></div>
         <div class="xp-bar-bg"><div class="xp-fill" id="xpFill"></div></div>
         <div style="font-size:11px; opacity:0.8; margin-top:2px;" id="statusText"></div>
     </div>
@@ -123,14 +132,14 @@ header { padding:15px; font-size:18px; font-weight:bold; border-bottom:1px solid
         <span style="font-size:24px">🏟️</span>
         <div style="margin-top:-5px">Build</div>
     </button>
-    <button class="game-btn" onclick="alert('Find Gyms to spin for balls!')">
+    <button class="game-btn" onclick="alert('Shop:\nCoins: ' + state.coins + '\nUse coins in Bag to upgrade Pokemon!')">
         <span>🛒</span> Shop
     </button>
 </div>
 
 <!-- CATCH SCREEN -->
 <div class="catch-screen" id="catchScreen">
-    <div style="color: #fff; margin-bottom: 20px;">
+    <div style="color: #fff; margin-bottom: 20px; text-align:center">
         <h2 id="catchName">Wild Pokemon</h2>
         <div style="font-size: 12px; opacity: 0.7;">Tap Pokemon to weaken!</div>
     </div>
@@ -156,31 +165,75 @@ header { padding:15px; font-size:18px; font-weight:bold; border-bottom:1px solid
 <!-- INVENTORY / SELECT MODAL -->
 <div class="modal" id="rosterModal">
     <header>
+        <button id="backBtn" style="visibility:hidden; background:transparent; border:none; color:white; font-size:20px" onclick="backToGrid()">❮</button>
         <span id="rosterTitle">Pokemon</span> 
         <button style="background:transparent; border:none; color:white; font-size:24px" onclick="closeAll()">×</button>
     </header>
-    <div class="modal-content roster-grid" id="rosterList"></div>
+    
+    <div class="modal-content">
+        <!-- GRID VIEW -->
+        <div id="rosterList" class="roster-grid"></div>
+        
+        <!-- DETAIL VIEW -->
+        <div id="detailView" class="detail-view">
+            <img id="detailImg" class="detail-img" src="">
+            <h2 id="detailName">Name</h2>
+            <div id="detailCp" style="color:#aaa; margin-bottom:15px">CP 100</div>
+            
+            <div class="stat-row">
+                <span>HP</span>
+                <span id="detailHp">100/100</span>
+            </div>
+            <div class="stat-row">
+                <span>Attack</span>
+                <span id="detailAtk">10</span>
+            </div>
+            <div class="stat-row">
+                <span>Defense</span>
+                <span id="detailDef">10</span>
+            </div>
+
+            <br>
+            <div style="font-size:12px; color:#ffd700">Balance: <span id="walletDisp">0</span> Coins</div>
+
+            <button class="action-btn btn-power" onclick="powerUp()">
+                Power Up <br><span style="font-size:10px; opacity:0.8" id="powerCost">Cost: 100</span>
+            </button>
+            
+            <button class="action-btn btn-evolve" onclick="evolve()">
+                Evolve <br><span style="font-size:10px; opacity:0.8">Cost: 500 Coins</span>
+            </button>
+        </div>
+    </div>
 </div>
 
 <script>
+/* =========================
+   POKEMON DATA
+========================= */
+const POKE_NAMES = [
+"Bulbasaur","Ivysaur","Venusaur","Charmander","Charmeleon","Charizard","Squirtle","Wartortle","Blastoise","Caterpie","Metapod","Butterfree","Weedle","Kakuna","Beedrill","Pidgey","Pidgeotto","Pidgeot","Rattata","Raticate","Spearow","Fearow","Ekans","Arbok","Pikachu","Raichu","Sandshrew","Sandslash","Nidoran♀","Nidorina","Nidoqueen","Nidoran♂","Nidorino","Nidoking","Clefairy","Clefable","Vulpix","Ninetales","Jigglypuff","Wigglytuff","Zubat","Golbat","Oddish","Gloom","Vileplume","Paras","Parasect","Venonat","Venomoth","Diglett","Dugtrio","Meowth","Persian","Psyduck","Golduck","Mankey","Primeape","Growlithe","Arcanine","Poliwag","Poliwhirl","Poliwrath","Abra","Kadabra","Alakazam","Machop","Machoke","Machamp","Bellsprout","Weepinbell","Victreebel","Tentacool","Tentacruel","Geodude","Graveler","Golem","Ponyta","Rapidash","Slowpoke","Slowbro","Magnemite","Magneton","Farfetch'd","Doduo","Dodrio","Seel","Dewgong","Grimer","Muk","Shellder","Cloyster","Gastly","Haunter","Gengar","Onix","Drowzee","Hypno","Krabby","Kingler","Voltorb","Electrode","Exeggcute","Exeggutor","Cubone","Marowak","Hitmonlee","Hitmonchan","Lickitung","Koffing","Weezing","Rhyhorn","Rhydon","Chansey","Tangela","Kangaskhan","Horsea","Seadra","Goldeen","Seaking","Staryu","Starmie","Mr. Mime","Scyther","Jynx","Electabuzz","Magmar","Pinsir","Tauros","Magikarp","Gyarados","Lapras","Ditto","Eevee","Vaporeon","Jolteon","Flareon","Porygon","Omanyte","Omastar","Kabuto","Kabutops","Aerodactyl","Snorlax","Articuno","Zapdos","Moltres","Dratini","Dragonair","Dragonite","Mewtwo","Mew"
+];
+
 /* =========================
    GAME CONFIG & STATE
 ========================= */
 const state = JSON.parse(localStorage.getItem('state')) || {
     xp: 0, level: 1, maxXp: 500,
-    balls: 50, coins: 0,
+    balls: 50, coins: 100, // Starting coins
     monsters: [],
-    gyms: [], // { lat, lng, defender: {monsterObj}, lastSpin: timestamp }
+    gyms: [], 
     pathSegments: {},
     lastLogin: null
 };
 
-// Runtime variables
+// Runtime
 let map, playerMarker, lastPos = null;
 let pathLayerGroup = L.layerGroup();
 let wildSpawnsLayer = L.layerGroup();
-let activeWildMon = null; // Currently encountered pokemon
-let selectedGymIndex = -1; // Currently interacting gym
+let activeWildMon = null; 
+let selectedGymIndex = -1; 
+let selectedMonIndex = -1;
 let mode = 'view'; // 'view', 'select-defender', 'select-attacker'
 
 /* =========================
@@ -220,7 +273,8 @@ function startGPS(){
         if(lastPos) processPath(lastPos, latlng);
         lastPos = latlng;
 
-        if(Math.random() > 0.85) spawnWild(latlng[0], latlng[1]);
+        // SPAWN LOGIC: 5% chance per update (Reduced from 15%)
+        if(Math.random() > 0.95) attemptSpawn(latlng[0], latlng[1]);
     }, null, { enableHighAccuracy: true });
 }
 
@@ -237,32 +291,43 @@ function processPath(p1, p2) {
 }
 
 /* =========================
-   RPG MONSTER LOGIC
+   RPG & SPAWN SYSTEM
 ========================= */
-function generateMonster(lvlOffset = 0) {
-    const id = Math.floor(Math.random() * 151) + 1;
-    const level = Math.max(1, state.level + lvlOffset + Math.floor(Math.random()*3));
-    const hp = 20 + (level * 10);
-    return {
+function getName(id) { return POKE_NAMES[id-1] || `Poke #${id}`; }
+
+function attemptSpawn(lat, lng) {
+    // Rarity Weights
+    const roll = Math.random() * 100;
+    let id;
+    
+    // 50% Common (Pidgey, Rattata, etc - IDs 10-25 approx)
+    if (roll < 50) id = [10,13,16,19,21,23,41,43,46,48,52,54,60,63,66,69].sort(()=>Math.random()-.5)[0];
+    // 35% Uncommon (Starters, Pikachu, etc)
+    else if (roll < 85) id = [1,4,7,25,35,37,39,56,58,74,77,79,81,84,86,88,90,92,96,98,100,102,104,109,111,116,118,129].sort(()=>Math.random()-.5)[0];
+    // 14% Rare (Snorlax, Lapras, Evolutions)
+    else if (roll < 99) id = [3,6,9,143,131,134,135,136,149,142,123,127,125,126].sort(()=>Math.random()-.5)[0];
+    // 1% Legendary
+    else id = [144,145,146,150,151].sort(()=>Math.random()-.5)[0];
+
+    const level = Math.max(1, state.level + Math.floor(Math.random()*4) - 2);
+    spawnMonster(lat, lng, id, level);
+}
+
+function spawnMonster(lat, lng, id, level) {
+    const hp = 20 + (level * 15);
+    const mon = {
         uuid: Date.now() + Math.random(),
         id: id,
-        name: `Poke #${id}`,
+        name: getName(id),
         level: level,
         xp: 0, maxXp: level * 100,
         hp: hp, maxHp: hp,
-        atk: 5 + (level * 2),
-        def: 5 + (level * 2),
-        cp: level * 15 // Simplified CP
+        atk: 5 + (level * 3),
+        def: 5 + (level * 3),
+        cp: level * 25
     };
-}
 
-/* =========================
-   WILD ENCOUNTERS
-========================= */
-function spawnWild(lat, lng) {
-    const mon = generateMonster();
-    const loc = [lat + (Math.random()-.5)*.0006, lng + (Math.random()-.5)*.0006];
-    
+    const loc = [lat + (Math.random()-.5)*.0008, lng + (Math.random()-.5)*.0008];
     const icon = L.divIcon({
         className: 'wild-spawn',
         html: `<img src="${sprite(mon.id)}" style="width:60px; height:60px; filter:drop-shadow(0 0 5px gold); animation:popIn 0.3s">`,
@@ -270,37 +335,31 @@ function spawnWild(lat, lng) {
     });
 
     const m = L.marker(loc, {icon: icon}).addTo(wildSpawnsLayer);
-    
-    m.on('click', () => {
-        startCatch(mon, m);
-    });
+    m.on('click', () => startCatch(mon, m));
 
-    setTimeout(() => wildSpawnsLayer.removeLayer(m), 60000);
+    setTimeout(() => wildSpawnsLayer.removeLayer(m), 90000); // 1.5 min despawn
 }
 
+/* =========================
+   CATCH LOGIC
+========================= */
 function startCatch(mon, markerLayer) {
-    activeWildMon = JSON.parse(JSON.stringify(mon)); // Clone
+    activeWildMon = JSON.parse(JSON.stringify(mon)); 
     activeWildMon.marker = markerLayer;
     
     document.getElementById('catchImg').src = sprite(activeWildMon.id);
-    document.getElementById('catchName').innerText = `Wild Lvl ${activeWildMon.level}`;
+    document.getElementById('catchName').innerText = `${activeWildMon.name} (Lvl ${activeWildMon.level})`;
     document.getElementById('ballCountDisplay').innerText = state.balls;
     updateCatchUI();
-    
     document.getElementById('catchScreen').classList.add('active');
 }
 
 function tapDamage() {
-    // Tap deals 5% max HP damage, min 1
     const dmg = Math.max(1, Math.floor(activeWildMon.maxHp * 0.05));
-    activeWildMon.hp = Math.max(1, activeWildMon.hp - dmg); // Can't kill it by tapping
+    activeWildMon.hp = Math.max(1, activeWildMon.hp - dmg); 
     
-    // Visual Shake
     const img = document.getElementById('catchImg');
-    img.style.animation = 'none';
-    img.offsetHeight; /* trigger reflow */
-    img.style.animation = 'shake 0.3s';
-    
+    img.style.animation = 'none'; img.offsetHeight; img.style.animation = 'shake 0.3s';
     updateCatchUI();
 }
 
@@ -308,28 +367,23 @@ function updateCatchUI() {
     const pct = (activeWildMon.hp / activeWildMon.maxHp) * 100;
     const bar = document.getElementById('catchHpFill');
     document.getElementById('catchHpText').innerText = `${activeWildMon.hp}/${activeWildMon.maxHp}`;
-    
     bar.style.width = pct + "%";
     bar.style.background = pct > 50 ? '#0f0' : pct > 20 ? '#ff0' : '#f00';
 }
 
 function throwBall() {
-    if(state.balls <= 0) {
-        alert("Out of Balls! Spin Gyms to get more.");
-        return;
-    }
-
+    if(state.balls <= 0) return alert("Out of Balls!");
     state.balls--;
-    document.getElementById('ballCountDisplay').innerText = state.balls;
     updateHUD();
+    document.getElementById('ballCountDisplay').innerText = state.balls;
 
     const hpPct = activeWildMon.hp / activeWildMon.maxHp;
     const catchChance = hpPct < 0.20 ? 0.60 : 0.30;
-    const roll = Math.random();
 
-    if(roll < catchChance) {
-        alert("Gotcha!");
+    if(Math.random() < catchChance) {
+        alert(`Caught ${activeWildMon.name}! +100XP, +5 Coins`);
         state.monsters.push(activeWildMon);
+        state.coins += 5;
         addXp(100);
         wildSpawnsLayer.removeLayer(activeWildMon.marker);
         closeAll();
@@ -337,7 +391,7 @@ function throwBall() {
     } else {
         alert("Broke free!");
         if(Math.random() > 0.7) {
-            alert("The wild Pokemon fled!");
+            alert("It fled!");
             wildSpawnsLayer.removeLayer(activeWildMon.marker);
             closeAll();
         }
@@ -345,36 +399,27 @@ function throwBall() {
 }
 
 /* =========================
-   GYM SYSTEM
+   GYM & BATTLE
 ========================= */
 function createGym() {
     if(state.gyms.length >= 5) return alert("Max Gyms built.");
     navigator.geolocation.getCurrentPosition(p => {
-        state.gyms.push({
-            lat: p.coords.latitude,
-            lng: p.coords.longitude,
-            defender: null,
-            lastSpin: 0
-        });
+        state.gyms.push({ lat: p.coords.latitude, lng: p.coords.longitude, defender: null, lastSpin: 0 });
         drawGyms();
         save();
     });
 }
 
 function drawGyms() {
-    // Redraw all logic
     map.eachLayer(l => { if(l.options.isGym) map.removeLayer(l); });
-
     state.gyms.forEach((g, index) => {
-        const isOccupied = g.defender != null;
+        const isOcc = g.defender != null;
         const html = `
-            <div class="gym-base ${isOccupied?'occupied':''}"></div>
-            ${isOccupied ? `<img class="gym-defender" src="${sprite(g.defender.id)}">` : ''}
+            <div class="gym-base ${isOcc?'occupied':''}"></div>
+            ${isOcc ? `<img class="gym-defender" src="${sprite(g.defender.id)}">` : ''}
         `;
         const icon = L.divIcon({ className: 'gym-marker-3d', html: html, iconSize:[0,0] });
-        
         const m = L.marker([g.lat, g.lng], {icon: icon, isGym: true}).addTo(map);
-        
         m.on('click', () => interactGym(index));
     });
 }
@@ -384,111 +429,148 @@ function interactGym(index) {
     const gym = state.gyms[index];
     const now = Date.now();
 
-    // 1. Spin Logic (Every interaction attempts spin)
-    if(now - gym.lastSpin > 300000) { // 5 mins
+    if(now - gym.lastSpin > 300000) { 
         gym.lastSpin = now;
         state.balls += 5;
+        state.coins += 10;
         addXp(25);
-        alert("GYM SPUN! +5 Balls, +25 XP");
+        alert("GYM SPUN! +5 Balls, +10 Coins, +25 XP");
         save();
     } else {
         const mins = Math.ceil((300000 - (now - gym.lastSpin))/60000);
-        alert(`Spin cooldown: ${mins} min(s) remaining.`);
+        alert(`Spin cooldown: ${mins} min(s).`);
     }
 
-    // 2. Defender Logic
     if(!gym.defender) {
-        // Empty Gym -> Place Defender
-        if(confirm("This Gym is empty. Place a Pokemon?")) {
-            mode = 'select-defender';
-            openRoster('select-defender');
-        }
+        if(confirm("Place a defender?")) { mode = 'select-defender'; openRoster('select-defender'); }
     } else {
-        // Occupied -> Battle
-        if(confirm(`Challenge Level ${gym.defender.level} ${gym.defender.name}?`)) {
-            mode = 'select-attacker';
-            openRoster('select-attacker');
-        }
+        if(confirm(`Challenge ${gym.defender.name}?`)) { mode = 'select-attacker'; openRoster('select-attacker'); }
     }
 }
 
-function handleRosterSelect(monIndex) {
+function handleRosterClick(monIndex) {
     const mon = state.monsters[monIndex];
 
-    if(mode === 'select-defender') {
-        // Assign to Gym
+    if(mode === 'view') {
+        // Open Detail View
+        selectedMonIndex = monIndex;
+        openDetailView(mon);
+    } 
+    else if(mode === 'select-defender') {
         state.gyms[selectedGymIndex].defender = mon;
-        state.monsters.splice(monIndex, 1); // Remove from inventory
-        drawGyms();
-        closeAll();
-        alert(`${mon.name} is now defending the Gym!`);
-        save();
+        state.monsters.splice(monIndex, 1);
+        drawGyms(); closeAll(); save();
     } 
     else if (mode === 'select-attacker') {
-        // Battle Logic
         closeAll();
         resolveBattle(mon, state.gyms[selectedGymIndex].defender);
     }
 }
 
 function resolveBattle(attacker, defender) {
-    alert("Battle Started!");
-    // Simple stat check
     const attPower = attacker.atk * (attacker.hp/attacker.maxHp) * Math.random();
     const defPower = defender.def * (defender.hp/defender.maxHp) * Math.random();
 
     if(attPower > defPower) {
-        // Attacker Wins
-        alert(`VICTORY! Your ${attacker.name} defeated ${defender.name}!`);
-        addXp(150); // Player XP
-        
-        // Return defender to owner (Inventory)
-        defender.hp = 1; // Return fainted
+        alert(`VICTORY! ${defender.name} returned to owner.`);
+        addXp(150);
+        defender.hp = 1; 
         state.monsters.push(defender);
         state.gyms[selectedGymIndex].defender = null;
-        
-        drawGyms();
-        save();
+        drawGyms(); save();
     } else {
-        // Defender Wins
-        alert(`DEFEAT! ${defender.name} was too strong.`);
-        
-        // Defender gains XP
-        defender.xp += 50;
-        if(defender.xp >= defender.maxXp) {
-            defender.level++;
-            defender.xp = 0;
-            defender.maxHp += 10;
-            defender.atk += 2;
-            defender.def += 2;
-            defender.hp = defender.maxHp; // Heal on level up
-            alert("Gym Defender Leveled Up!");
-        }
-        
-        // Attacker takes damage
+        alert(`DEFEAT! ${defender.name} held the gym.`);
+        defender.xp += 50; // Simple leveling logic for defender could be added here
         attacker.hp = Math.max(1, attacker.hp - 20);
         save();
     }
 }
 
 /* =========================
-   UI & UTILS
+   INVENTORY DETAILS (POWER UP/EVOLVE)
+========================= */
+function openDetailView(mon) {
+    document.getElementById('rosterList').style.display = 'none';
+    document.getElementById('detailView').classList.add('active');
+    document.getElementById('backBtn').style.visibility = 'visible';
+    document.getElementById('rosterTitle').innerText = "Manage Pokemon";
+
+    renderDetail(mon);
+}
+
+function renderDetail(mon) {
+    document.getElementById('detailImg').src = sprite(mon.id);
+    document.getElementById('detailName').innerText = mon.name;
+    document.getElementById('detailCp').innerText = `Lvl ${mon.level} | CP ${mon.cp}`;
+    document.getElementById('detailHp').innerText = `${mon.hp}/${mon.maxHp}`;
+    document.getElementById('detailAtk').innerText = mon.atk;
+    document.getElementById('detailDef').innerText = mon.def;
+    document.getElementById('walletDisp').innerText = state.coins;
+    
+    // Update Power Cost Text
+    document.getElementById('powerCost').innerText = `Cost: ${mon.level * 100} Coins`;
+}
+
+function backToGrid() {
+    document.getElementById('detailView').classList.remove('active');
+    document.getElementById('rosterList').style.display = 'grid';
+    document.getElementById('backBtn').style.visibility = 'hidden';
+    document.getElementById('rosterTitle').innerText = mode === 'view' ? 'Inventory' : 'Select Pokemon';
+}
+
+function powerUp() {
+    const mon = state.monsters[selectedMonIndex];
+    const cost = mon.level * 100;
+    
+    if(state.coins >= cost) {
+        state.coins -= cost;
+        mon.level++;
+        mon.maxHp += 10; mon.hp = mon.maxHp;
+        mon.atk += 3; mon.def += 3;
+        mon.cp += 30;
+        alert(`Powered up to Level ${mon.level}!`);
+        renderDetail(mon);
+        save();
+    } else {
+        alert("Not enough coins!");
+    }
+}
+
+function evolve() {
+    const mon = state.monsters[selectedMonIndex];
+    const cost = 500;
+    
+    if(state.coins >= cost) {
+        if(mon.id >= 151) return alert("Cannot evolve further!");
+        state.coins -= cost;
+        mon.id++;
+        mon.name = getName(mon.id);
+        mon.maxHp += 20; mon.hp = mon.maxHp;
+        mon.atk += 5; mon.def += 5; mon.cp += 50;
+        alert(`Evolved into ${mon.name}!`);
+        renderDetail(mon);
+        save();
+    } else {
+        alert("Not enough coins!");
+    }
+}
+
+/* =========================
+   UI HELPER
 ========================= */
 function addXp(amt) {
     state.xp += amt;
     if(state.xp >= state.maxXp) {
-        state.level++;
-        state.xp -= state.maxXp;
-        state.maxXp = Math.floor(state.maxXp * 1.5);
+        state.level++; state.xp -= state.maxXp; state.maxXp = Math.floor(state.maxXp * 1.5);
         state.balls += 10;
-        alert(`LEVEL UP! Now Lvl ${state.level}. +10 Balls.`);
+        alert(`LEVEL UP! ${state.level}`);
     }
     updateHUD();
 }
 
 function updateHUD() {
     document.getElementById('lvlDisplay').innerText = `LVL ${state.level}`;
-    document.getElementById('statusText').innerText = `XP: ${state.xp}/${state.maxXp} | Balls: ${state.balls}`;
+    document.getElementById('statusText').innerText = `XP:${state.xp}/${state.maxXp} | Balls:${state.balls} | Coins:${state.coins}`;
     document.getElementById('xpFill').style.width = (state.xp/state.maxXp*100) + "%";
 }
 
@@ -497,28 +579,21 @@ function openRoster(m) {
     const list = document.getElementById('rosterList');
     document.getElementById('rosterTitle').innerText = mode === 'view' ? 'Inventory' : 'Select Pokemon';
     list.innerHTML = '';
+    backToGrid(); // Reset to grid view
     
-    if(state.monsters.length === 0) {
-        list.innerHTML = 'No Pokemon available.';
-        show('rosterModal');
-        return;
-    }
+    if(state.monsters.length === 0) list.innerHTML = '<div style="color:gray; padding:20px;">No Pokemon caught yet.</div>';
 
     state.monsters.forEach((mon, i) => {
         const div = document.createElement('div');
         div.className = 'monster-card';
-        div.onclick = () => { if(mode !== 'view') handleRosterSelect(i); };
+        div.onclick = () => handleRosterClick(i);
         
         const hpPct = (mon.hp / mon.maxHp) * 100;
-        const color = hpPct > 50 ? '#0f0' : '#f00';
-
         div.innerHTML = `
             <img src="${sprite(mon.id)}">
             <div><b>${mon.name}</b></div>
-            <div>Lvl ${mon.level} (CP ${mon.cp})</div>
-            <div style="font-size:10px">ATK:${mon.atk} DEF:${mon.def}</div>
-            <div class="hp-bar-mini"><div class="hp-fill-mini" style="width:${hpPct}%; background:${color}"></div></div>
-            <div>${mon.hp}/${mon.maxHp} HP</div>
+            <div style="font-size:9px">CP ${mon.cp}</div>
+            <div class="hp-bar-mini"><div class="hp-fill-mini" style="width:${hpPct}%; background:${hpPct>50?'#0f0':'#f00'}"></div></div>
         `;
         list.appendChild(div);
     });
@@ -527,10 +602,8 @@ function openRoster(m) {
 
 function sprite(id) { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`; }
 function show(id) { document.getElementById(id).classList.add('active'); }
-function closeAll() { 
-    document.querySelectorAll('.modal, .catch-screen').forEach(m => m.classList.remove('active')); 
-}
-function save() { localStorage.setItem('state', JSON.stringify(state)); }
+function closeAll() { document.querySelectorAll('.modal, .catch-screen').forEach(m => m.classList.remove('active')); }
+function save() { localStorage.setItem('state', JSON.stringify(state)); updateHUD(); }
 
 </script>
 </body>
