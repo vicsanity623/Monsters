@@ -397,6 +397,18 @@
         
         <div id="battle-menu">
             <div id="menu-title" style="color:var(--dbz-yellow); font-family:'Bangers'; font-size:3rem; margin-bottom:10px;">VICTORY!</div>
+            
+            <!-- ADDED XP BAR TO BATTLE MENU -->
+            <div style="width:80%; margin-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; color:white; font-family:'Orbitron'; font-size:0.8rem;">
+                    <span>LV <span id="r-lvl">1</span></span>
+                    <span id="r-xp-text">0 / 100</span>
+                </div>
+                <div class="bar-wrap" style="height:10px; background:#444; margin-top:5px;">
+                    <div id="r-bar-xp" class="bar-fill xp-f"></div>
+                </div>
+            </div>
+
             <div class="rewards-box">
                 <div class="reward-row">XP GAINED: <span id="r-xp" class="reward-val">0</span></div>
                 <div class="reward-row">COINS: <span id="r-coins" class="reward-val">0</span></div>
@@ -489,9 +501,7 @@
     }
 
     function saveGame() {
-        // Update the timestamp on the player object before saving
         player.lastSave = Date.now(); 
-        
         const saveData = {
             player: player,
             battle: { stage: battle.stage, world: battle.world, maxStage: battle.maxStage }
@@ -510,7 +520,6 @@
                     battle.world = parsed.battle.world || 1;
                     battle.maxStage = parsed.battle.maxStage || 1;
                 }
-                // Backwards compatibility for stacking
                 player.inv.forEach(i => { if(!i.qty) i.qty = 1; });
             } catch (e) { console.error("Save file corrupted", e); }
         }
@@ -537,9 +546,7 @@
         syncUI();
     }
 
-    // --- NEW INVENTORY LOGIC ---
     function addToInventory(item) {
-        // Try to stack
         const found = player.inv.find(i => i.n === item.n && i.type === item.type && i.val === item.val && i.rarity === item.rarity && i.qty < 99);
         if(found) {
             found.qty++;
@@ -571,7 +578,6 @@
         const xpPct = (player.xp / player.nextXp) * 100;
         document.getElementById('bar-xp').style.width = xpPct + "%";
         
-        // RENDER INVENTORY
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
         
@@ -604,8 +610,6 @@
 
         if(player.selected !== -1) {
             const sItem = player.inv[player.selected];
-            
-            // Check count for merge (Stacks + other slots)
             let totalCount = 0;
             player.inv.forEach(i => {
                 if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) {
@@ -653,7 +657,6 @@
         
         if(player.coins < cost) { alert("Not enough coins!"); return; }
 
-        // Recalculate count
         let totalCount = 0;
         player.inv.forEach(i => {
             if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) totalCount += i.qty;
@@ -661,10 +664,7 @@
 
         if(totalCount >= 3) {
             player.coins -= cost;
-            
-            // Remove 3 items (decrement from stacks)
             let needed = 3;
-            // Iterate backwards to safely remove from array if empty
             for(let i = player.inv.length - 1; i >= 0; i--) {
                 if(needed <= 0) break;
                 let item = player.inv[i];
@@ -680,7 +680,6 @@
                 }
             }
 
-            // Create new better item
             const newRarity = sItem.rarity + 1;
             let mult = (newRarity === 2) ? 2 : 2.5; 
             const newVal = Math.floor(sItem.val * mult);
@@ -704,39 +703,19 @@
 
     function doEquip() {
         if(player.selected === -1) return;
-        
-        const stackItem = player.inv[player.selected]; // This is the stack
-        
-        // Create a single instance to equip (clone basic props)
+        const stackItem = player.inv[player.selected];
         const itemToEquip = { 
-            n: stackItem.n, 
-            type: stackItem.type, 
-            val: stackItem.val, 
-            rarity: stackItem.rarity,
-            qty: 1 
+            n: stackItem.n, type: stackItem.type, val: stackItem.val, rarity: stackItem.rarity, qty: 1 
         };
-
-        const old = player.gear[stackItem.type]; // Currently equipped
-        
-        // Equip new
+        const old = player.gear[stackItem.type];
         player.gear[stackItem.type] = itemToEquip;
-        
-        // Remove 1 from inventory stack
         stackItem.qty--;
-        if(stackItem.qty <= 0) {
-            player.inv.splice(player.selected, 1);
-        }
-
-        // Put old gear back in inventory
-        if(old) {
-            addToInventory(old);
-        }
-
+        if(stackItem.qty <= 0) { player.inv.splice(player.selected, 1); }
+        if(old) { addToInventory(old); }
         player.selected = -1;
         syncUI();
     }
 
-    // --- REAL-TIME BATTLE SYSTEM ---
     function buildStageSelector() {
         const container = document.getElementById('ui-stage-selector');
         container.innerHTML = '';
@@ -904,7 +883,6 @@
         document.getElementById('log').innerHTML = `<div style="color:cyan">> WON! +${xpGain} XP</div>`;
         
         let dropText = "NONE";
-        // Use helper to add stackable item
         if(Math.random() < 0.35) {
             addToInventory({
                 n: "Saiyan Gear", type: Math.random() > 0.5 ? 'w' : 'a', 
@@ -913,8 +891,21 @@
             dropText = "BASIC GEAR";
         }
         
+        // CHECK LEVEL UP
         if(player.xp >= player.nextXp) {
-            player.lvl++; player.xp = 0; player.nextXp *= 1.6;
+            player.lvl++; 
+            player.xp -= player.nextXp; // FIX: overflow carry over
+            player.nextXp = Math.floor(player.nextXp * 1.2);
+            
+            // STAT GROWTH
+            player.bHp += 100;
+            player.bAtk += 10;
+            player.bDef += 5;
+
+            // HEAL ON LEVEL UP (Fixes the "Stat Drop" look)
+            const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+            player.hp = maxHp;
+            
             if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
         }
 
@@ -923,6 +914,12 @@
         document.getElementById('r-xp').innerText = xpGain;
         document.getElementById('r-coins').innerText = coinGain;
         document.getElementById('r-drops').innerText = dropText;
+
+        // UPDATE XP BAR IN BATTLE MENU
+        document.getElementById('r-lvl').innerText = player.lvl;
+        document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${player.nextXp}`;
+        const xpPct = Math.min(100, (player.xp / player.nextXp) * 100);
+        document.getElementById('r-bar-xp').style.width = xpPct + "%";
 
         const menu = document.getElementById('battle-menu');
         menu.style.display = 'flex';
