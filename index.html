@@ -3,16 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Goku: Saiyan Ascension Pro</title>
+    <title>Goku: Saiyan Ascension PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --dbz-orange: #FF8C00;
             --dbz-yellow: #FFD700;
-            --dbz-red: #ff3e3e;
             --dbz-blue: #0047AB;
             --bg-dark: #050505;
-            --panel: rgba(25, 25, 25, 0.95);
         }
 
         body {
@@ -22,474 +20,372 @@
             color: white;
             overflow: hidden;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
         }
 
-        /* --- Navigation --- */
+        /* --- PRE-LOADING SCREEN --- */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .load-title { font-family: 'Bangers'; font-size: 3rem; color: var(--dbz-orange); margin-bottom: 20px; }
+        .load-bar { width: 80%; height: 10px; border: 1px solid white; border-radius: 5px; overflow: hidden; }
+        .load-fill { height: 100%; width: 0%; background: var(--dbz-yellow); transition: width 0.2s; }
+        .load-status { font-size: 0.7rem; margin-top: 10px; color: #888; }
+
+        /* --- NAVIGATION --- */
         nav {
-            display: flex;
-            background: #111;
-            border-bottom: 3px solid var(--dbz-orange);
-            z-index: 100;
+            display: flex; background: #111; border-bottom: 3px solid var(--dbz-orange);
+            height: 65px; position: sticky; top: 0; z-index: 100;
         }
         nav button {
-            flex: 1;
-            padding: 15px;
-            background: transparent;
-            border: none;
-            color: #777;
-            font-family: 'Bangers', cursive;
-            font-size: 1.4rem;
-            letter-spacing: 2px;
-            cursor: pointer;
-            transition: 0.3s;
+            flex: 1; background: transparent; border: none;
+            color: #555; font-family: 'Bangers'; font-size: 1.6rem; cursor: pointer;
         }
-        nav button.active {
-            color: var(--dbz-yellow);
-            background: rgba(255, 140, 0, 0.1);
-            text-shadow: 0 0 10px var(--dbz-orange);
-        }
+        nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
 
-        /* --- Global UI --- */
-        .screen { display: none; flex: 1; flex-direction: column; padding: 15px; overflow-y: auto; }
+        /* --- SCREENS --- */
+        .screen { display: none; height: calc(100vh - 65px); flex-direction: column; padding: 15px; overflow-y: auto; }
         .active-screen { display: flex; }
 
-        .progress-container {
-            width: 100%; height: 16px;
-            background: #222; border: 1px solid #444;
-            border-radius: 8px; overflow: hidden; margin: 5px 0;
-            box-shadow: inset 0 0 5px #000;
+        /* --- CHARACTER HUB --- */
+        .rank-header { text-align: center; font-family: 'Bangers'; font-size: 2.2rem; color: var(--dbz-yellow); }
+        .goku-view { position: relative; height: 300px; display: flex; justify-content: center; align-items: center; }
+        .aura { 
+            position: absolute; width: 220px; height: 260px; 
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.5) 0%, transparent 70%);
+            filter: blur(15px); animation: pulse 1s infinite alternate; 
         }
-        .progress-fill { height: 100%; transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .hp-fill { background: linear-gradient(to right, #d63031, #ff7675); box-shadow: 0 0 10px #d63031; }
-        .xp-fill { background: linear-gradient(to right, #0984e3, #00d2ff); box-shadow: 0 0 10px #0984e3; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 0.4; } 100% { transform: scale(1.15); opacity: 0.7; } }
+        .main-sprite { height: 100%; z-index: 2; filter: drop-shadow(0 0 15px black); }
 
-        .btn {
-            background: var(--dbz-blue);
-            border: 2px solid #fff;
-            color: white;
-            padding: 10px;
-            font-family: 'Bangers', cursive;
-            font-size: 1.1rem;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        /* HUD Bars */
+        .bar-wrap { background: #222; height: 22px; border-radius: 11px; margin: 5px 0; overflow: hidden; border: 1px solid #444; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.3s; }
+        .hp-f { background: linear-gradient(to right, #ff4d4d, #ff0000); box-shadow: 0 0 10px #ff0000; }
+        .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); box-shadow: 0 0 15px #00d2ff; }
 
-        /* --- Character/Stats Screen --- */
-        .goku-header {
-            text-align: center;
-            position: relative;
-            padding-bottom: 10px;
-        }
-        .rank-text { font-family: 'Bangers'; font-size: 2.2rem; color: var(--dbz-yellow); margin: 0; }
-        
-        .goku-container {
-            position: relative;
-            height: 280px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(circle, rgba(255,215,0,0.15) 0%, transparent 70%);
-        }
-        .goku-sprite {
-            height: 100%;
-            filter: drop-shadow(0 0 15px var(--dbz-orange));
-            z-index: 2;
-        }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px solid #333; }
+        .train-btn { background: #27ae60; border: none; color: white; padding: 5px 12px; border-radius: 4px; font-family: 'Bangers'; }
 
-        .stats-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-            background: var(--panel); padding: 15px; border-radius: 10px;
-            border: 1px solid #333;
-        }
-        .stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; margin-bottom: 5px;}
-        .train-btn { 
-            background: #27ae60; border: none; padding: 2px 8px; border-radius: 4px; 
-            color: white; font-weight: bold; font-family: sans-serif;
-        }
+        /* Gear */
+        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: #111; padding: 10px; margin-top: 10px; border-radius: 8px; height: 100px; overflow-y: scroll; }
+        .item { background: #222; border: 1px solid #444; height: 45px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; text-align: center; color: #888; }
+        .item.active { border-color: var(--dbz-yellow); background: #333; color: white; }
 
-        /* --- Inventory & Equipment --- */
-        .gear-slots { display: flex; gap: 10px; margin: 15px 0; }
-        .slot {
-            flex: 1; background: #111; border: 1px dashed #555;
-            padding: 10px; text-align: center; font-size: 0.7rem; border-radius: 5px;
-        }
-        .inv-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-            background: #111; padding: 10px; border-radius: 10px; height: 120px; overflow-y: auto;
-        }
-        .inv-item {
-            background: #222; border: 1px solid #444; height: 45px;
-            border-radius: 5px; display: flex; align-items: center; justify-content: center;
-            font-size: 0.6rem; text-align: center; color: #aaa;
-        }
-        .inv-item.selected { border-color: var(--dbz-yellow); background: #333; color: white; }
-
-        /* --- Battle Screen --- */
+        /* --- BATTLE SCREEN --- */
         #battle-screen { background: url('https://dragonball-api.com/planets/Namek_Render.webp') center/cover; }
-        .battle-ui { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        .battle-arena { display: flex; justify-content: space-between; align-items: flex-end; height: 250px; position: relative; }
-        .fighter { width: 140px; text-align: center; transition: transform 0.1s; }
-        .fighter img { width: 100%; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); }
+        .stage-title { text-align: center; font-family: 'Bangers'; font-size: 1.8rem; color: var(--dbz-yellow); text-shadow: 2px 2px black; }
+        .arena { flex: 1; display: flex; justify-content: space-between; align-items: flex-end; padding: 40px 10px; position: relative; }
+        .unit { width: 45%; text-align: center; }
+        .unit img { width: 100%; max-height: 220px; object-fit: contain; }
+        
+        .beam { position: absolute; height: 70px; background: linear-gradient(to bottom, #fff, #00d2ff, #fff); width: 0; left: 80px; top: 50%; box-shadow: 0 0 50px #00d2ff; z-index: 10; border-radius: 35px; }
+        .flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; z-index: 999; }
+        .pop { position: absolute; color: yellow; font-family: 'Bangers'; font-size: 2.5rem; animation: popUp 0.7s forwards; z-index: 20; }
+        @keyframes popUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-80px); } }
 
-        /* Effects */
-        .hyper-beam {
-            position: absolute; height: 50px; background: linear-gradient(to bottom, #fff, #3498db, #fff);
-            box-shadow: 0 0 30px #3498db; width: 0; top: 60%; left: 100px; z-index: 5; pointer-events: none;
-        }
-        .flash { position: absolute; top:0; left:0; width:100%; height:100%; background: white; opacity:0; pointer-events:none; z-index:99; }
-        .damage-popup {
-            position: absolute; color: yellow; font-family: 'Bangers'; font-size: 2.5rem;
-            animation: floatDamage 0.8s forwards; pointer-events: none; z-index: 100;
-        }
-        @keyframes floatDamage { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-100px); opacity: 0; } }
-
-        #battle-log {
-            background: rgba(0,0,0,0.85); border-top: 2px solid var(--dbz-orange);
-            height: 120px; overflow-y: auto; padding: 10px; font-size: 0.8rem; font-family: monospace;
-        }
-
+        #log { background: rgba(0,0,0,0.85); height: 110px; overflow-y: auto; padding: 10px; border-top: 2px solid var(--dbz-orange); font-size: 0.8rem; font-family: monospace; }
     </style>
 </head>
 <body>
 
-    <div id="flash-effect" class="flash"></div>
-
-    <nav>
-        <button id="nav-stats" class="active" onclick="showScreen('stats')">CHARACTER</button>
-        <button id="nav-battle" onclick="showScreen('battle')">BATTLE</button>
-    </nav>
-
-    <!-- STATS / HUB SCREEN -->
-    <div id="stats-screen" class="screen active-screen">
-        <div class="goku-header">
-            <h1 class="rank-text" id="display-rank">RANK: BASE</h1>
-            <div style="font-size: 0.8rem; color: #aaa;">LVL <span id="display-lvl">1</span> SAIYAN</div>
-        </div>
-
-        <div class="goku-container">
-            <!-- ANGRY SUPER SAIYAN GOKU -->
-            <img id="display-sprite" src="https://dragonball-api.com/characters/goku_ssj.webp" class="goku-sprite">
-        </div>
-
-        <div style="margin-bottom: 15px;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.7rem;">
-                <span>HP: <span id="display-hp-val">100/100</span></span>
-                <span id="display-power" style="color: var(--dbz-yellow);">POWER: 1,500</span>
-            </div>
-            <div class="progress-container"><div id="bar-hp" class="progress-fill hp-fill" style="width: 100%"></div></div>
-            
-            <div style="font-size: 0.7rem; margin-top: 5px;">EXP PROGRESS</div>
-            <div class="progress-container"><div id="bar-xp" class="progress-fill xp-fill" style="width: 0%"></div></div>
-        </div>
-
-        <div class="stats-grid">
-            <div>
-                <div class="stat-row">
-                    <span>ATK: <b id="stat-atk">10</b></span>
-                    <button class="train-btn" onclick="train('atk')">TRAIN</button>
-                </div>
-                <div class="stat-row">
-                    <span>DEF: <b id="stat-def">5</b></span>
-                    <button class="train-btn" onclick="train('def')">TRAIN</button>
-                </div>
-            </div>
-            <div style="border-left: 1px solid #333; padding-left: 10px;">
-                <div style="color: gold; font-family: 'Bangers'; font-size: 1.2rem;">COINS: <span id="display-coins">0</span></div>
-                <div style="font-size: 0.6rem; color: #777; margin-top: 5px;">Training costs 50 Coins</div>
-            </div>
-        </div>
-
-        <h3 style="font-family: 'Bangers'; margin: 15px 0 5px 0; color: var(--dbz-orange);">EQUIPMENT</h3>
-        <div class="gear-slots">
-            <div class="slot" id="slot-weapon">WEAPON: None</div>
-            <div class="slot" id="slot-armor">ARMOR: None</div>
-        </div>
-
-        <div class="inv-grid" id="inv-grid"></div>
-        <button id="equip-btn" class="btn" style="width:100%; margin-top:10px; display:none; background: var(--dbz-orange);" onclick="equipItem()">EQUIP ITEM</button>
+    <!-- LAUNCH LOADER -->
+    <div id="loader">
+        <div class="load-title">POWERING UP...</div>
+        <div class="load-bar"><div id="load-progress" class="load-fill"></div></div>
+        <div id="load-status" class="load-status">Loading Ki...</div>
     </div>
 
-    <!-- BATTLE SCREEN -->
-    <div id="battle-screen" class="screen">
-        <div class="battle-ui">
-            <div style="text-align: center; font-family: 'Bangers'; font-size: 1.8rem; color: var(--dbz-yellow);" id="stage-info">STAGE 1</div>
-            
-            <div class="battle-arena">
-                <div id="beam-effect" class="hyper-beam"></div>
-                
-                <div class="fighter" id="p-unit">
-                    <div class="progress-container" style="height: 8px;"><div id="battle-p-hp" class="progress-fill hp-fill"></div></div>
-                    <img src="https://dragonball-api.com/characters/goku_ssj.webp" style="transform: scaleX(-1);">
-                </div>
+    <div id="flash-fx" class="flash"></div>
 
-                <div class="fighter" id="e-unit">
-                    <div class="progress-container" style="height: 8px;"><div id="battle-e-hp" class="progress-fill hp-fill"></div></div>
-                    <img id="enemy-sprite" src="https://dragonball-api.com/characters/saibaman.webp">
-                    <div id="enemy-name" style="font-family: 'Bangers'; font-size: 0.8rem;">Saibaman</div>
-                </div>
+    <nav>
+        <button id="tab-char" class="active" onclick="showTab('char')">CHARACTER</button>
+        <button id="tab-battle" onclick="showTab('battle')">BATTLE</button>
+    </nav>
+
+    <!-- CHARACTER TAB -->
+    <div id="view-char" class="screen active-screen">
+        <div class="rank-header" id="ui-rank">RANK: BASE</div>
+        <div style="text-align: center; font-size: 0.7rem; color: #888; letter-spacing: 2px;">LVL <span id="ui-lvl">1</span> SAIYAN</div>
+
+        <div class="goku-view">
+            <div class="aura"></div>
+            <!-- Angry Goku Sprite -->
+            <img id="ui-sprite" src="https://dragonball-api.com/characters/Goku_SSJ_Render.webp" class="main-sprite">
+        </div>
+
+        <div>
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#aaa;">
+                <span>HP: <span id="ui-hp-txt">100/100</span></span>
+                <span id="ui-power" style="color:var(--dbz-yellow)">POWER: 0</span>
+            </div>
+            <div class="bar-wrap"><div id="bar-hp" class="bar-fill hp-f" style="width: 100%"></div></div>
+            <div style="font-size:0.7rem; margin-top:5px; color:#aaa;">EXP TO NEXT LEVEL</div>
+            <div class="bar-wrap"><div id="bar-xp" class="bar-fill xp-f"></div></div>
+        </div>
+
+        <div class="stat-grid">
+            <div style="display:flex; flex-direction:column; justify-content:space-between;">
+                <div style="font-size:0.9rem;">ATK: <b id="ui-atk">20</b> <button class="train-btn" onclick="train('atk')">+</button></div>
+                <div style="font-size:0.9rem; margin-top:10px;">DEF: <b id="ui-def">10</b> <button class="train-btn" onclick="train('def')">+</button></div>
+            </div>
+            <div style="text-align:right;">
+                <div style="color:gold; font-family:'Bangers'; font-size:1.5rem;">COINS: <span id="ui-coins">100</span></div>
+                <div style="font-size:0.6rem; color:#777;">Training costs 100 Coins</div>
+            </div>
+        </div>
+
+        <h3 style="font-family:'Bangers'; color:var(--dbz-orange); margin:15px 0 5px 0;">EQUIPMENT</h3>
+        <div style="display:flex; gap:10px;">
+            <div class="item" id="slot-w" style="flex:1">W: NONE</div>
+            <div class="item" id="slot-a" style="flex:1">A: NONE</div>
+        </div>
+        <div class="inv-grid" id="inv-grid"></div>
+        <button id="ui-equip-btn" class="train-btn" style="width:100%; padding:10px; font-size:1.3rem; margin-top:10px; display:none;" onclick="doEquip()">EQUIP GEAR</button>
+    </div>
+
+    <!-- BATTLE TAB -->
+    <div id="view-battle" class="screen">
+        <h2 id="ui-stage-tag" class="stage-title">STAGE 1 - WORLD 1</h2>
+        
+        <div class="arena">
+            <div id="fx-beam" class="beam"></div>
+            
+            <div class="unit" id="p-box">
+                <div class="bar-wrap" style="height:8px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
+                <img src="https://dragonball-api.com/characters/Goku_SSJ_Render.webp" style="transform: scaleX(-1);">
             </div>
 
-            <div id="battle-log">Welcome to the battle. Defeat enemies to earn XP and Coins!</div>
+            <div class="unit" id="e-box">
+                <div class="bar-wrap" style="height:8px;"><div id="btl-e-hp" class="bar-fill hp-f" style="width:100%"></div></div>
+                <img id="e-img" src="">
+                <div id="e-name" style="font-family:'Bangers'; font-size:0.9rem; margin-top:5px;">SAIBAMAN</div>
+            </div>
         </div>
+
+        <div id="log">Welcome, Kakarot. Prepare to transcend!</div>
     </div>
 
 <script>
-    // --- Configuration ---
-    const SAIYAN_RANKS = ["BASE", "S", "SS", "SS2", "SS3", "SSG", "SSB", "UI", "MUI", "SSS", "SSS10"];
-    const GEAR_DATABASE = [
-        { name: "Heavy Weights", type: "weapon", power: 15 },
-        { name: "Senzu Bag", type: "armor", power: 50 },
-        { name: "Power Pole", type: "weapon", power: 45 },
-        { name: "Saiyan Plate", type: "armor", power: 120 },
-        { name: "Z-Sword", type: "weapon", power: 200 }
+    // --- Asset Configuration ---
+    const SPRITES = [
+        "https://dragonball-api.com/characters/Goku_SSJ_Render.webp",
+        "https://dragonball-api.com/characters/saibaman.webp",
+        "https://dragonball-api.com/characters/Raditz_Normal.webp",
+        "https://dragonball-api.com/characters/Nappa_Render.webp",
+        "https://dragonball-api.com/characters/dodoria.webp",
+        "https://dragonball-api.com/characters/zarbon.webp",
+        "https://dragonball-api.com/characters/frieza.webp",
+        "https://dragonball-api.com/characters/cell.webp"
+    ];
+
+    const RANKS = ["BASE", "S", "SS", "SS2", "SS3", "SSG", "SSB", "UI", "MUI", "SSS", "SSS10"];
+    const ENEMIES = [
+        { n: "Saibaman", i: "https://dragonball-api.com/characters/saibaman.webp" },
+        { n: "Raditz", i: "https://dragonball-api.com/characters/Raditz_Normal.webp" },
+        { n: "Nappa", i: "https://dragonball-api.com/characters/Nappa_Render.webp" },
+        { n: "Dodoria", i: "https://dragonball-api.com/characters/dodoria.webp" },
+        { n: "Frieza", i: "https://dragonball-api.com/characters/frieza.webp" }
     ];
 
     // --- State ---
     let player = {
-        level: 1, rankIdx: 0, xp: 0, nextXp: 100, coins: 200,
-        baseAtk: 15, baseDef: 10, baseHp: 150, currentHp: 150,
-        inventory: [], equipment: { weapon: null, armor: null },
-        selectedIdx: -1
+        lvl: 1, rank: 0, xp: 0, nextXp: 100, coins: 500,
+        bAtk: 25, bDef: 15, bHp: 250, hp: 250,
+        inv: [], gear: { w: null, a: null }, selected: -1
     };
+    let battle = { stage: 1, world: 1, active: false, enemy: null };
 
-    let battle = { stage: 1, world: 1, enemy: null, active: false, turnInProgress: false };
-
-    // --- Core Functions ---
-
-    function showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
-        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    // --- Preloader Engine ---
+    let loadedCount = 0;
+    function preload() {
+        const prog = document.getElementById('load-progress');
+        const stat = document.getElementById('load-status');
         
-        document.getElementById(screenId + '-screen').classList.add('active-screen');
-        document.getElementById('nav-' + screenId).classList.add('active');
-
-        if (screenId === 'battle' && !battle.active) {
-            initBattle();
-        } else if (screenId === 'stats') {
-            battle.active = false; // Stop battle when looking at stats
-            updateStatsUI();
-        }
-    }
-
-    // Dynamic Stat Calculations
-    function getMaxHp() { return player.baseHp + (player.rankIdx * 1000) + (player.equipment.armor?.power || 0); }
-    function getAtk() { return player.baseAtk + (player.rankIdx * 100) + (player.equipment.weapon?.power || 0); }
-    function getDef() { return player.baseDef + (player.rankIdx * 50); }
-
-    function updateStatsUI() {
-        document.getElementById('display-rank').innerText = `RANK: ${SAIYAN_RANKS[player.rankIdx]}`;
-        document.getElementById('display-lvl').innerText = player.level;
-        document.getElementById('display-coins').innerText = player.coins;
-        document.getElementById('stat-atk').innerText = getAtk();
-        document.getElementById('stat-def').innerText = getDef();
-        document.getElementById('display-hp-val').innerText = `${Math.floor(player.currentHp)} / ${getMaxHp()}`;
-        document.getElementById('display-power').innerText = `POWER: ${(getAtk() * 10 + getMaxHp()).toLocaleString()}`;
-
-        document.getElementById('bar-hp').style.width = (player.currentHp / getMaxHp() * 100) + "%";
-        document.getElementById('bar-xp').style.width = (player.xp / player.nextXp * 100) + "%";
-
-        // Equipment
-        document.getElementById('slot-weapon').innerText = `WEAPON: ${player.equipment.weapon?.name || 'None'}`;
-        document.getElementById('slot-armor').innerText = `ARMOR: ${player.equipment.armor?.name || 'None'}`;
-
-        // Inventory
-        const grid = document.getElementById('inv-grid');
-        grid.innerHTML = '';
-        player.inventory.forEach((item, i) => {
-            const div = document.createElement('div');
-            div.className = `inv-item ${player.selectedIdx === i ? 'selected' : ''}`;
-            div.innerText = item.name;
-            div.onclick = () => { player.selectedIdx = i; document.getElementById('equip-btn').style.display = 'block'; updateStatsUI(); };
-            grid.appendChild(div);
+        SPRITES.forEach(src => {
+            const img = new Image();
+            img.onload = img.onerror = () => {
+                loadedCount++;
+                prog.style.width = (loadedCount / SPRITES.length * 100) + "%";
+                stat.innerText = `Pre-charging Ki: ${Math.floor(loadedCount / SPRITES.length * 100)}%`;
+                if(loadedCount >= SPRITES.length) {
+                    setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
+                }
+            };
+            img.src = src;
         });
     }
 
-    function train(stat) {
-        if (player.coins >= 50) {
-            player.coins -= 50;
-            if (stat === 'atk') player.baseAtk += 5;
-            else player.baseDef += 3;
-            updateStatsUI();
+    // --- Core UI Logic ---
+    function showTab(t) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('view-' + t).classList.add('active-screen');
+        document.getElementById('tab-' + t).classList.add('active');
+        
+        if(t === 'battle') runBattle(); else battle.active = false;
+        sync();
+    }
+
+    function sync() {
+        const maxHp = player.bHp + (player.rank * 1500) + (player.gear.a?.val || 0);
+        const atk = player.bAtk + (player.rank * 200) + (player.gear.w?.val || 0);
+        const def = player.bDef + (player.rank * 100);
+
+        document.getElementById('ui-rank').innerText = `RANK: ${RANKS[player.rank]}`;
+        document.getElementById('ui-lvl').innerText = player.lvl;
+        document.getElementById('ui-atk').innerText = atk;
+        document.getElementById('ui-def').innerText = def;
+        document.getElementById('ui-coins').innerText = player.coins;
+        document.getElementById('ui-hp-txt').innerText = `${Math.floor(player.hp)}/${maxHp}`;
+        document.getElementById('ui-power').innerText = `POWER: ${(atk * 12 + maxHp).toLocaleString()}`;
+
+        document.getElementById('bar-hp').style.width = (player.hp / maxHp * 100) + "%";
+        document.getElementById('bar-xp').style.width = (player.xp / player.nextXp * 100) + "%";
+
+        document.getElementById('slot-w').innerText = `W: ${player.gear.w?.n || 'NONE'}`;
+        document.getElementById('slot-a').innerText = `A: ${player.gear.a?.n || 'NONE'}`;
+
+        const grid = document.getElementById('inv-grid');
+        grid.innerHTML = '';
+        player.inv.forEach((item, i) => {
+            const d = document.createElement('div');
+            d.className = `item ${player.selected === i ? 'active' : ''}`;
+            d.innerText = item.n;
+            d.onclick = () => { player.selected = i; document.getElementById('ui-equip-btn').style.display = 'block'; sync(); };
+            grid.appendChild(d);
+        });
+    }
+
+    function train(s) {
+        if(player.coins >= 100) {
+            player.coins -= 100;
+            if(s === 'atk') player.bAtk += 8; else player.bDef += 4;
+            sync();
         }
     }
 
-    function equipItem() {
-        if (player.selectedIdx === -1) return;
-        const item = player.inventory[player.selectedIdx];
-        const old = player.equipment[item.type];
-        
-        player.equipment[item.type] = item;
-        player.inventory.splice(player.selectedIdx, 1);
-        if (old) player.inventory.push(old);
-        
-        player.selectedIdx = -1;
-        document.getElementById('equip-btn').style.display = 'none';
-        updateStatsUI();
+    function doEquip() {
+        const item = player.inv[player.selected];
+        const old = player.gear[item.type];
+        player.gear[item.type] = item;
+        player.inv.splice(player.selected, 1);
+        if(old) player.inv.push(old);
+        player.selected = -1;
+        document.getElementById('ui-equip-btn').style.display = 'none';
+        sync();
     }
 
     // --- Battle Logic ---
-
-    function initBattle() {
+    function runBattle() {
         battle.active = true;
-        player.currentHp = getMaxHp();
-        spawnEnemy();
-        battleTick();
+        const maxHp = player.bHp + (player.rank * 1500) + (player.gear.a?.val || 0);
+        player.hp = maxHp;
+        nextEnemy();
+        battleLoop();
     }
 
-    function spawnEnemy() {
-        const difficulty = Math.pow(1.6, battle.stage) * Math.pow(5, battle.world - 1);
-        battle.enemy = {
-            name: "Enemy v" + battle.stage,
-            maxHp: 100 * difficulty,
-            hp: 100 * difficulty,
-            atk: 10 * difficulty,
-            img: "https://dragonball-api.com/characters/saibaman.webp"
-        };
-        document.getElementById('enemy-name').innerText = battle.enemy.name;
-        document.getElementById('enemy-sprite').src = battle.enemy.img;
-        document.getElementById('stage-info').innerText = `STAGE ${battle.stage} - WORLD ${battle.world}`;
-        updateBattleBars();
-        addLog(`A new challenger appears!`);
-    }
-
-    async function battleTick() {
-        if (!battle.active) return;
-        if (battle.turnInProgress) return;
-
-        battle.turnInProgress = true;
-
-        // Player Turn
-        await performAttack('player');
+    function nextEnemy() {
+        const scale = Math.pow(1.6, battle.stage) * Math.pow(15, battle.world - 1);
+        const dat = ENEMIES[Math.min(battle.stage % ENEMIES.length, ENEMIES.length - 1)];
+        battle.enemy = { name: dat.n, hp: 100 * scale, maxHp: 100 * scale, atk: 12 * scale, i: dat.i };
         
-        if (battle.enemy.hp <= 0) {
-            handleVictory();
+        document.getElementById('e-img').src = battle.enemy.i;
+        document.getElementById('e-name').innerText = battle.enemy.name;
+        document.getElementById('ui-stage-tag').innerText = `STAGE ${battle.stage} - WORLD ${battle.world}`;
+        refreshBars();
+    }
+
+    async function battleLoop() {
+        if(!battle.active) return;
+
+        // Player Hit
+        if(Math.random() < 0.25) await ultraMove(); else hit('p');
+
+        if(battle.enemy.hp <= 0) {
+            reward();
         } else {
-            // Enemy Turn
             await new Promise(r => setTimeout(r, 1000));
-            await performAttack('enemy');
-            
-            if (player.currentHp <= 0) {
-                handleDefeat();
-                return; 
+            hit('e');
+            if(player.hp <= 0) {
+                alert("DEFEATED! Go back and train.");
+                showTab('char');
+                return;
             }
         }
-
-        battle.turnInProgress = false;
-        setTimeout(battleTick, 1000);
+        setTimeout(battleLoop, 1300);
     }
 
-    async function performAttack(side) {
-        const isPlayer = side === 'player';
-        const target = isPlayer ? battle.enemy : player;
-        const attackerObj = isPlayer ? player : battle.enemy;
-        const targetElId = isPlayer ? 'e-unit' : 'p-unit';
+    function hit(side) {
+        const isP = side === 'p';
+        const atk = isP ? (player.bAtk + (player.rank * 200) + (player.gear.w?.val || 0)) : battle.enemy.atk;
+        const target = isP ? battle.enemy : player;
+        const targetId = isP ? 'e-box' : 'p-box';
 
-        // Critical Logic (Hyper Beam)
-        if (isPlayer && Math.random() < 0.2) {
-            await kamehameha();
-            return;
+        const dmg = Math.floor(atk * (0.8 + Math.random() * 0.4));
+        target.hp -= dmg;
+        pop(dmg, targetId);
+        refreshBars();
+        
+        const el = document.getElementById(isP ? 'p-box' : 'e-box');
+        el.style.transform = isP ? 'translateX(30px)' : 'translateX(-30px)';
+        setTimeout(() => el.style.transform = 'translateX(0)', 100);
+    }
+
+    async function ultraMove() {
+        const beam = document.getElementById('fx-beam');
+        const flash = document.getElementById('flash-fx');
+        addMsg("FINAL FLASH!!!");
+        flash.style.opacity = "1"; beam.style.width = "400px";
+        await new Promise(r => setTimeout(r, 600));
+        const dmg = (player.bAtk + (player.rank * 200) + (player.gear.w?.val || 0)) * 5;
+        battle.enemy.hp -= dmg;
+        pop(dmg, 'e-box');
+        refreshBars();
+        beam.style.width = "0"; flash.style.opacity = "0";
+    }
+
+    function reward() {
+        const gain = 40 * battle.stage;
+        player.xp += gain; player.coins += 50;
+        addMsg(`Enemy Defeated! +${gain} XP`);
+        
+        if(Math.random() < 0.3) {
+            const drops = [{n: "Power Pole", t:'weapon', v:150}, {n: "Saiyan Gi", t:'armor', v:400}];
+            const d = drops[Math.floor(Math.random()*2)];
+            player.inv.push({n: d.n, type: d.t, val: d.v * battle.world});
+            addMsg("DROP FOUND: " + d.n);
         }
 
-        let damage = isPlayer ? getAtk() : Math.max(5, battle.enemy.atk - getDef());
-        damage = Math.floor(damage * (0.9 + Math.random() * 0.2));
-
-        target.hp ? (target.hp -= damage) : (target.currentHp -= damage);
-        
-        showDamage(damage, targetElId);
-        updateBattleBars();
-        
-        const unit = document.getElementById(isPlayer ? 'p-unit' : 'e-unit');
-        unit.style.transform = isPlayer ? 'translateX(30px)' : 'translateX(-30px)';
-        setTimeout(() => unit.style.transform = 'translateX(0)', 100);
-    }
-
-    function kamehameha() {
-        return new Promise(resolve => {
-            const beam = document.getElementById('beam-effect');
-            const flash = document.getElementById('flash-effect');
-            addLog("KAMEHAMEHA!!!");
-            
-            flash.style.opacity = "1";
-            beam.style.width = "400px";
-            
-            setTimeout(() => {
-                const dmg = getAtk() * 4;
-                battle.enemy.hp -= dmg;
-                showDamage(dmg, 'e-unit');
-                updateBattleBars();
-                beam.style.width = "0";
-                flash.style.opacity = "0";
-                resolve();
-            }, 600);
-        });
-    }
-
-    function handleVictory() {
-        const xp = 25 * battle.stage;
-        const coins = 15 * battle.stage;
-        player.xp += xp;
-        player.coins += coins;
-        addLog(`Victory! Gained ${xp} XP and ${coins} Coins.`);
-
-        if (Math.random() < 0.25) {
-            const item = GEAR_DATABASE[Math.floor(Math.random() * GEAR_DATABASE.length)];
-            player.inventory.push({...item});
-            addLog(`LOOT FOUND: ${item.name}!`);
-        }
-
-        if (player.xp >= player.nextXp) {
-            player.level++;
-            player.xp = 0;
-            player.nextXp = Math.floor(player.nextXp * 1.3);
-            player.baseHp += 100;
-            if (player.level >= 100) {
-                player.level = 1;
-                player.rankIdx++;
-                addLog("SAIYAN ASCENSION! NEW FORM UNLOCKED!");
-            }
+        if(player.xp >= player.nextXp) {
+            player.lvl++; player.xp = 0; player.nextXp = Math.floor(player.nextXp * 1.5);
+            if(player.lvl >= 100) { player.lvl = 1; player.rank++; addMsg("TRANSCEEDED!"); }
         }
 
         battle.stage++;
-        if (battle.stage > 20) {
-            battle.stage = 1;
-            battle.world++;
-        }
-        spawnEnemy();
+        if(battle.stage > 20) { battle.stage = 1; battle.world++; }
+        nextEnemy();
     }
 
-    function handleDefeat() {
-        battle.active = false;
-        alert("GOKU WAS DEFEATED! Returning to training grounds...");
-        showScreen('stats'); // Auto eject to stats screen
-        player.currentHp = getMaxHp() * 0.1; // Restore small amount of health
-        updateStatsUI();
+    function refreshBars() {
+        const m = player.bHp + (player.rank * 1500) + (player.gear.a?.val || 0);
+        document.getElementById('btl-p-hp').style.width = (player.hp / m * 100) + "%";
+        document.getElementById('btl-e-hp').style.width = (battle.enemy.hp / battle.enemy.maxHp * 100) + "%";
     }
 
-    function showDamage(amt, targetId) {
-        const target = document.getElementById(targetId);
-        const pop = document.createElement('div');
-        pop.className = 'damage-popup';
-        pop.innerText = `-${Math.floor(amt)}`;
-        pop.style.left = "20px";
-        target.appendChild(pop);
-        setTimeout(() => pop.remove(), 800);
+    function pop(dmg, id) {
+        const d = document.createElement('div');
+        d.className = 'pop'; d.innerText = "-" + Math.floor(dmg);
+        document.getElementById(id).appendChild(d);
+        setTimeout(() => d.remove(), 700);
     }
 
-    function updateBattleBars() {
-        document.getElementById('battle-p-hp').style.width = (player.currentHp / getMaxHp() * 100) + "%";
-        document.getElementById('battle-e-hp').style.width = (battle.enemy.hp / battle.enemy.maxHp * 100) + "%";
-    }
+    function addMsg(m) { const l = document.getElementById('log'); l.innerHTML = `<div>> ${m}</div>` + l.innerHTML; }
 
-    function addLog(msg) {
-        const log = document.getElementById('battle-log');
-        log.innerHTML = `<div>> ${msg}</div>` + log.innerHTML;
-    }
-
-    // Initial Load
-    updateStatsUI();
+    // Start
+    preload();
+    sync();
 </script>
 </body>
 </html>
