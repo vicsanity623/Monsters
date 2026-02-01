@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Goku: Saiyan Ascension PRO</title>
+    <title>Goku: Saiyan Ascension - Custom Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -55,6 +55,7 @@
             position: absolute; width: 220px; height: 260px; 
             background: radial-gradient(circle, rgba(255, 215, 0, 0.5) 0%, transparent 70%);
             filter: blur(15px); animation: pulse 1s infinite alternate; 
+            display: none; /* Only shows when Super Saiyan */
         }
         @keyframes pulse { 0% { transform: scale(1); opacity: 0.4; } 100% { transform: scale(1.15); opacity: 0.7; } }
         .main-sprite { height: 100%; z-index: 2; filter: drop-shadow(0 0 15px black); }
@@ -66,7 +67,7 @@
         .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); box-shadow: 0 0 15px #00d2ff; }
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px solid #333; }
-        .train-btn { background: #27ae60; border: none; color: white; padding: 5px 12px; border-radius: 4px; font-family: 'Bangers'; }
+        .train-btn { background: #27ae60; border: none; color: white; padding: 5px 12px; border-radius: 4px; font-family: 'Bangers'; cursor: pointer;}
 
         /* Gear */
         .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: #111; padding: 10px; margin-top: 10px; border-radius: 8px; height: 100px; overflow-y: scroll; }
@@ -88,13 +89,13 @@
         #log { background: rgba(0,0,0,0.85); height: 110px; overflow-y: auto; padding: 10px; border-top: 2px solid var(--dbz-orange); font-size: 0.8rem; font-family: monospace; }
     </style>
 </head>
-<body>
+<body onload="preload()">
 
     <!-- LAUNCH LOADER -->
     <div id="loader">
-        <div class="load-title">POWERING UP...</div>
+        <div class="load-title">ZENKAI BOOSTING...</div>
         <div class="load-bar"><div id="load-progress" class="load-fill"></div></div>
-        <div id="load-status" class="load-status">Loading Ki...</div>
+        <div id="load-status" class="load-status">Charging Assets...</div>
     </div>
 
     <div id="flash-fx" class="flash"></div>
@@ -110,14 +111,14 @@
         <div style="text-align: center; font-size: 0.7rem; color: #888; letter-spacing: 2px;">LVL <span id="ui-lvl">1</span> SAIYAN</div>
 
         <div class="goku-view">
-            <div class="aura"></div>
-            <!-- Angry Goku Sprite -->
-            <img id="ui-sprite" src="https://dragonball-api.com/characters/Goku_SSJ_Render.webp" class="main-sprite">
+            <div id="ui-aura" class="aura"></div>
+            <!-- Custom Goku Assets Used Here -->
+            <img id="ui-sprite" src="IMG_0054.png" class="main-sprite">
         </div>
 
         <div>
             <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#aaa;">
-                <span>HP: <span id="ui-hp-txt">100/100</span></span>
+                <span>HP: <span id="ui-hp-txt">250/250</span></span>
                 <span id="ui-power" style="color:var(--dbz-yellow)">POWER: 0</span>
             </div>
             <div class="bar-wrap"><div id="bar-hp" class="bar-fill hp-f" style="width: 100%"></div></div>
@@ -127,8 +128,8 @@
 
         <div class="stat-grid">
             <div style="display:flex; flex-direction:column; justify-content:space-between;">
-                <div style="font-size:0.9rem;">ATK: <b id="ui-atk">20</b> <button class="train-btn" onclick="train('atk')">+</button></div>
-                <div style="font-size:0.9rem; margin-top:10px;">DEF: <b id="ui-def">10</b> <button class="train-btn" onclick="train('def')">+</button></div>
+                <div style="font-size:0.9rem;">ATK: <b id="ui-atk">25</b> <button class="train-btn" onclick="train('atk')">+</button></div>
+                <div style="font-size:0.9rem; margin-top:10px;">DEF: <b id="ui-def">15</b> <button class="train-btn" onclick="train('def')">+</button></div>
             </div>
             <div style="text-align:right;">
                 <div style="color:gold; font-family:'Bangers'; font-size:1.5rem;">COINS: <span id="ui-coins">100</span></div>
@@ -154,7 +155,8 @@
             
             <div class="unit" id="p-box">
                 <div class="bar-wrap" style="height:8px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
-                <img src="https://dragonball-api.com/characters/Goku_SSJ_Render.webp" style="transform: scaleX(-1);">
+                <!-- Sprite flips horizontally for battle -->
+                <img id="btl-p-sprite" src="IMG_0054.png" style="transform: scaleX(-1);">
             </div>
 
             <div class="unit" id="e-box">
@@ -164,28 +166,25 @@
             </div>
         </div>
 
-        <div id="log">Welcome, Kakarot. Prepare to transcend!</div>
+        <div id="log">Battle Log initialized...</div>
     </div>
 
 <script>
     // --- Asset Configuration ---
-    const SPRITES = [
-        "https://dragonball-api.com/characters/Goku_SSJ_Render.webp",
-        "https://dragonball-api.com/characters/saibaman.webp",
-        "https://dragonball-api.com/characters/Raditz_Normal.webp",
-        "https://dragonball-api.com/characters/Nappa_Render.webp",
-        "https://dragonball-api.com/characters/dodoria.webp",
-        "https://dragonball-api.com/characters/zarbon.webp",
-        "https://dragonball-api.com/characters/frieza.webp",
-        "https://dragonball-api.com/characters/cell.webp"
-    ];
+    // Using your provided filenames. Ensure these are in the same folder as the HTML file.
+    const GOKU_BASE = "IMG_0054.png";
+    const GOKU_SSJ = "IMG_0055.jpeg";
 
     const RANKS = ["BASE", "S", "SS", "SS2", "SS3", "SSG", "SSB", "UI", "MUI", "SSS", "SSS10"];
+    
+    // Original Enemy Sprites with verified reliable paths
     const ENEMIES = [
         { n: "Saibaman", i: "https://dragonball-api.com/characters/saibaman.webp" },
         { n: "Raditz", i: "https://dragonball-api.com/characters/Raditz_Normal.webp" },
         { n: "Nappa", i: "https://dragonball-api.com/characters/Nappa_Render.webp" },
         { n: "Dodoria", i: "https://dragonball-api.com/characters/dodoria.webp" },
+        { n: "Zarbon", i: "https://dragonball-api.com/characters/zarbon.webp" },
+        { n: "Captain Ginyu", i: "https://dragonball-api.com/characters/ginyu.webp" },
         { n: "Frieza", i: "https://dragonball-api.com/characters/frieza.webp" }
     ];
 
@@ -197,27 +196,29 @@
     };
     let battle = { stage: 1, world: 1, active: false, enemy: null };
 
-    // --- Preloader Engine ---
-    let loadedCount = 0;
+    // --- Preloader ---
     function preload() {
+        const assets = [GOKU_BASE, GOKU_SSJ, ...ENEMIES.map(e => e.i)];
+        let loaded = 0;
         const prog = document.getElementById('load-progress');
         const stat = document.getElementById('load-status');
-        
-        SPRITES.forEach(src => {
+
+        assets.forEach(src => {
             const img = new Image();
             img.onload = img.onerror = () => {
-                loadedCount++;
-                prog.style.width = (loadedCount / SPRITES.length * 100) + "%";
-                stat.innerText = `Pre-charging Ki: ${Math.floor(loadedCount / SPRITES.length * 100)}%`;
-                if(loadedCount >= SPRITES.length) {
-                    setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
+                loaded++;
+                let pct = Math.floor(loaded / assets.length * 100);
+                prog.style.width = pct + "%";
+                stat.innerText = `Loading Ki: ${pct}%`;
+                if(loaded >= assets.length) {
+                    setTimeout(() => document.getElementById('loader').style.display = 'none', 600);
                 }
             };
             img.src = src;
         });
     }
 
-    // --- Core UI Logic ---
+    // --- Logic ---
     function showTab(t) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
@@ -233,13 +234,19 @@
         const atk = player.bAtk + (player.rank * 200) + (player.gear.w?.val || 0);
         const def = player.bDef + (player.rank * 100);
 
+        // RANK LOGIC: Swap image if Rank S or higher
+        const currentSprite = (player.rank >= 1) ? GOKU_SSJ : GOKU_BASE;
+        document.getElementById('ui-sprite').src = currentSprite;
+        document.getElementById('btl-p-sprite').src = currentSprite;
+        document.getElementById('ui-aura').style.display = (player.rank >= 1) ? "block" : "none";
+
         document.getElementById('ui-rank').innerText = `RANK: ${RANKS[player.rank]}`;
         document.getElementById('ui-lvl').innerText = player.lvl;
         document.getElementById('ui-atk').innerText = atk;
         document.getElementById('ui-def').innerText = def;
         document.getElementById('ui-coins').innerText = player.coins;
         document.getElementById('ui-hp-txt').innerText = `${Math.floor(player.hp)}/${maxHp}`;
-        document.getElementById('ui-power').innerText = `POWER: ${(atk * 12 + maxHp).toLocaleString()}`;
+        document.getElementById('ui-power').innerText = `POWER: ${(atk * 15 + maxHp).toLocaleString()}`;
 
         document.getElementById('bar-hp').style.width = (player.hp / maxHp * 100) + "%";
         document.getElementById('bar-xp').style.width = (player.xp / player.nextXp * 100) + "%";
@@ -261,7 +268,7 @@
     function train(s) {
         if(player.coins >= 100) {
             player.coins -= 100;
-            if(s === 'atk') player.bAtk += 8; else player.bDef += 4;
+            if(s === 'atk') player.bAtk += 10; else player.bDef += 5;
             sync();
         }
     }
@@ -277,7 +284,7 @@
         sync();
     }
 
-    // --- Battle Logic ---
+    // --- Battle ---
     function runBattle() {
         battle.active = true;
         const maxHp = player.bHp + (player.rank * 1500) + (player.gear.a?.val || 0);
@@ -287,9 +294,9 @@
     }
 
     function nextEnemy() {
-        const scale = Math.pow(1.6, battle.stage) * Math.pow(15, battle.world - 1);
-        const dat = ENEMIES[Math.min(battle.stage % ENEMIES.length, ENEMIES.length - 1)];
-        battle.enemy = { name: dat.n, hp: 100 * scale, maxHp: 100 * scale, atk: 12 * scale, i: dat.i };
+        const scale = Math.pow(1.6, battle.stage) * Math.pow(20, battle.world - 1);
+        const dat = ENEMIES[Math.min((battle.stage - 1) % ENEMIES.length, ENEMIES.length - 1)];
+        battle.enemy = { name: dat.n, hp: 120 * scale, maxHp: 120 * scale, atk: 15 * scale, i: dat.i };
         
         document.getElementById('e-img').src = battle.enemy.i;
         document.getElementById('e-name').innerText = battle.enemy.name;
@@ -300,7 +307,7 @@
     async function battleLoop() {
         if(!battle.active) return;
 
-        // Player Hit
+        // Player Hit Logic
         if(Math.random() < 0.25) await ultraMove(); else hit('p');
 
         if(battle.enemy.hp <= 0) {
@@ -309,7 +316,7 @@
             await new Promise(r => setTimeout(r, 1000));
             hit('e');
             if(player.hp <= 0) {
-                alert("DEFEATED! Go back and train.");
+                alert("DEFEATED! Returning to training grounds.");
                 showTab('char');
                 return;
             }
@@ -318,12 +325,12 @@
     }
 
     function hit(side) {
-        const isP = side === 'p';
-        const atk = isP ? (player.bAtk + (player.rank * 200) + (player.gear.w?.val || 0)) : battle.enemy.atk;
+        const isP = (side === 'p');
+        const atkVal = isP ? (player.bAtk + (player.rank * 200) + (player.gear.w?.val || 0)) : battle.enemy.atk;
         const target = isP ? battle.enemy : player;
         const targetId = isP ? 'e-box' : 'p-box';
 
-        const dmg = Math.floor(atk * (0.8 + Math.random() * 0.4));
+        const dmg = Math.floor(atkVal * (0.8 + Math.random() * 0.4));
         target.hp -= dmg;
         pop(dmg, targetId);
         refreshBars();
@@ -336,10 +343,11 @@
     async function ultraMove() {
         const beam = document.getElementById('fx-beam');
         const flash = document.getElementById('flash-fx');
-        addMsg("FINAL FLASH!!!");
+        const moveName = (player.rank >= 1) ? "SUPER KAMEHAMEHA!!!" : "KAIO-KEN ATTACK!!!";
+        addMsg(moveName);
         flash.style.opacity = "1"; beam.style.width = "400px";
         await new Promise(r => setTimeout(r, 600));
-        const dmg = (player.bAtk + (player.rank * 200) + (player.gear.w?.val || 0)) * 5;
+        const dmg = (player.bAtk + (player.rank * 200) + (player.gear.w?.val || 0)) * 6;
         battle.enemy.hp -= dmg;
         pop(dmg, 'e-box');
         refreshBars();
@@ -347,20 +355,24 @@
     }
 
     function reward() {
-        const gain = 40 * battle.stage;
-        player.xp += gain; player.coins += 50;
-        addMsg(`Enemy Defeated! +${gain} XP`);
+        const gain = 50 * battle.stage * battle.world;
+        player.xp += gain; player.coins += 100;
+        addMsg(`Enemy Obliterated! +${gain} XP`);
         
-        if(Math.random() < 0.3) {
-            const drops = [{n: "Power Pole", t:'weapon', v:150}, {n: "Saiyan Gi", t:'armor', v:400}];
+        if(Math.random() < 0.35) {
+            const drops = [{n: "Z-Sword", t:'w', v:300}, {n: "Saiyan Armor", t:'a', v:800}];
             const d = drops[Math.floor(Math.random()*2)];
             player.inv.push({n: d.n, type: d.t, val: d.v * battle.world});
-            addMsg("DROP FOUND: " + d.n);
+            addMsg("NEW LOOT: " + d.n);
         }
 
         if(player.xp >= player.nextXp) {
             player.lvl++; player.xp = 0; player.nextXp = Math.floor(player.nextXp * 1.5);
-            if(player.lvl >= 100) { player.lvl = 1; player.rank++; addMsg("TRANSCEEDED!"); }
+            if(player.lvl >= 100) { 
+                player.lvl = 1; 
+                player.rank++; 
+                addMsg("ASCENSION COMPLETE! NEW FORM UNLOCKED!"); 
+            }
         }
 
         battle.stage++;
@@ -383,9 +395,6 @@
 
     function addMsg(m) { const l = document.getElementById('log'); l.innerHTML = `<div>> ${m}</div>` + l.innerHTML; }
 
-    // Start
-    preload();
-    sync();
 </script>
 </body>
 </html>
