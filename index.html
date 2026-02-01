@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Goku: Saiyan Ascension - Definitive Edition</title>
+    <title>Goku: Saiyan Ascension - Stage Master</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -38,7 +38,7 @@
         /* --- NAVIGATION --- */
         nav {
             display: flex; background: #111; border-bottom: 3px solid var(--dbz-orange);
-            height: 60px; min-height: 60px; width: 100%;
+            height: 60px; min-height: 60px; width: 100%; z-index: 1000;
         }
         nav button {
             flex: 1; background: transparent; border: none;
@@ -53,12 +53,14 @@
             width: 100%;
             flex-direction: column; 
             position: relative; 
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            background: var(--bg-dark);
         }
         .active-screen { display: flex; }
 
         /* --- HUB SCREEN --- */
-        #view-char { padding: 15px; overflow-y: auto; background: var(--bg-dark); }
+        #view-char { padding: 15px; }
         .rank-header { text-align: center; font-family: 'Bangers'; font-size: 2.2rem; color: var(--dbz-yellow); margin: 0; }
         .goku-view { position: relative; height: 260px; display: flex; justify-content: center; align-items: center; margin-bottom: 10px; }
         .aura { 
@@ -72,10 +74,9 @@
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(30,30,30,0.9); padding: 12px; border-radius: 10px; border: 1px solid #333; }
         .train-btn { background: #27ae60; border: none; color: white; padding: 6px 12px; border-radius: 4px; font-family: 'Bangers'; cursor: pointer; font-size: 1rem; }
-        .train-btn:active { transform: scale(0.95); }
 
         .bar-wrap { width: 100%; background: #222; height: 15px; border-radius: 8px; margin: 5px 0; overflow: hidden; border: 1px solid #444; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.3s; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.3s ease-in-out; }
         .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
         .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
 
@@ -84,50 +85,58 @@
             background-size: cover; 
             background-position: center; 
             background-repeat: no-repeat;
+            padding: 0;
         }
         .battle-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.3); z-index: 0;
+            background: rgba(0,0,0,0.4); z-index: 0;
         }
 
-        .battle-header {
-            position: relative; z-index: 5; background: rgba(0,0,0,0.6); padding: 10px; text-align: center;
+        /* STAGE SELECTOR */
+        .stage-selector {
+            position: relative; z-index: 10; background: rgba(0,0,0,0.8);
+            padding: 5px; display: flex; overflow-x: auto; gap: 5px;
+            border-bottom: 1px solid var(--dbz-orange);
         }
+        .stage-dot {
+            min-width: 35px; height: 35px; background: #333; border-radius: 5px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Bangers'; font-size: 0.9rem; cursor: pointer; border: 1px solid #555;
+        }
+        .stage-dot.active { background: var(--dbz-orange); color: white; border-color: white; }
+        .stage-dot.locked { opacity: 0.3; cursor: default; }
 
         .arena { 
             flex: 1; display: flex; justify-content: center; align-items: center; 
-            position: relative; z-index: 1; gap: 30px; padding-bottom: 50px;
+            position: relative; z-index: 1; gap: 30px;
         }
 
         .unit { width: 140px; display: flex; flex-direction: column; align-items: center; position: relative; }
-        .unit img { width: 100%; max-height: 180px; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0,0,0,0.7)); }
+        .unit img { width: 100%; max-height: 160px; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0,0,0,0.8)); }
 
-        /* HYPER BEAM */
         .beam { 
             position: absolute; height: 60px; background: linear-gradient(to bottom, #fff, #00d2ff, #fff); 
-            width: 0; left: 50%; top: 55%; transform: translate(-50%, -50%);
+            width: 0; left: 50%; top: 50%; transform: translate(-50%, -50%);
             box-shadow: 0 0 50px #00d2ff; z-index: 10; border-radius: 30px; pointer-events: none;
         }
 
         .pop { 
             position: absolute; color: yellow; font-family: 'Bangers'; font-size: 2.2rem; 
-            animation: popUp 0.7s forwards; z-index: 20; text-shadow: 2px 2px black; pointer-events: none;
+            animation: popUp 0.7s forwards; z-index: 20; text-shadow: 2px 2px black;
         }
         @keyframes popUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-80px); } }
 
-        /* BATTLE LOG */
         #log { 
             background: rgba(0,0,0,0.95); 
-            height: 140px; min-height: 140px; 
-            overflow-y: auto; padding: 12px; 
+            height: 120px; min-height: 120px; 
+            overflow-y: auto; padding: 10px; 
             border-top: 3px solid var(--dbz-orange); 
-            font-size: 0.9rem; color: #00ff00; z-index: 5;
-            text-shadow: 1px 1px black;
+            font-size: 0.85rem; color: #00ff00; z-index: 5;
         }
 
         .ready-banner {
-            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
-            font-family: 'Bangers'; font-size: 4.5rem; color: var(--dbz-yellow);
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-family: 'Bangers'; font-size: 4rem; color: var(--dbz-yellow);
             text-shadow: 4px 4px black; z-index: 100; display: none;
         }
     </style>
@@ -135,7 +144,7 @@
 <body onload="initGame()">
 
     <div id="loader">
-        <div class="load-title">SYNCING WITH API...</div>
+        <div class="load-title">POWERING UP...</div>
         <div class="load-bar"><div id="load-progress" class="load-fill"></div></div>
     </div>
 
@@ -146,7 +155,7 @@
         <button id="tab-battle" onclick="showTab('battle')">BATTLE</button>
     </nav>
 
-    <!-- CHARACTER HUB -->
+    <!-- HUB SCREEN -->
     <div id="view-char" class="screen active-screen">
         <div class="rank-header" id="ui-rank">RANK: BASE</div>
         <div class="goku-view">
@@ -174,16 +183,18 @@
                 <button class="train-btn" style="background:var(--dbz-orange); margin-top:5px;" onclick="doEquip()">EQUIP GEAR</button>
             </div>
         </div>
-        <div id="inv-grid" style="display:grid; grid-template-columns: repeat(4,1fr); gap:5px; margin-top:10px; height: 80px; overflow-y:auto;"></div>
+        <div id="inv-grid" style="display:grid; grid-template-columns: repeat(4,1fr); gap:5px; margin-top:10px; height: 60px; overflow-y:auto;"></div>
     </div>
 
     <!-- BATTLE SCREEN -->
     <div id="view-battle" class="screen">
         <div class="battle-overlay"></div>
-        <div class="battle-header">
-            <div id="ui-stage-tag" style="font-family:'Bangers'; color:var(--dbz-yellow); font-size:1.8rem; text-shadow: 2px 2px black;">STAGE 1</div>
-        </div>
         
+        <!-- STAGE SELECTOR -->
+        <div class="stage-selector" id="ui-stage-selector">
+            <!-- Populated by JS -->
+        </div>
+
         <div class="arena">
             <div id="fx-beam" class="beam"></div>
             
@@ -200,7 +211,7 @@
             </div>
         </div>
 
-        <div id="log">Initializing battle sensors...</div>
+        <div id="log">Battle Log initialized...</div>
     </div>
 
 <script>
@@ -215,11 +226,18 @@
         bAtk: 40, bDef: 25, bHp: 500, hp: 500,
         inv: [], gear: { w: null, a: null }, selected: -1
     };
-    let battle = { stage: 1, world: 1, active: false, enemy: null };
+    let battle = { 
+        stage: 1, 
+        world: 1, 
+        maxStage: 1, 
+        active: false, 
+        enemy: null,
+        isTransitioning: false 
+    };
 
     async function initGame() {
         try {
-            const charRes = await fetch(`${API_BASE}/characters?limit=50`);
+            const charRes = await fetch(`${API_BASE}/characters?limit=58`);
             const charJson = await charRes.json();
             apiData.characters = charJson.items;
             const planRes = await fetch(`${API_BASE}/planets?limit=20`);
@@ -227,10 +245,10 @@
             apiData.planets = planJson.items;
             document.getElementById('loader').style.display = 'none';
             syncUI();
+            buildStageSelector();
         } catch (e) {
             console.error("API Error", e);
             document.getElementById('loader').style.display = 'none';
-            syncUI();
         }
     }
 
@@ -243,7 +261,7 @@
         if(t === 'battle') {
             if(!battle.active) startBattle(); 
         } else {
-            battle.active = false; // Stop loops when not in battle tab
+            battle.active = false; 
         }
         syncUI();
     }
@@ -256,17 +274,19 @@
         
         const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
         const atk = player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0);
-        const def = player.bDef + (player.rank * 150);
         
         document.getElementById('ui-rank').innerText = `RANK: ${RANKS[player.rank]}`;
         document.getElementById('ui-lvl').innerText = player.lvl;
         document.getElementById('ui-atk').innerText = atk;
-        document.getElementById('ui-def').innerText = def;
+        document.getElementById('ui-def').innerText = player.bDef + (player.rank * 150);
         document.getElementById('ui-coins').innerText = player.coins;
         document.getElementById('ui-hp-txt').innerText = `${Math.floor(player.hp)}/${maxHp}`;
         document.getElementById('ui-power').innerText = `POWER: ${(atk * 30 + maxHp).toLocaleString()}`;
+        
+        // XP Bar Fix
+        const xpPct = (player.xp / player.nextXp) * 100;
+        document.getElementById('bar-xp').style.width = xpPct + "%";
         document.getElementById('bar-hp').style.width = (player.hp / maxHp * 100) + "%";
-        document.getElementById('bar-xp').style.width = (player.xp / player.nextXp * 100) + "%";
         
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
@@ -300,20 +320,39 @@
     }
 
     // --- BATTLE SYSTEM ---
+    function buildStageSelector() {
+        const container = document.getElementById('ui-stage-selector');
+        container.innerHTML = '';
+        for(let i = 1; i <= 20; i++) {
+            const dot = document.createElement('div');
+            dot.className = `stage-dot ${i > battle.maxStage ? 'locked' : ''} ${i === battle.stage ? 'active' : ''}`;
+            dot.innerText = i;
+            dot.onclick = () => {
+                if(i <= battle.maxStage && !battle.isTransitioning) {
+                    battle.stage = i;
+                    battle.active = false;
+                    startBattle();
+                }
+            };
+            container.appendChild(dot);
+        }
+    }
+
     async function startBattle() {
         battle.active = true;
+        battle.isTransitioning = true;
         const log = document.getElementById('log');
-        log.innerHTML = "Seeking new opponent...";
+        log.innerHTML = `Stage ${battle.stage}: Finding guardian...`;
         
-        // Background Planet Rotation
+        buildStageSelector();
+
         if(apiData.planets.length > 0) {
             const pIdx = (battle.world - 1) % apiData.planets.length;
             document.getElementById('view-battle').style.backgroundImage = `url('${apiData.planets[pIdx].image}')`;
         }
 
-        spawnEnemy();
+        spawnPersistentEnemy();
         
-        // 2 Second Loading Delay
         const banner = document.getElementById('ready-msg');
         banner.style.display = "block";
         banner.innerText = "READY?";
@@ -323,31 +362,36 @@
         banner.style.display = "none";
         
         log.innerHTML = `<div style="color:white">Battle Started: Stage ${battle.stage}</div>`;
+        battle.isTransitioning = false;
         battleLoop();
     }
 
-    function spawnEnemy() {
+    function spawnPersistentEnemy() {
         const scale = Math.pow(1.8, battle.stage) * Math.pow(25, battle.world - 1);
-        let dat = apiData.characters[Math.floor(Math.random() * apiData.characters.length)] || {name:"Challenger", image:""};
+        
+        // PERSISTENCE LOGIC: 
+        // Use a fixed index based on the stage number so it's always the same for that stage.
+        const charIdx = (battle.stage + (battle.world * 3)) % apiData.characters.length;
+        let dat = apiData.characters[charIdx] || {name:"Guardian", image:""};
+        
         battle.enemy = { name: dat.name, hp: 250 * scale, maxHp: 250 * scale, atk: 30 * scale, i: dat.image };
         
         document.getElementById('e-img').src = battle.enemy.i;
         document.getElementById('e-name').innerText = battle.enemy.name;
-        document.getElementById('ui-stage-tag').innerText = `WORLD ${battle.world} - STAGE ${battle.stage}`;
         updateBars();
     }
 
     async function battleLoop() {
-        if(!battle.active) return;
+        if(!battle.active || battle.isTransitioning) return;
         
-        // Goku's Turn
+        // Goku Turn
         if(Math.random() < 0.2) await executeSpecial(); else executeStrike('p');
         if(battle.enemy.hp <= 0) { handleWin(); return; }
 
         await new Promise(r => setTimeout(r, 1000));
-        if(!battle.active) return;
+        if(!battle.active || battle.isTransitioning) return;
 
-        // Enemy's Turn
+        // Enemy Turn
         executeStrike('e');
         if(player.hp <= 0) { handleDefeat(); return; }
 
@@ -377,7 +421,6 @@
         log.innerHTML = `<div style="color:var(--dbz-yellow)">> ${move}</div>` + log.innerHTML;
         
         beam.style.width = "320px";
-        beam.style.left = "calc(50% - 160px)";
         
         await new Promise(r => setTimeout(r, 600));
         const dmg = (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) * 7;
@@ -388,19 +431,18 @@
     }
 
     function handleWin() {
-        battle.active = false; // Stop current loop
+        battle.active = false;
         const xpGain = 100 * battle.stage * battle.world;
         player.xp += xpGain; 
         player.coins += 250;
         
         document.getElementById('log').innerHTML = `<div style="color:cyan">> VICTORY! +${xpGain} XP</div>` + document.getElementById('log').innerHTML;
         
-        // Random Loot
         if(Math.random() < 0.35) {
             player.inv.push({n: "Saiyan Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 700 * battle.world});
         }
         
-        // Ascension Logic
+        // Check Level up
         if(player.xp >= player.nextXp) {
             player.lvl++; 
             player.xp = 0; 
@@ -408,26 +450,35 @@
             if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
         }
 
-        // Advance Stage
-        battle.stage++;
-        if(battle.stage > 20) { 
-            battle.stage = 1; 
-            battle.world++; 
+        // Logic for progression
+        if(battle.stage === battle.maxStage && battle.maxStage < 20) {
+            battle.maxStage++;
+            battle.stage++;
+        } else if(battle.stage === 20) {
+            battle.stage = 1;
+            battle.world++;
+            battle.maxStage = 1; // Reset progression for new harder world
+        } else {
+            // Replay mode - just stay on current stage or auto-advance if not max
+            if(battle.stage < battle.maxStage) battle.stage++;
         }
 
-        // Auto-Proceed after short pause
+        syncUI();
+
         setTimeout(() => {
             if(document.getElementById('view-battle').classList.contains('active-screen')) {
                 startBattle();
             }
-        }, 1000);
+        }, 1200);
     }
 
     function handleDefeat() {
         battle.active = false;
         alert("GOKU WAS DEFEATED!");
         showTab('char');
-        player.hp = player.bHp + (player.rank * 2500); // Reset HP for Hub
+        // Restore some HP
+        const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+        player.hp = maxHp;
         syncUI();
     }
 
