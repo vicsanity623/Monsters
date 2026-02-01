@@ -917,7 +917,7 @@
 
         // UPDATE XP BAR IN BATTLE MENU
         document.getElementById('r-lvl').innerText = player.lvl;
-        document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${player.nextXp}`;
+        document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(player.nextXp)}`;
         const xpPct = Math.min(100, (player.xp / player.nextXp) * 100);
         document.getElementById('r-bar-xp').style.width = xpPct + "%";
 
