@@ -100,18 +100,57 @@
        SKILL LOGIC
     ------------------------- */
 
-    Skills.useDoubleHit = function () {
+    Skills.useDoubleHit = function (battleRef) {
         const s = skills.doubleHit;
-        if (!s.unlocked || !canUse(s)) return 0;
+        // Check if unlocked, off cooldown, and if battle is valid
+        if (!s.unlocked || !canUse(s) || !battleRef || !battleRef.active) return 0;
 
         s.lastUsed = now();
         gainXP(s, 15);
 
-        const hits = 2 + Math.floor(s.level / 3);
-        const damage = GameState.gokuPower * hits;
+        // 1. Show "Double HIT!" Text
+        const floatText = document.createElement('div');
+        floatText.className = 'pop'; // Reuse existing pop class for animation
+        floatText.innerText = "DOUBLE HIT!";
+        floatText.style.color = '#ff9900'; // Orange color
+        floatText.style.fontSize = '2.5rem';
+        floatText.style.left = '50%';
+        floatText.style.top = '25%';
+        floatText.style.zIndex = 100;
+        // Text Shadow for readability
+        floatText.style.textShadow = '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
+        document.body.appendChild(floatText);
+        setTimeout(() => floatText.remove(), 1000);
+
+        // 2. Rapid Fire Logic (Non-stop for 3 seconds)
+        const duration = 3000; 
+        const hitsPerSecond = 10; // Very fast
+        const intervalTime = 1000 / hitsPerSecond;
+        
+        // Damage per rapid hit (Total damage / number of hits approx)
+        // Let's make each rapid hit deal 40% of normal power
+        const dmgPerHit = Math.ceil(GameState.gokuPower * 0.4); 
+
+        const rapidInterval = setInterval(() => {
+            // Stop if battle ends or enemy dies
+            if (!GameState.inBattle || !battleRef.active || battleRef.enemy.hp <= 0) {
+                clearInterval(rapidInterval);
+                return;
+            }
+
+            // Apply Damage
+            battleRef.enemy.hp -= dmgPerHit;
+            
+            // Visual Pop for damage
+            if (window.popDamage) window.popDamage(dmgPerHit, 'e-box');
+
+        }, intervalTime);
+
+        // Stop after 3 seconds
+        setTimeout(() => clearInterval(rapidInterval), duration);
 
         save();
-        return damage;
+        return 0; // Return 0 so index.html doesn't apply instant damage on top
     };
 
     Skills.useFocus = function () {
