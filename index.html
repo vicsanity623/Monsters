@@ -246,7 +246,22 @@
             100% { opacity: 0; filter: grayscale(100%); transform: scale(0.8); }
         }
 
-        .beam { position: absolute; height: 80px; background: linear-gradient(to bottom, #fff, #00d2ff, #fff); width: 0; left: 50%; top: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 50px #00d2ff; z-index: 10; border-radius: 40px; pointer-events: none; transition: width 0.1s; }
+        /* UPDATED BEAM STYLES FOR PNG */
+        .beam { 
+            position: absolute; 
+            height: 100px; /* Adjust height based on png aspect ratio */
+            width: 0; /* Starts empty */
+            left: 20%; 
+            top: 50%; 
+            transform: translateY(-50%);
+            z-index: 10; 
+            pointer-events: none; 
+            opacity: 0;
+            object-fit: fill; /* Stretch image */
+            transform-origin: left center;
+            transition: width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1), opacity 0.2s ease-in;
+            filter: drop-shadow(0 0 15px cyan);
+        }
         
         .pop { 
             position: absolute; 
@@ -447,7 +462,8 @@
         <div id="start-prompt">SELECT A STAGE<br>TO BEGIN FIGHT!</div>
 
         <div class="arena">
-            <div id="fx-beam" class="beam"></div>
+            <!-- UPDATED BEAM to IMG -->
+            <img id="fx-beam" class="beam" src="hb_b.png">
             
             <div class="unit" id="p-box">
                 <div class="bar-wrap" style="height:10px; margin-bottom: 2px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
@@ -951,7 +967,7 @@
         const target = isP ? battle.enemy : player;
         const targetId = isP ? 'e-box' : 'p-box';
         
-        if(isP) player.charge += 12; 
+        if(isP) player.charge += 37; 
         if(player.charge > 100) player.charge = 100;
 
         const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
@@ -975,30 +991,31 @@
     }
 
     async function executeSpecial() {
-        if(!battle.active || battle.cinematic) return; // Check cinematic flag
+        if(!battle.active || battle.cinematic) return; 
         
-        battle.cinematic = true; // Pause combat
-        
-        // 1. Reset Charge
+        battle.cinematic = true; 
         player.charge = 0; 
         updateBars();
 
-        // 2. Trigger Cut-In Animation
+        // 1. Show Cut-In
         const cutInWrap = document.getElementById('cutin-overlay');
         const cutInImg = document.getElementById('cutin-img');
         cutInImg.src = (player.rank >= 1) ? 'charged_s.png' : 'charged_b.png';
         cutInWrap.style.display = 'flex';
 
-        // 3. Wait for Cut-In (600ms)
-        await new Promise(r => setTimeout(r, 600)); 
-        
+        // 2. Wait for partial cut-in (450ms)
+        await new Promise(r => setTimeout(r, 450)); 
+
+        // 3. Fire Beam (Crossfade)
+        const beam = document.getElementById('fx-beam');
+        beam.style.opacity = '1';
+        beam.style.width = '90%'; // Fill screen horizontally
+
+        // 4. Wait a bit more, then hide cut-in
+        await new Promise(r => setTimeout(r, 200)); 
         cutInWrap.style.display = 'none';
 
-        // 4. Fire Beam if battle still active
         if(!battle.active) { battle.cinematic = false; return; }
-        
-        const beam = document.getElementById('fx-beam');
-        beam.style.width = "320px";
         
         const dmg = (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) * 6;
         battle.enemy.hp -= dmg;
@@ -1006,6 +1023,7 @@
         updateBars();
 
         setTimeout(() => {
+            beam.style.opacity = '0';
             beam.style.width = "0";
             battle.cinematic = false; // Resume combat
         }, 300);
@@ -1048,6 +1066,10 @@
         }
 
         syncUI();
+        
+        if (window.Skills) {
+            Skills.autoBattleTick();
+        }
         
         document.getElementById('r-xp').innerText = xpGain;
         document.getElementById('r-coins').innerText = coinGain;
