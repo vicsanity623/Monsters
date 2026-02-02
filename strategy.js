@@ -56,7 +56,7 @@ function initStrategy() {
         pendingOfflineXp = offlineMinutes * 2000 * multiplier;
         
         // 25 Coins per minute
-        pendingOfflineGold = offlineMinutes * 10 * multiplier;
+        pendingOfflineGold = offlineMinutes * 100 * multiplier;
 
         // Item Drop Logic: 1 Item every 30 mins approx
         pendingItems = [];
