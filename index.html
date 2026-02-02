@@ -1144,13 +1144,25 @@
         document.getElementById('log').innerHTML = `<div style="color:cyan">> WON! +${xpGain} XP</div>`;
         
         let dropText = "NONE";
-        if(Math.random() < 0.35) {
-            addToInventory({
-                n: "Saiyan Gear", type: Math.random() > 0.5 ? 'w' : 'a', 
-                val: 700 * battle.world, rarity: 1 
-            });
-            dropText = "BASIC GEAR";
-        }
+            let dropCount = 0;
+            
+            // This generates a number: 0, 1, 2, or 3
+            // This means you have a 75% chance to get at least 1 item now!
+            const qty = Math.floor(Math.random() * 4); 
+    
+            for(let i = 0; i < qty; i++) {
+                addToInventory({
+                    n: "Saiyan Gear", 
+                    type: Math.random() > 0.5 ? 'w' : 'a', 
+                    val: 700 * battle.world, 
+                    rarity: 1 
+                });
+                dropCount++;
+            }
+    
+            if(dropCount > 0) {
+                dropText = `+${dropCount} BASIC GEAR`;
+            }
         
         if(player.xp >= player.nextXp) {
             player.lvl++; 
