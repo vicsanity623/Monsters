@@ -549,7 +549,7 @@
     let apiData = { characters: [], planets: [] };
     let player = {
         lvl: 1, rank: 0, xp: 0, nextXp: 100, coins: 500,
-        bAtk: 40, bDef: 25, bHp: 500, hp: 500, charge: 0,
+        bAtk: 25, bDef: 10, bHp: 1000, hp: 1000, charge: 0, // HP 1000, Lowered Base Atk
         inv: [], gear: { w: null, a: null }, selected: -1
     };
     let battle = { 
@@ -998,11 +998,27 @@
     }
 
     function spawnPersistentEnemy() {
-        const scale = Math.pow(1.8, battle.stage) * Math.pow(25, battle.world - 1);
+        // SCALING MATH UPDATE:
+        // 1. We reduce the exponent (1.8 -> 1.5) so stats don't break the game at stage 10.
+        // 2. We multiply by World (25 -> 10) to control difficulty spikes.
+        const difficultyMult = Math.pow(1.5, battle.stage) * Math.pow(5, battle.world - 1);
+        
         const charIdx = (battle.stage + (battle.world * 3)) % apiData.characters.length;
         let dat = apiData.characters[charIdx] || {name:"Guardian", image:""};
         
-        battle.enemy = { name: dat.name, hp: 250 * scale, maxHp: 250 * scale, atk: 30 * scale, i: dat.image };
+        // BALANCING:
+        // Enemy HP starts high (3000) so fights last 15-30 seconds.
+        // Enemy Atk starts moderate (60) so Goku (1000 HP) can take ~15-20 hits.
+        const eHp = Math.floor(3000 * difficultyMult);
+        const eAtk = Math.floor(60 * difficultyMult);
+
+        battle.enemy = { 
+            name: dat.name, 
+            hp: eHp, 
+            maxHp: eHp, 
+            atk: eAtk, 
+            i: dat.image 
+        };
         
         document.getElementById('e-img').src = battle.enemy.i;
         document.getElementById('e-name').innerText = battle.enemy.name;
@@ -1137,10 +1153,19 @@
         }
         
         if(player.xp >= player.nextXp) {
-            player.lvl++; player.xp -= player.nextXp; player.nextXp = Math.floor(player.nextXp * 1.2);
-            player.bHp += 100; player.bAtk += 10; player.bDef += 5;
+            player.lvl++; 
+            player.xp -= player.nextXp; 
+            player.nextXp = Math.floor(player.nextXp * 1.3); // Increased XP req slightly
+            
+            // NEW STAT GROWTH:
+            // High HP gain, Low Atk gain to extend battles
+            player.bHp += 250; 
+            player.bAtk += 5; 
+            player.bDef += 2;
+            
             const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
-            player.hp = maxHp;
+            player.hp = maxHp; // Full heal on level up
+            
             if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
         }
 
