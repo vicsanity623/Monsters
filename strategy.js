@@ -121,6 +121,7 @@ function openStrategy() {
 }
 
 // Claim Logic
+// Claim Logic
 function claimStrategy() {
     // Add XP & Gold
     player.xp += pendingOfflineXp;
@@ -134,18 +135,25 @@ function claimStrategy() {
         player.inv.push(...pendingItems);
     }
     
-    // Check Level Up logic
-    if(player.xp >= player.nextXp) {
+    // Check Level Up logic (Use WHILE to handle multiple levels at once)
+    while(player.xp >= player.nextXp) {
         player.lvl++; 
         player.xp -= player.nextXp; 
         player.nextXp = Math.floor(player.nextXp * 1.2);
-        player.bHp += 100; player.bAtk += 10; player.bDef += 5;
+        
+        // Increase Base Stats per Level
+        player.bHp += 100; 
+        player.bAtk += 10; 
+        player.bDef += 5;
         
         // Full Heal on Level Up
         const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
         player.hp = maxHp;
 
         if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
+    }
+    
+    if(pendingOfflineXp > 0) {
         alert("LEVEL UP! GRAVITY TRAINING COMPLETE!");
     }
 
