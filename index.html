@@ -213,6 +213,25 @@
         }
 
         /* --- BATTLE SCREEN CSS UPDATES --- */
+        .bar-wrap { 
+            width: 100%; 
+            background: #222; 
+            height: 15px; 
+            border-radius: 8px; 
+            margin: 5px 0; 
+            overflow: hidden; 
+            border: 1px solid #444; 
+            position: relative;
+            z-index: 5;
+        }
+        .bar-fill { 
+            height: 100%; 
+            width: 0%; 
+            transition: width 0.1s linear; 
+        }
+        .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
+        .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
+        .charge-f { background: linear-gradient(to right, #FFD700, #ff8c00); box-shadow: 0 0 10px #FFD700; }
         .unit { 
             width: 140px; 
             display: flex; 
