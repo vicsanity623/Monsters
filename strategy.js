@@ -53,7 +53,7 @@ function initStrategy() {
         const multiplier = (player.rank || 0) + 1;
         
         // 47 XP per minute (as requested previously)
-        pendingOfflineXp = offlineMinutes * 47 * multiplier;
+        pendingOfflineXp = offlineMinutes * 20000 * multiplier;
         
         // 10 Coins per minute
         pendingOfflineGold = offlineMinutes * 10 * multiplier;
