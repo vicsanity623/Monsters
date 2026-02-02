@@ -950,7 +950,7 @@
         const target = isP ? battle.enemy : player;
         const targetId = isP ? 'e-box' : 'p-box';
         
-        if(isP) player.charge += 12; 
+        if(isP) player.charge += 37; 
         if(player.charge > 100) player.charge = 100;
 
         const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
@@ -983,7 +983,7 @@
         // Determine image based on rank
         cutInImg.src = (player.rank >= 1) ? 'charged_s.png' : 'charged_b.png';
         cutInWrap.style.display = 'flex';
-        setTimeout(() => { cutInWrap.style.display = 'none'; }, 600);
+        setTimeout(() => { cutInWrap.style.display = 'none'; }, 750);
 
         player.charge = 0; updateBars();
         beam.style.width = "320px";
@@ -993,7 +993,7 @@
         popDamage(dmg, 'e-box', true);
         updateBars();
 
-        setTimeout(() => beam.style.width = "0", 200);
+        setTimeout(() => beam.style.width = "0", 350);
 
         if(battle.enemy.hp <= 0) {
             stopCombat();
