@@ -497,7 +497,8 @@
         enemy: null,
         autoTimerId: null,
         pInterval: null,
-        eInterval: null
+        eInterval: null,
+        cinematic: false // Added Cinematic Flag
     };
     window.GameState = {
         get gokuLevel() { return player.lvl; },
@@ -891,7 +892,7 @@
         
         // PLAYER LOOP
         battle.pInterval = setInterval(() => {
-            if(!battle.active) return;
+            if(!battle.active || battle.cinematic) return; // Paused during cinematic
     
             // 🔥 AUTO SKILLS (SAFE ORDER)
             if (window.Skills) {
@@ -926,7 +927,7 @@
     
         // ENEMY LOOP
         battle.eInterval = setInterval(() => {
-            if(!battle.active) return;
+            if(!battle.active || battle.cinematic) return; // Paused during cinematic
             executeStrike('e');
         }, 500);
     }
@@ -950,7 +951,7 @@
         const target = isP ? battle.enemy : player;
         const targetId = isP ? 'e-box' : 'p-box';
         
-        if(isP) player.charge += 37; 
+        if(isP) player.charge += 12; 
         if(player.charge > 100) player.charge = 100;
 
         const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
@@ -973,19 +974,30 @@
         }
     }
 
-    function executeSpecial() {
-        if(!battle.active) return;
-        const beam = document.getElementById('fx-beam');
+    async function executeSpecial() {
+        if(!battle.active || battle.cinematic) return; // Check cinematic flag
         
-        // Show Cut-in
+        battle.cinematic = true; // Pause combat
+        
+        // 1. Reset Charge
+        player.charge = 0; 
+        updateBars();
+
+        // 2. Trigger Cut-In Animation
         const cutInWrap = document.getElementById('cutin-overlay');
         const cutInImg = document.getElementById('cutin-img');
-        // Determine image based on rank
         cutInImg.src = (player.rank >= 1) ? 'charged_s.png' : 'charged_b.png';
         cutInWrap.style.display = 'flex';
-        setTimeout(() => { cutInWrap.style.display = 'none'; }, 750);
 
-        player.charge = 0; updateBars();
+        // 3. Wait for Cut-In (600ms)
+        await new Promise(r => setTimeout(r, 600)); 
+        
+        cutInWrap.style.display = 'none';
+
+        // 4. Fire Beam if battle still active
+        if(!battle.active) { battle.cinematic = false; return; }
+        
+        const beam = document.getElementById('fx-beam');
         beam.style.width = "320px";
         
         const dmg = (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) * 6;
@@ -993,7 +1005,10 @@
         popDamage(dmg, 'e-box', true);
         updateBars();
 
-        setTimeout(() => beam.style.width = "0", 350);
+        setTimeout(() => {
+            beam.style.width = "0";
+            battle.cinematic = false; // Resume combat
+        }, 300);
 
         if(battle.enemy.hp <= 0) {
             stopCombat();
