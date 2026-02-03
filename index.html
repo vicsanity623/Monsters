@@ -503,6 +503,25 @@
 
         <div id="log">Battle Log initialized...</div>
     </div>
+    <!-- LEVEL UP MODAL -->
+    <div id="levelup-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="font-family:'Bangers'; color:#FFD700; font-size:3.5rem; text-shadow:2px 2px black; margin-bottom:20px; animation: popUp 0.5s;">LEVEL UP!</div>
+        
+        <div style="position:relative; width:150px; height:150px; margin-bottom:20px;">
+            <div style="position:absolute; width:100%; height:100%; border-radius:50%; background:radial-gradient(circle, rgba(255,215,0,0.6), transparent); animation:pulseGreen 1.5s infinite;"></div>
+            <img id="lvl-up-img" src="IMG_0061.png" style="width:100%; height:100%; object-fit:contain; position:relative; z-index:2;">
+        </div>
+
+        <div style="font-family:'Orbitron'; color:white; font-size:1.5rem; margin-bottom:15px;">LV <span id="lvl-up-old">1</span> ➔ <span id="lvl-up-new" style="color:#00ff00;">2</span></div>
+
+        <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:10px; width:80%; max-width:300px; text-align:center; border:1px solid #555;">
+            <div style="color:#ff3e3e; margin:5px 0;">HP: +250</div>
+            <div style="color:#3498db; margin:5px 0;">ATK: +5</div>
+            <div style="color:#2ecc71; margin:5px 0;">DEF: +2</div>
+        </div>
+
+        <button onclick="closeLevelUp()" style="margin-top:25px; padding:10px 40px; background:linear-gradient(to bottom, #f1c40f, #f39c12); border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer;">CONTINUE</button>
+    </div>
 
 <script src="strategy.js"></script>
 <script src="skills.js"></script>
@@ -662,8 +681,10 @@
         syncUI();
     }
 
-    // Extracted Level Up Logic for reuse
     function checkLevelUp() {
+        let leveledUp = false;
+        const oldLvl = player.lvl;
+
         while(player.xp >= player.nextXp) {
             player.lvl++; 
             player.xp -= player.nextXp; 
@@ -677,6 +698,13 @@
             player.hp = maxHp;
             
             if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
+            leveledUp = true;
+        }
+
+        if(leveledUp) {
+            showLevelUp(oldLvl, player.lvl);
+            syncUI();
+            saveGame();
         }
     }
 
@@ -1292,6 +1320,43 @@
         if(container) container.appendChild(d);
         
         setTimeout(() => d.remove(), 600);
+    }
+    function showLevelUp(oldLvl, newLvl) {
+        // Pause Battle if active
+        if(battle.active) {
+            stopCombat();
+            battle.cinematic = true; // Prevents loops from running
+        }
+
+        document.getElementById('lvl-up-old').innerText = oldLvl;
+        document.getElementById('lvl-up-new').innerText = newLvl;
+        
+        // Update image based on rank if needed
+        const img = (player.rank >= 1) ? "IMG_0062.png" : "IMG_0061.png";
+        document.getElementById('lvl-up-img').src = img;
+
+        document.getElementById('levelup-modal').style.display = 'flex';
+    }
+
+    function closeLevelUp() {
+        document.getElementById('levelup-modal').style.display = 'none';
+        
+        // Resume Battle if we were in one
+        if(GameState.inBattle) {
+            battle.cinematic = false;
+            // Restart loops
+            battle.pInterval = setInterval(() => {
+                if(!battle.active || battle.cinematic) return;
+                if(window.Skills) { /* ... skills logic ... */ }
+                if(player.charge >= 100) executeSpecial(); else executeStrike('p');
+                updateBars();
+            }, 400);
+
+            battle.eInterval = setInterval(() => {
+                if(!battle.active || battle.cinematic) return;
+                executeStrike('e');
+            }, 500);
+        }
     }
 </script>
 </body>
