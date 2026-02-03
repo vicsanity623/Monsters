@@ -9,16 +9,43 @@ const GearSystem = {
     injectStyles: function() {
         const css = `
             #gear-overlay {
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background: #f0f2f5; z-index: 5000; display: none; 
-                flex-direction: column; font-family: 'Orbitron', sans-serif; color: #333;
+                position: fixed; 
+                top: 0; left: 0; 
+                width: 100vw; height: 100vh;
+                background: #f0f2f5; 
+                z-index: 99999; /* Increased to stay on top of everything */
+                display: none; 
+                flex-direction: column; 
+                font-family: 'Orbitron', sans-serif; 
+                color: #333;
             }
             .g-header {
-                background: #1a1a1a; padding: 20px; display: flex; 
-                justify-content: space-between; align-items: center; color: white;
+                background: #1a1a1a; 
+                /* Fixed: Added Safe Area Inset for iPhone Notch/Clock */
+                padding-top: env(safe-area-inset-top, 20px); 
+                padding-bottom: 15px;
+                padding-left: 20px;
+                padding-right: 20px;
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                color: white;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             }
-            .g-header h2 { font-family: 'Bangers'; margin: 0; color: var(--dbz-yellow); letter-spacing: 2px; }
-            .g-close { font-size: 1.5rem; cursor: pointer; color: #ff3e3e; font-weight: bold; }
+            .g-header h2 { 
+                font-family: 'Bangers'; 
+                margin: 0; 
+                color: var(--dbz-yellow); 
+                letter-spacing: 2px; 
+                font-size: 1.8rem;
+            }
+            .g-close { 
+                font-size: 1.8rem; 
+                cursor: pointer; 
+                color: #ff3e3e; 
+                font-weight: bold; 
+                padding: 5px;
+            }
 
             .g-content { flex: 1; padding: 15px; overflow-y: auto; }
             .g-grid { 
@@ -29,7 +56,6 @@ const GearSystem = {
                 aspect-ratio: 1/1; background: #e0e4e8; border: 2px solid #ccc;
                 border-radius: 8px; display: flex; flex-direction: column; 
                 align-items: center; justify-content: center; position: relative;
-                transition: 0.2s;
             }
             .g-slot.selected { border-color: #3498db; background: #d6eaf8; transform: scale(1.05); }
             
@@ -37,7 +63,11 @@ const GearSystem = {
             .g-tier { position: absolute; top: 2px; left: 4px; font-size: 0.6rem; font-weight: bold; color: #7f8c8d; }
 
             .g-footer { 
-                background: white; padding: 20px; border-top: 1px solid #ddd;
+                background: white; 
+                padding: 20px; 
+                /* Fixed: Added bottom safe area for home bar */
+                padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+                border-top: 1px solid #ddd;
                 display: flex; flex-direction: column; gap: 10px;
             }
             .g-preview-box { background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
@@ -53,11 +83,10 @@ const GearSystem = {
             .g-btn-green { background: #2ecc71; }
             .g-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
 
-            /* Simple Detail Modal */
             #g-modal {
                 position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
                 width: 85%; background: white; border-radius: 15px; padding: 20px;
-                z-index: 6000; display: none; box-shadow: 0 0 50px rgba(0,0,0,0.5);
+                z-index: 100000; display: none; box-shadow: 0 0 50px rgba(0,0,0,0.5);
                 text-align: center; color: #333;
             }
         `;
