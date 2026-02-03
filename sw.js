@@ -1,11 +1,12 @@
-const CACHE_NAME = 'goku-rpg-v3.3'; // UPDATED: Version bump forces cache clear
+const CACHE_NAME = 'goku-rpg-v3.4'; // UPDATED: Version bump forces cache clear
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './strategy.js',
   './skills.js',
   './gear.js',
-  './manifest.json', // Added manifest to cache
+  './battle.js',
+  './manifest.json',
   './charged_b.png',
   './hb_b.png',
   './charged_s.png',
