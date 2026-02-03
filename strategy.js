@@ -66,7 +66,7 @@ function initStrategy() {
                 pendingItems.push({
                     n: "Training Gear", 
                     type: Math.random() > 0.5 ? 'w' : 'a', 
-                    val: 500 * multiplier, 
+                    val: 700,
                     rarity: 1 
                 });
             }
