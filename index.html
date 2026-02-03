@@ -122,7 +122,6 @@
         .side-btn:active { transform: scale(0.95); }
         .side-btn i { font-size: 1.2rem; margin-bottom: 2px; }
         
-        /* Pulse animation for ready supply */
         .btn-ready { 
             border-color: #00ff00 !important; 
             box-shadow: 0 0 10px #00ff00 !important;
@@ -133,7 +132,6 @@
         .gacha-view { 
             flex: 1; position: relative; display: flex; justify-content: center; align-items: center; 
             margin-top: 10px; min-height: 300px;
-            /* Make Goku clickable */
             cursor: pointer; 
             -webkit-tap-highlight-color: transparent;
         }
@@ -206,7 +204,6 @@
         }
         .inv-item.selected { border-color: var(--dbz-orange); box-shadow: 0 0 5px var(--dbz-orange); }
 
-        /* Inventory Stack Badge */
         .qty-badge {
             position: absolute; top: -5px; right: -5px;
             background: #e74c3c; color: white; border: 1px solid white;
@@ -226,14 +223,12 @@
             display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 1.2rem;
         }
 
-        /* --- BATTLE SCREEN --- */
         .bar-wrap { width: 100%; background: #222; height: 15px; border-radius: 8px; margin: 5px 0; overflow: hidden; border: 1px solid #444; position: relative;}
         .bar-fill { height: 100%; width: 0%; transition: width 0.1s linear; }
         .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
         .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
         .charge-f { background: linear-gradient(to right, #FFD700, #ff8c00); box-shadow: 0 0 10px #FFD700; }
 
-        /* RARITY STYLES */
         .item-basic { color: var(--rarity-common); border-color: #555 !important; }
         .item-rare { color: var(--rarity-rare); border-color: var(--rarity-rare) !important; box-shadow: inset 0 0 5px var(--rarity-rare); }
         .item-legendary { color: var(--rarity-legendary); border-color: var(--rarity-legendary) !important; box-shadow: inset 0 0 8px var(--rarity-legendary); }
@@ -260,7 +255,6 @@
             100% { opacity: 0; filter: grayscale(100%); transform: scale(0.8); }
         }
 
-        /* UPDATED BEAM STYLES FOR PNG */
         .beam { 
             position: absolute; 
             height: 100px; 
@@ -277,7 +271,6 @@
             filter: drop-shadow(0 0 15px cyan);
         }
         
-        /* Floating Damage / Reward Text */
         .pop { 
             position: absolute; 
             color: yellow; 
@@ -295,10 +288,9 @@
             100% { opacity: 0; transform: scale(1) translateY(-60px); } 
         }
 
-        /* CUT-IN OVERLAY ANIMATION */
         #cutin-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 12; /* Above units, below UI */
+            z-index: 12; 
             display: none; align-items: center; justify-content: center;
             background: rgba(0,0,0,0.6);
         }
@@ -342,6 +334,26 @@
         <div class="load-bar"><div id="load-progress" class="load-fill"></div></div>
     </div>
 
+    <!-- LEVEL UP MODAL -->
+    <div id="levelup-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="font-family:'Bangers'; color:#FFD700; font-size:3.5rem; text-shadow:2px 2px black; margin-bottom:20px; animation: popUp 0.5s;">LEVEL UP!</div>
+        
+        <div style="position:relative; width:150px; height:150px; margin-bottom:20px;">
+            <div style="position:absolute; width:100%; height:100%; border-radius:50%; background:radial-gradient(circle, rgba(255,215,0,0.6), transparent); animation:pulseGreen 1.5s infinite;"></div>
+            <img id="lvl-up-img" src="IMG_0061.png" style="width:100%; height:100%; object-fit:contain; position:relative; z-index:2;">
+        </div>
+
+        <div style="font-family:'Orbitron'; color:white; font-size:1.5rem; margin-bottom:15px;">LV <span id="lvl-up-old">1</span> ➔ <span id="lvl-up-new" style="color:#00ff00;">2</span></div>
+
+        <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:10px; width:80%; max-width:300px; text-align:center; border:1px solid #555;">
+            <div style="color:#ff3e3e; margin:5px 0;">HP: <span id="lvl-stats-hp"></span> <span style="color:#00ff00;">(+250)</span></div>
+            <div style="color:#3498db; margin:5px 0;">ATK: <span id="lvl-stats-atk"></span> <span style="color:#00ff00;">(+5)</span></div>
+            <div style="color:#2ecc71; margin:5px 0;">DEF: <span id="lvl-stats-def"></span> <span style="color:#00ff00;">(+2)</span></div>
+        </div>
+
+        <button onclick="closeLevelUp()" style="margin-top:25px; padding:10px 40px; background:linear-gradient(to bottom, #f1c40f, #f39c12); border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer;">CONTINUE</button>
+    </div>
+
     <div id="ready-msg" class="ready-banner">READY?</div>
 
     <nav>
@@ -360,7 +372,6 @@
         </div>
 
         <div class="side-menu">
-            <!-- NEW: Free Supply Button -->
             <div class="side-btn" id="btn-supply" onclick="claimSupply()">
                 <i>🎁</i> Supply
             </div>
@@ -376,7 +387,6 @@
             </div>
         </div>
 
-        <!-- NEW: Added onclick for Shadow Training -->
         <div class="gacha-view" onclick="tapTrain()">
             <div id="ui-aura" class="aura"></div>
             <img id="ui-sprite" src="IMG_0054.png" class="main-sprite">
@@ -450,7 +460,6 @@
     <div id="view-battle" class="screen">
         <div class="battle-overlay"></div>
         
-        <!-- SPECIAL ATTACK CUT-IN OVERLAY -->
         <div id="cutin-overlay">
             <img id="cutin-img" src="" alt="Special Attack">
         </div>
@@ -458,7 +467,6 @@
         <div id="battle-menu">
             <div id="menu-title" style="color:var(--dbz-yellow); font-family:'Bangers'; font-size:3rem; margin-bottom:10px;">VICTORY!</div>
             
-            <!-- ADDED XP BAR TO BATTLE MENU -->
             <div style="width:80%; margin-bottom:15px;">
                 <div style="display:flex; justify-content:space-between; color:white; font-family:'Orbitron'; font-size:0.8rem;">
                     <span>LV <span id="r-lvl">1</span></span>
@@ -484,6 +492,8 @@
 
         <div class="arena">
             <div id="fx-beam" class="beam"></div>
+            <!-- Updated Beam Image Source -->
+            <img id="fx-beam" class="beam" src="hb_b.png">
             
             <div class="unit" id="p-box">
                 <div class="bar-wrap" style="height:10px; margin-bottom: 2px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
@@ -502,25 +512,6 @@
         </div>
 
         <div id="log">Battle Log initialized...</div>
-    </div>
-    <!-- LEVEL UP MODAL -->
-    <div id="levelup-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
-        <div style="font-family:'Bangers'; color:#FFD700; font-size:3.5rem; text-shadow:2px 2px black; margin-bottom:20px; animation: popUp 0.5s;">LEVEL UP!</div>
-        
-        <div style="position:relative; width:150px; height:150px; margin-bottom:20px;">
-            <div style="position:absolute; width:100%; height:100%; border-radius:50%; background:radial-gradient(circle, rgba(255,215,0,0.6), transparent); animation:pulseGreen 1.5s infinite;"></div>
-            <img id="lvl-up-img" src="IMG_0061.png" style="width:100%; height:100%; object-fit:contain; position:relative; z-index:2;">
-        </div>
-
-        <div style="font-family:'Orbitron'; color:white; font-size:1.5rem; margin-bottom:15px;">LV <span id="lvl-up-old">1</span> ➔ <span id="lvl-up-new" style="color:#00ff00;">2</span></div>
-
-        <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:10px; width:80%; max-width:300px; text-align:center; border:1px solid #555;">
-            <div style="color:#ff3e3e; margin:5px 0;">HP: +250</div>
-            <div style="color:#3498db; margin:5px 0;">ATK: +5</div>
-            <div style="color:#2ecc71; margin:5px 0;">DEF: +2</div>
-        </div>
-
-        <button onclick="closeLevelUp()" style="margin-top:25px; padding:10px 40px; background:linear-gradient(to bottom, #f1c40f, #f39c12); border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer;">CONTINUE</button>
     </div>
 
 <script src="strategy.js"></script>
@@ -543,7 +534,7 @@
         lvl: 1, rank: 0, xp: 0, nextXp: 100, coins: 500,
         bAtk: 40, bDef: 25, bHp: 500, hp: 500, charge: 0,
         inv: [], gear: { w: null, a: null }, selected: -1,
-        lastCapsule: 0 // Track last supply claim
+        lastCapsule: 0
     };
     let battle = { 
         stage: 1, 
@@ -587,8 +578,6 @@
             if(typeof initStrategy === 'function') initStrategy();
         
             setInterval(saveGame, 30000);
-            
-            // Check button state every second
             setInterval(updateCapsuleBtn, 1000);
             
         } catch (e) {
@@ -597,88 +586,37 @@
         }
     }
 
-    // --- NEW: CAPSULE SUPPLY LOGIC ---
-    function claimSupply() {
-        const now = Date.now();
-        const cooldown = 60000; // 60 seconds
-        
-        // Handle init case
-        if(!player.lastCapsule) player.lastCapsule = 0;
-        
-        const diff = now - player.lastCapsule;
-        
-        if(diff < cooldown) {
-            const rem = Math.ceil((cooldown - diff) / 1000);
-            alert(`Supply Capsule recharging... ${rem}s remaining.`);
-            return;
+    function showLevelUp(oldLvl, newLvl) {
+        // Force Pause Battle
+        if(battle.active) {
+            battle.cinematic = true; // Pauses combat loops
         }
+
+        document.getElementById('lvl-up-old').innerText = oldLvl;
+        document.getElementById('lvl-up-new').innerText = newLvl;
         
-        player.lastCapsule = now;
-        
-        // Rewards Calculation
-        const base = 50 * (player.lvl || 1);
-        const xpGain = Math.floor(base * (0.8 + Math.random() * 0.4));
-        const coinGain = Math.floor(base * 0.5);
-        
-        player.xp += xpGain;
-        player.coins += coinGain;
-        
-        let msg = `SUPPLY DROP RECEIVED!\n\n+${xpGain} XP\n+${coinGain} Coins`;
-        
-        // 30% Chance for Item
-        if(Math.random() < 0.3) {
-            const item = {
-                n: "Capsule Gear", 
-                type: Math.random() > 0.5 ? 'w' : 'a', 
-                val: 700, // Standardized Rarity 1 Value
-                rarity: 1 
-            };
-            addToInventory(item);
-            msg += `\n+1 BASIC GEAR`;
-        }
-        
-        checkLevelUp();
-        syncUI();
-        saveGame();
-        
-        alert(msg);
-        updateCapsuleBtn();
+        // Show Stats
+        const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+        const atk = player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0);
+        const def = player.bDef + (player.rank * 150) + (player.gear.a?.val || 0);
+
+        document.getElementById('lvl-stats-hp').innerText = maxHp;
+        document.getElementById('lvl-stats-atk').innerText = atk;
+        document.getElementById('lvl-stats-def').innerText = def;
+
+        const img = (player.rank >= 1) ? "IMG_0062.png" : "IMG_0061.png";
+        document.getElementById('lvl-up-img').src = img;
+
+        document.getElementById('levelup-modal').style.display = 'flex';
     }
 
-    function updateCapsuleBtn() {
-        const btn = document.getElementById('btn-supply');
-        if(!btn) return;
+    function closeLevelUp() {
+        document.getElementById('levelup-modal').style.display = 'none';
         
-        const now = Date.now();
-        const cooldown = 60000;
-        const diff = now - (player.lastCapsule || 0);
-        
-        if(diff >= cooldown) {
-            btn.innerHTML = "<i>🎁</i> Supply Ready!";
-            btn.classList.add('btn-ready');
-            btn.style.color = "#fff";
-        } else {
-            const rem = Math.ceil((cooldown - diff) / 1000);
-            btn.innerHTML = `<i>⏳</i> ${rem}s`;
-            btn.classList.remove('btn-ready');
-            btn.style.color = "#777";
+        // Resume Battle if active
+        if(GameState.inBattle && battle.active) {
+            battle.cinematic = false;
         }
-    }
-
-    // --- NEW: SHADOW SPARRING (TAP TRAINING) ---
-    function tapTrain() {
-        // Simple clicker mechanic for Hub
-        const xpGain = Math.ceil(player.lvl / 2);
-        const coinGain = 1;
-        
-        player.xp += xpGain;
-        player.coins += coinGain;
-        
-        // Visual Pop on Goku
-        popDamage(`+${xpGain} XP`, 'view-char', true); // Reuse pop logic
-        
-        checkLevelUp();
-        syncUI();
     }
 
     function checkLevelUp() {
@@ -706,6 +644,85 @@
             syncUI();
             saveGame();
         }
+    }
+
+    function claimSupply() {
+        const now = Date.now();
+        const cooldown = 60000; 
+        
+        if(!player.lastCapsule) player.lastCapsule = 0;
+        const diff = now - player.lastCapsule;
+        
+        if(diff < cooldown) {
+            const rem = Math.ceil((cooldown - diff) / 1000);
+            alert(`Supply Capsule recharging... ${rem}s remaining.`);
+            return;
+        }
+        
+        player.lastCapsule = now;
+        
+        const base = 50 * (player.lvl || 1);
+        const xpGain = Math.floor(base * (0.8 + Math.random() * 0.4));
+        const coinGain = Math.floor(base * 0.5);
+        
+        player.xp += xpGain;
+        player.coins += coinGain;
+        
+        let msg = `SUPPLY DROP RECEIVED!\n\n+${xpGain} XP\n+${coinGain} Coins`;
+        
+        if(Math.random() < 0.3) {
+            const item = {
+                n: "Capsule Gear", 
+                type: Math.random() > 0.5 ? 'w' : 'a', 
+                val: 700, 
+                rarity: 1 
+            };
+            addToInventory(item);
+            msg += `\n+1 BASIC GEAR`;
+        }
+        
+        checkLevelUp();
+        syncUI();
+        saveGame();
+        
+        // Only alert if NO level up happened (to avoid double popup)
+        if(document.getElementById('levelup-modal').style.display === 'none') {
+            alert(msg);
+        }
+        updateCapsuleBtn();
+    }
+
+    function updateCapsuleBtn() {
+        const btn = document.getElementById('btn-supply');
+        if(!btn) return;
+        
+        const now = Date.now();
+        const cooldown = 60000;
+        const diff = now - (player.lastCapsule || 0);
+        
+        if(diff >= cooldown) {
+            btn.innerHTML = "<i>🎁</i> Supply Ready!";
+            btn.classList.add('btn-ready');
+            btn.style.color = "#fff";
+        } else {
+            const rem = Math.ceil((cooldown - diff) / 1000);
+            btn.innerHTML = `<i>⏳</i> ${rem}s`;
+            btn.classList.remove('btn-ready');
+            btn.style.color = "#777";
+        }
+    }
+
+    function tapTrain() {
+        const xpGain = Math.ceil(player.lvl / 2);
+        const coinGain = 1;
+        
+        player.xp += xpGain;
+        player.coins += coinGain;
+        
+        popDamage(`+${xpGain} XP`, 'view-char', true);
+        
+        checkLevelUp();
+        syncUI();
     }
 
     function saveGame() {
@@ -1043,7 +1060,7 @@
             if(!battle.active || battle.cinematic) return; 
     
             if (window.Skills) {
-                const dhDmg = Skills.useDoubleHit();
+                const dhDmg = Skills.useDoubleHit(battle);
                 if (dhDmg > 0) {
                     battle.enemy.hp -= dhDmg;
                     popDamage(dhDmg, 'e-box', true);
@@ -1307,7 +1324,6 @@
         const randomX = (Math.random() * 40) - 20; 
         const randomY = (Math.random() * 40) - 20;
         
-        // Use relative positioning if in Hub
         if(id === 'view-char') {
              d.style.left = `50%`;
              d.style.top = `40%`;
@@ -1320,43 +1336,6 @@
         if(container) container.appendChild(d);
         
         setTimeout(() => d.remove(), 600);
-    }
-    function showLevelUp(oldLvl, newLvl) {
-        // Pause Battle if active
-        if(battle.active) {
-            stopCombat();
-            battle.cinematic = true; // Prevents loops from running
-        }
-
-        document.getElementById('lvl-up-old').innerText = oldLvl;
-        document.getElementById('lvl-up-new').innerText = newLvl;
-        
-        // Update image based on rank if needed
-        const img = (player.rank >= 1) ? "IMG_0062.png" : "IMG_0061.png";
-        document.getElementById('lvl-up-img').src = img;
-
-        document.getElementById('levelup-modal').style.display = 'flex';
-    }
-
-    function closeLevelUp() {
-        document.getElementById('levelup-modal').style.display = 'none';
-        
-        // Resume Battle if we were in one
-        if(GameState.inBattle) {
-            battle.cinematic = false;
-            // Restart loops
-            battle.pInterval = setInterval(() => {
-                if(!battle.active || battle.cinematic) return;
-                if(window.Skills) { /* ... skills logic ... */ }
-                if(player.charge >= 100) executeSpecial(); else executeStrike('p');
-                updateBars();
-            }, 400);
-
-            battle.eInterval = setInterval(() => {
-                if(!battle.active || battle.cinematic) return;
-                executeStrike('e');
-            }, 500);
-        }
     }
 </script>
 </body>
