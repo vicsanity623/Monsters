@@ -117,12 +117,23 @@
             width: 50px; height: 50px; background: rgba(0,0,0,0.6); border-radius: 50%;
             border: 2px solid #555; display: flex; flex-direction: column; align-items: center; justify-content: center;
             font-size: 0.7rem; color: white; cursor: pointer; backdrop-filter: blur(5px);
+            transition: all 0.2s;
         }
+        .side-btn:active { transform: scale(0.95); }
         .side-btn i { font-size: 1.2rem; margin-bottom: 2px; }
+        
+        .btn-ready { 
+            border-color: #00ff00 !important; 
+            box-shadow: 0 0 10px #00ff00 !important;
+            animation: pulseGreen 1.5s infinite;
+        }
+        @keyframes pulseGreen { 0% { box-shadow: 0 0 5px #00ff00; } 50% { box-shadow: 0 0 15px #00ff00; } 100% { box-shadow: 0 0 5px #00ff00; } }
 
         .gacha-view { 
             flex: 1; position: relative; display: flex; justify-content: center; align-items: center; 
             margin-top: 10px; min-height: 300px;
+            cursor: pointer; 
+            -webkit-tap-highlight-color: transparent;
         }
         .aura { 
             position: absolute; width: 220px; height: 280px; 
@@ -131,7 +142,8 @@
             display: none; z-index: 1;
         }
         @keyframes auraPulse { from { transform: scale(1); opacity: 0.4; } to { transform: scale(1.2); opacity: 0.8; } }
-        .main-sprite { height: 90%; z-index: 2; filter: drop-shadow(0 0 15px rgba(0,0,0,0.8)); transition: transform 0.3s; }
+        .main-sprite { height: 90%; z-index: 2; filter: drop-shadow(0 0 15px rgba(0,0,0,0.8)); transition: transform 0.1s; }
+        .main-sprite:active { transform: scale(0.95); filter: brightness(1.2); }
 
         .bottom-panel {
             background: #eef2f5; 
@@ -192,7 +204,6 @@
         }
         .inv-item.selected { border-color: var(--dbz-orange); box-shadow: 0 0 5px var(--dbz-orange); }
 
-        /* Inventory Stack Badge */
         .qty-badge {
             position: absolute; top: -5px; right: -5px;
             background: #e74c3c; color: white; border: 1px solid white;
@@ -212,14 +223,12 @@
             display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 1.2rem;
         }
 
-        /* --- BATTLE SCREEN --- */
         .bar-wrap { width: 100%; background: #222; height: 15px; border-radius: 8px; margin: 5px 0; overflow: hidden; border: 1px solid #444; position: relative;}
         .bar-fill { height: 100%; width: 0%; transition: width 0.1s linear; }
         .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
         .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
         .charge-f { background: linear-gradient(to right, #FFD700, #ff8c00); box-shadow: 0 0 10px #FFD700; }
 
-        /* RARITY STYLES */
         .item-basic { color: var(--rarity-common); border-color: #555 !important; }
         .item-rare { color: var(--rarity-rare); border-color: var(--rarity-rare) !important; box-shadow: inset 0 0 5px var(--rarity-rare); }
         .item-legendary { color: var(--rarity-legendary); border-color: var(--rarity-legendary) !important; box-shadow: inset 0 0 8px var(--rarity-legendary); }
@@ -246,18 +255,17 @@
             100% { opacity: 0; filter: grayscale(100%); transform: scale(0.8); }
         }
 
-        /* UPDATED BEAM STYLES FOR PNG */
         .beam { 
             position: absolute; 
-            height: 100px; /* Adjust height based on png aspect ratio */
-            width: 0; /* Starts empty */
+            height: 100px; 
+            width: 0; 
             left: 20%; 
             top: 50%; 
             transform: translateY(-50%);
             z-index: 10; 
             pointer-events: none; 
             opacity: 0;
-            object-fit: fill; /* Stretch image */
+            object-fit: fill; 
             transform-origin: left center;
             transition: width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1), opacity 0.2s ease-in;
             filter: drop-shadow(0 0 15px cyan);
@@ -280,10 +288,9 @@
             100% { opacity: 0; transform: scale(1) translateY(-60px); } 
         }
 
-        /* CUT-IN OVERLAY ANIMATION */
         #cutin-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 12; /* Above units, below UI */
+            z-index: 12; 
             display: none; align-items: center; justify-content: center;
             background: rgba(0,0,0,0.6);
         }
@@ -327,6 +334,26 @@
         <div class="load-bar"><div id="load-progress" class="load-fill"></div></div>
     </div>
 
+    <!-- LEVEL UP MODAL -->
+    <div id="levelup-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="font-family:'Bangers'; color:#FFD700; font-size:3.5rem; text-shadow:2px 2px black; margin-bottom:20px; animation: popUp 0.5s;">LEVEL UP!</div>
+        
+        <div style="position:relative; width:150px; height:150px; margin-bottom:20px;">
+            <div style="position:absolute; width:100%; height:100%; border-radius:50%; background:radial-gradient(circle, rgba(255,215,0,0.6), transparent); animation:pulseGreen 1.5s infinite;"></div>
+            <img id="lvl-up-img" src="IMG_0061.png" style="width:100%; height:100%; object-fit:contain; position:relative; z-index:2;">
+        </div>
+
+        <div style="font-family:'Orbitron'; color:white; font-size:1.5rem; margin-bottom:15px;">LV <span id="lvl-up-old">1</span> ➔ <span id="lvl-up-new" style="color:#00ff00;">2</span></div>
+
+        <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:10px; width:80%; max-width:300px; text-align:center; border:1px solid #555;">
+            <div style="color:#ff3e3e; margin:5px 0;">HP: <span id="lvl-stats-hp"></span> <span style="color:#00ff00;">(+250)</span></div>
+            <div style="color:#3498db; margin:5px 0;">ATK: <span id="lvl-stats-atk"></span> <span style="color:#00ff00;">(+5)</span></div>
+            <div style="color:#2ecc71; margin:5px 0;">DEF: <span id="lvl-stats-def"></span> <span style="color:#00ff00;">(+2)</span></div>
+        </div>
+
+        <button onclick="closeLevelUp()" style="margin-top:25px; padding:10px 40px; background:linear-gradient(to bottom, #f1c40f, #f39c12); border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer;">CONTINUE</button>
+    </div>
+
     <div id="ready-msg" class="ready-banner">READY?</div>
 
     <nav>
@@ -345,6 +372,10 @@
         </div>
 
         <div class="side-menu">
+            <div class="side-btn" id="btn-supply" onclick="claimSupply()">
+                <i>🎁</i> Supply
+            </div>
+            
             <div class="side-btn" onclick="openStrategy()">
                 <i>💊</i> Strategy
             </div>
@@ -356,7 +387,7 @@
             </div>
         </div>
 
-        <div class="gacha-view">
+        <div class="gacha-view" onclick="tapTrain()">
             <div id="ui-aura" class="aura"></div>
             <img id="ui-sprite" src="IMG_0054.png" class="main-sprite">
         </div>
@@ -429,7 +460,6 @@
     <div id="view-battle" class="screen">
         <div class="battle-overlay"></div>
         
-        <!-- SPECIAL ATTACK CUT-IN OVERLAY -->
         <div id="cutin-overlay">
             <img id="cutin-img" src="" alt="Special Attack">
         </div>
@@ -437,7 +467,6 @@
         <div id="battle-menu">
             <div id="menu-title" style="color:var(--dbz-yellow); font-family:'Bangers'; font-size:3rem; margin-bottom:10px;">VICTORY!</div>
             
-            <!-- ADDED XP BAR TO BATTLE MENU -->
             <div style="width:80%; margin-bottom:15px;">
                 <div style="display:flex; justify-content:space-between; color:white; font-family:'Orbitron'; font-size:0.8rem;">
                     <span>LV <span id="r-lvl">1</span></span>
@@ -462,7 +491,8 @@
         <div id="start-prompt">SELECT A STAGE<br>TO BEGIN FIGHT!</div>
 
         <div class="arena">
-            <!-- UPDATED BEAM to IMG -->
+            <div id="fx-beam" class="beam"></div>
+            <!-- Updated Beam Image Source -->
             <img id="fx-beam" class="beam" src="hb_b.png">
             
             <div class="unit" id="p-box">
@@ -503,7 +533,8 @@
     let player = {
         lvl: 1, rank: 0, xp: 0, nextXp: 100, coins: 500,
         bAtk: 40, bDef: 25, bHp: 500, hp: 500, charge: 0,
-        inv: [], gear: { w: null, a: null }, selected: -1
+        inv: [], gear: { w: null, a: null }, selected: -1,
+        lastCapsule: 0
     };
     let battle = { 
         stage: 1, 
@@ -514,7 +545,7 @@
         autoTimerId: null,
         pInterval: null,
         eInterval: null,
-        cinematic: false // Added Cinematic Flag
+        cinematic: false 
     };
     window.GameState = {
         get gokuLevel() { return player.lvl; },
@@ -547,6 +578,7 @@
             if(typeof initStrategy === 'function') initStrategy();
         
             setInterval(saveGame, 30000);
+            setInterval(updateCapsuleBtn, 1000);
             
         } catch (e) {
             console.error("API Error", e);
@@ -554,10 +586,147 @@
         }
     }
 
-    function saveGame() {
-        // Update the timestamp on the player object before saving
-        player.lastSave = Date.now(); 
+    function showLevelUp(oldLvl, newLvl) {
+        // Force Pause Battle
+        if(battle.active) {
+            battle.cinematic = true; // Pauses combat loops
+        }
+
+        document.getElementById('lvl-up-old').innerText = oldLvl;
+        document.getElementById('lvl-up-new').innerText = newLvl;
         
+        // Show Stats
+        const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+        const atk = player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0);
+        const def = player.bDef + (player.rank * 150) + (player.gear.a?.val || 0);
+
+        document.getElementById('lvl-stats-hp').innerText = maxHp;
+        document.getElementById('lvl-stats-atk').innerText = atk;
+        document.getElementById('lvl-stats-def').innerText = def;
+
+        const img = (player.rank >= 1) ? "IMG_0062.png" : "IMG_0061.png";
+        document.getElementById('lvl-up-img').src = img;
+
+        document.getElementById('levelup-modal').style.display = 'flex';
+    }
+
+    function closeLevelUp() {
+        document.getElementById('levelup-modal').style.display = 'none';
+        
+        // Resume Battle if active
+        if(GameState.inBattle && battle.active) {
+            battle.cinematic = false;
+        }
+    }
+
+    function checkLevelUp() {
+        let leveledUp = false;
+        const oldLvl = player.lvl;
+
+        while(player.xp >= player.nextXp) {
+            player.lvl++; 
+            player.xp -= player.nextXp; 
+            player.nextXp = Math.floor(player.nextXp * 1.3);
+            
+            player.bHp += 250; 
+            player.bAtk += 5; 
+            player.bDef += 2;
+            
+            const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+            player.hp = maxHp;
+            
+            if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
+            leveledUp = true;
+        }
+
+        if(leveledUp) {
+            showLevelUp(oldLvl, player.lvl);
+            syncUI();
+            saveGame();
+        }
+    }
+
+    function claimSupply() {
+        const now = Date.now();
+        const cooldown = 60000; 
+        
+        if(!player.lastCapsule) player.lastCapsule = 0;
+        const diff = now - player.lastCapsule;
+        
+        if(diff < cooldown) {
+            const rem = Math.ceil((cooldown - diff) / 1000);
+            alert(`Supply Capsule recharging... ${rem}s remaining.`);
+            return;
+        }
+        
+        player.lastCapsule = now;
+        
+        const base = 50 * (player.lvl || 1);
+        const xpGain = Math.floor(base * (0.8 + Math.random() * 0.4));
+        const coinGain = Math.floor(base * 0.5);
+        
+        player.xp += xpGain;
+        player.coins += coinGain;
+        
+        let msg = `SUPPLY DROP RECEIVED!\n\n+${xpGain} XP\n+${coinGain} Coins`;
+        
+        if(Math.random() < 0.3) {
+            const item = {
+                n: "Capsule Gear", 
+                type: Math.random() > 0.5 ? 'w' : 'a', 
+                val: 700, 
+                rarity: 1 
+            };
+            addToInventory(item);
+            msg += `\n+1 Saiyan Gear`;
+        }
+        
+        checkLevelUp();
+        syncUI();
+        saveGame();
+        
+        // Only alert if NO level up happened (to avoid double popup)
+        if(document.getElementById('levelup-modal').style.display === 'none') {
+            alert(msg);
+        }
+        updateCapsuleBtn();
+    }
+
+    function updateCapsuleBtn() {
+        const btn = document.getElementById('btn-supply');
+        if(!btn) return;
+        
+        const now = Date.now();
+        const cooldown = 60000;
+        const diff = now - (player.lastCapsule || 0);
+        
+        if(diff >= cooldown) {
+            btn.innerHTML = "<i>🎁</i> Supply Ready!";
+            btn.classList.add('btn-ready');
+            btn.style.color = "#fff";
+        } else {
+            const rem = Math.ceil((cooldown - diff) / 1000);
+            btn.innerHTML = `<i>⏳</i> ${rem}s`;
+            btn.classList.remove('btn-ready');
+            btn.style.color = "#777";
+        }
+    }
+
+    function tapTrain() {
+        const xpGain = Math.ceil(player.lvl / 2);
+        const coinGain = 1;
+        
+        player.xp += xpGain;
+        player.coins += coinGain;
+        
+        popDamage(`+${xpGain} XP`, 'view-char', true);
+        
+        checkLevelUp();
+        syncUI();
+    }
+
+    function saveGame() {
+        player.lastSave = Date.now(); 
         const saveData = {
             player: player,
             battle: { stage: battle.stage, world: battle.world, maxStage: battle.maxStage }
@@ -576,7 +745,6 @@
                     battle.world = parsed.battle.world || 1;
                     battle.maxStage = parsed.battle.maxStage || 1;
                 }
-                // Backwards compatibility for stacking
                 player.inv.forEach(i => { if(!i.qty) i.qty = 1; });
             } catch (e) { console.error("Save file corrupted", e); }
         }
@@ -603,9 +771,7 @@
         syncUI();
     }
 
-    // --- NEW INVENTORY LOGIC ---
     function addToInventory(item) {
-        // Try to stack
         const found = player.inv.find(i => i.n === item.n && i.type === item.type && i.val === item.val && i.rarity === item.rarity && i.qty < 99);
         if(found) {
             found.qty++;
@@ -637,7 +803,6 @@
         const xpPct = (player.xp / player.nextXp) * 100;
         document.getElementById('bar-xp').style.width = xpPct + "%";
         
-        // RENDER INVENTORY
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
         
@@ -671,7 +836,6 @@
         if(player.selected !== -1) {
             const sItem = player.inv[player.selected];
             
-            // Check count for merge (Stacks + other slots)
             let totalCount = 0;
             player.inv.forEach(i => {
                 if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) {
@@ -719,7 +883,6 @@
         
         if(player.coins < cost) { alert("Not enough coins!"); return; }
 
-        // Recalculate count
         let totalCount = 0;
         player.inv.forEach(i => {
             if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) totalCount += i.qty;
@@ -728,9 +891,7 @@
         if(totalCount >= 3) {
             player.coins -= cost;
             
-            // Remove 3 items (decrement from stacks)
             let needed = 3;
-            // Iterate backwards to safely remove from array if empty
             for(let i = player.inv.length - 1; i >= 0; i--) {
                 if(needed <= 0) break;
                 let item = player.inv[i];
@@ -746,12 +907,18 @@
                 }
             }
 
-            // Create new better item
             const newRarity = sItem.rarity + 1;
-            let mult = (newRarity === 2) ? 2 : 2.5; 
-            const newVal = Math.floor(sItem.val * mult);
-            
-            addToInventory({ n: sItem.n, type: sItem.type, val: newVal, rarity: newRarity });
+            let newVal = 0;
+            let newName = "Saiyan Gear";
+
+            if (newRarity === 2) { newVal = 1500; newName = "Elite Gear"; }      
+            else if (newRarity === 3) { newVal = 3500; newName = "Legendary Gear"; } 
+            else if (newRarity === 4) { newVal = 8500; newName = "God Gear"; }       
+            else if (newRarity === 5) { newVal = 20000; newName = "Angel Gear"; }    
+            else if (newRarity === 6) { newVal = 50000; newName = "Omni Gear"; }     
+            else { newVal = Math.floor(sItem.val * 2); } 
+
+            addToInventory({ n: newName, type: sItem.type, val: newVal, rarity: newRarity });
             
             player.selected = -1;
             syncUI();
@@ -771,9 +938,7 @@
     function doEquip() {
         if(player.selected === -1) return;
         
-        const stackItem = player.inv[player.selected]; // This is the stack
-        
-        // Create a single instance to equip (clone basic props)
+        const stackItem = player.inv[player.selected]; 
         const itemToEquip = { 
             n: stackItem.n, 
             type: stackItem.type, 
@@ -782,22 +947,15 @@
             qty: 1 
         };
 
-        const old = player.gear[stackItem.type]; // Currently equipped
-        
-        // Equip new
+        const old = player.gear[stackItem.type]; 
         player.gear[stackItem.type] = itemToEquip;
-        
-        // Remove 1 from inventory stack
         stackItem.qty--;
         if(stackItem.qty <= 0) {
             player.inv.splice(player.selected, 1);
         }
-
-        // Put old gear back in inventory
         if(old) {
             addToInventory(old);
         }
-
         player.selected = -1;
         syncUI();
     }
@@ -853,16 +1011,10 @@
         startBattle();
     }
     
-    // NEW: Function to restart from Stage 1 immediately on death
     function restartGame() {
-        // Heal
         const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
         player.hp = maxHp;
-        
-        // Reset Charge (Penalty for losing)
         player.charge = 0;
-
-        // Reset to Stage 1
         battle.stage = 1;
         
         document.getElementById('battle-menu').style.display = 'none';
@@ -875,8 +1027,6 @@
         stopCombat(); 
         battle.active = true;
         GameState.inBattle = true;
-        
-        // NOTE: removed player.charge = 0; to allow carry over between stages
         
         document.getElementById('start-prompt').style.display = 'none';
         document.getElementById('battle-menu').style.display = 'none';
@@ -906,23 +1056,16 @@
         
         log.innerHTML = `<div style="color:white">Battle Started!</div>`;
         
-        // PLAYER LOOP
         battle.pInterval = setInterval(() => {
-            if(!battle.active || battle.cinematic) return; // Paused during cinematic
+            if(!battle.active || battle.cinematic) return; 
     
-            // 🔥 AUTO SKILLS (SAFE ORDER)
             if (window.Skills) {
-                // Skill 1 – Double Hit
-                const dhDmg = Skills.useDoubleHit();
+                const dhDmg = Skills.useDoubleHit(battle);
                 if (dhDmg > 0) {
                     battle.enemy.hp -= dhDmg;
                     popDamage(dhDmg, 'e-box', true);
                 }
-    
-                // Skill 2 – Focus (Heal)
                 Skills.useFocus();
-    
-                // Skill 3 – Kame Blast
                 const kbDmg = Skills.useKameBlast();
                 if (kbDmg > 0) {
                     battle.enemy.hp -= kbDmg;
@@ -930,7 +1073,6 @@
                 }
             }
     
-            // NORMAL ATTACK FLOW
             if(player.charge >= 100) {
                 executeSpecial();
             } else {
@@ -938,12 +1080,10 @@
             }
     
             updateBars();
-    
         }, 400);
     
-        // ENEMY LOOP
         battle.eInterval = setInterval(() => {
-            if(!battle.active || battle.cinematic) return; // Paused during cinematic
+            if(!battle.active || battle.cinematic) return; 
             executeStrike('e');
         }, 500);
     }
@@ -967,7 +1107,7 @@
         const target = isP ? battle.enemy : player;
         const targetId = isP ? 'e-box' : 'p-box';
         
-        if(isP) player.charge += 37; 
+        if(isP) player.charge += 12; 
         if(player.charge > 100) player.charge = 100;
 
         const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
@@ -997,21 +1137,17 @@
         player.charge = 0; 
         updateBars();
 
-        // 1. Show Cut-In
         const cutInWrap = document.getElementById('cutin-overlay');
         const cutInImg = document.getElementById('cutin-img');
         cutInImg.src = (player.rank >= 1) ? 'charged_s.png' : 'charged_b.png';
         cutInWrap.style.display = 'flex';
 
-        // 2. Wait for partial cut-in (450ms)
         await new Promise(r => setTimeout(r, 450)); 
 
-        // 3. Fire Beam (Crossfade)
         const beam = document.getElementById('fx-beam');
         beam.style.opacity = '1';
-        beam.style.width = '90%'; // Fill screen horizontally
+        beam.style.width = '90%'; 
 
-        // 4. Wait a bit more, then hide cut-in
         await new Promise(r => setTimeout(r, 200)); 
         cutInWrap.style.display = 'none';
 
@@ -1023,20 +1159,18 @@
         updateBars();
 
         setTimeout(() => {
-            beam.style.transition = "opacity 0.2s ease-out"; // Only animate opacity
+            beam.style.transition = "opacity 0.2s ease-out"; 
             beam.style.opacity = '0'; 
             
-            // Wait for fade to finish, then reset width instantly
             setTimeout(() => {
-                beam.style.transition = "none"; // Disable animation for reset
+                beam.style.transition = "none"; 
                 beam.style.width = "0"; 
                 
-                // Restore original transition for next time
                 setTimeout(() => {
                     beam.style.transition = "width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1), opacity 0.2s ease-in";
                 }, 50);
 
-                battle.cinematic = false; // Resume combat
+                battle.cinematic = false; 
             }, 200);
             
         }, 300);
@@ -1049,7 +1183,7 @@
     }
 
     function handleWin() {
-        // RESET TITLE & BUTTON STYLE (In case previous was defeat)
+        // RESET TITLE & BUTTON STYLE
         const tEl = document.getElementById('menu-title');
         tEl.innerText = "STAGE CLEARED!";
         tEl.style.color = "var(--dbz-yellow)";
@@ -1061,20 +1195,61 @@
         
         document.getElementById('log').innerHTML = `<div style="color:cyan">> WON! +${xpGain} XP</div>`;
         
+        // --- DROP LOGIC (SCALED BY WORLD) ---
         let dropText = "NONE";
-        if(Math.random() < 0.35) {
+        let dropCount = 0;
+        
+        // Drop chance loop (0 to 3 items)
+        const qty = Math.floor(Math.random() * 4); 
+
+        // Determine Rarity based on World (World 1 = Rarity 1, World 2 = Rarity 2, etc)
+        // Cap at 6 (SSS)
+        let dropRarity = Math.min(6, battle.world);
+        
+        // Standardized Values (Must match mergeItems logic for stacking)
+        let baseVal = 700;
+        let baseName = "Saiyan Gear";
+
+        if (dropRarity === 2) { baseVal = 1500; baseName = "Elite Gear"; }
+        else if (dropRarity === 3) { baseVal = 3500; baseName = "Legendary Gear"; }
+        else if (dropRarity === 4) { baseVal = 8500; baseName = "God Gear"; }
+        else if (dropRarity === 5) { baseVal = 20000; baseName = "Angel Gear"; }
+        else if (dropRarity === 6) { baseVal = 50000; baseName = "Omni Gear"; }
+
+        for(let i = 0; i < qty; i++) {
             addToInventory({
-                n: "Saiyan Gear", type: Math.random() > 0.5 ? 'w' : 'a', 
-                val: 700 * battle.world, rarity: 1 
+                n: baseName, 
+                type: Math.random() > 0.5 ? 'w' : 'a', 
+                val: baseVal, 
+                rarity: dropRarity 
             });
-            dropText = "BASIC GEAR";
+            dropCount++;
         }
+
+        if(dropCount > 0) {
+            // Show rarity color in text
+            let rColor = "#fff";
+            if(dropRarity === 2) rColor = "#00d2ff"; // Rare
+            if(dropRarity === 3) rColor = "#ff00ff"; // Legendary
+            if(dropRarity >= 4) rColor = "#e74c3c";  // S+
+            
+            dropText = `<span style="color:${rColor}">+${dropCount} ${baseName.toUpperCase()}</span>`;
+        }
+        // -------------------------------------
         
         if(player.xp >= player.nextXp) {
-            player.lvl++; player.xp -= player.nextXp; player.nextXp = Math.floor(player.nextXp * 1.2);
-            player.bHp += 100; player.bAtk += 10; player.bDef += 5;
+            player.lvl++; 
+            player.xp -= player.nextXp; 
+            player.nextXp = Math.floor(player.nextXp * 1.3); // Increased XP req slightly
+            
+            // NEW STAT GROWTH:
+            player.bHp += 250; 
+            player.bAtk += 5; 
+            player.bDef += 2;
+            
             const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
-            player.hp = maxHp;
+            player.hp = maxHp; // Full heal on level up
+            
             if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
         }
 
@@ -1086,7 +1261,7 @@
         
         document.getElementById('r-xp').innerText = xpGain;
         document.getElementById('r-coins').innerText = coinGain;
-        document.getElementById('r-drops').innerText = dropText;
+        document.getElementById('r-drops').innerHTML = dropText; // Changed to innerHTML for color
 
         document.getElementById('r-lvl').innerText = player.lvl;
         document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(player.nextXp)}`;
@@ -1096,10 +1271,9 @@
         const menu = document.getElementById('battle-menu');
         menu.style.display = 'flex';
         
-        // Reset Button to NEXT STAGE
         const btnNext = document.querySelector('#battle-menu .menu-btn:first-of-type');
         btnNext.innerText = "NEXT STAGE (3)";
-        btnNext.onclick = autoStartNext; // Reset function
+        btnNext.onclick = autoStartNext; 
         
         let time = 3;
         btnNext.innerText = `NEXT STAGE (${time})`;
@@ -1110,21 +1284,17 @@
         }, 1000);
     }
 
-    // UPDATED DEFEAT HANDLER
     function handleDefeat() {
         stopCombat();
         
-        // AUTO HEAL so player can restart immediately
         const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
         player.hp = maxHp; 
         syncUI();
 
-        // Change Title
         const tEl = document.getElementById('menu-title');
         tEl.innerText = "DEFEATED";
-        tEl.style.color = "#c0392b"; // Red
+        tEl.style.color = "#c0392b"; 
 
-        // Show Stats (No gains)
         document.getElementById('r-lvl').innerText = player.lvl;
         document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(player.nextXp)}`;
         const xpPct = Math.min(100, (player.xp / player.nextXp) * 100);
@@ -1134,17 +1304,14 @@
         document.getElementById('r-coins').innerText = "0";
         document.getElementById('r-drops').innerText = "NONE";
 
-        // Update Buttons for Defeat
         const btnNext = document.querySelector('#battle-menu .menu-btn:first-of-type');
-        btnNext.onclick = restartGame; // Change function
+        btnNext.onclick = restartGame; 
         
-        let time = 5; // Longer time for defeat
+        let time = 5; 
         btnNext.innerText = `RESTART (STAGE 1) (${time})`;
         
-        // Show Menu
         document.getElementById('battle-menu').style.display = 'flex';
 
-        // Auto restart timer
         battle.autoTimerId = setInterval(() => {
             time--;
             btnNext.innerText = `RESTART (STAGE 1) (${time})`;
@@ -1165,20 +1332,34 @@
     function popDamage(dmg, id, isSpecial = false) {
         const d = document.createElement('div');
         d.className = 'pop';
-        d.innerText = "-" + Math.floor(dmg);
         
-        if(isSpecial) {
-            d.style.color = 'cyan';
-            d.style.fontSize = '3rem';
-            d.style.zIndex = 30;
+        if (typeof dmg === 'string') {
+            d.innerText = dmg; 
+            d.style.color = '#00ff00'; 
+            d.style.fontSize = '1.5rem';
+        } else {
+            d.innerText = "-" + Math.floor(dmg);
+            if(isSpecial) {
+                d.style.color = 'cyan';
+                d.style.fontSize = '3rem';
+                d.style.zIndex = 30;
+            }
         }
 
         const randomX = (Math.random() * 40) - 20; 
         const randomY = (Math.random() * 40) - 20;
-        d.style.left = `calc(50% + ${randomX}px)`;
-        d.style.top = `calc(20% + ${randomY}px)`;
+        
+        if(id === 'view-char') {
+             d.style.left = `50%`;
+             d.style.top = `40%`;
+        } else {
+             d.style.left = `calc(50% + ${randomX}px)`;
+             d.style.top = `calc(20% + ${randomY}px)`;
+        }
 
-        document.getElementById(id).appendChild(d);
+        const container = document.getElementById(id);
+        if(container) container.appendChild(d);
+        
         setTimeout(() => d.remove(), 600);
     }
 </script>
