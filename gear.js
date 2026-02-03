@@ -1,56 +1,64 @@
 /**
- * GEAR.JS - Inventory & Item Management System
+ * GEAR.JS - Modern Inventory & Selling System
  */
 
 const GearSystem = {
-    selectedItemIndex: -1,
+    selectedIdx: -1,
 
-    // 1. Injects CSS into the document head
+    // 1. Setup CSS (Styled to match your UI)
     injectStyles: function() {
         const css = `
             #gear-overlay {
                 position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0,0,0,0.95); z-index: 3000;
-                display: none; flex-direction: column; padding: 20px;
-                font-family: 'Orbitron', sans-serif;
+                background: #f0f2f5; z-index: 5000; display: none; 
+                flex-direction: column; font-family: 'Orbitron', sans-serif; color: #333;
             }
-            .gear-header {
-                display: flex; justify-content: space-between; align-items: center;
-                border-bottom: 2px solid var(--dbz-orange); padding-bottom: 10px;
+            .g-header {
+                background: #1a1a1a; padding: 20px; display: flex; 
+                justify-content: space-between; align-items: center; color: white;
             }
-            .gear-header h2 { font-family: 'Bangers'; color: var(--dbz-yellow); margin: 0; font-size: 2rem; }
-            .close-gear { background: #ff3e3e; border: none; color: white; padding: 5px 15px; border-radius: 5px; cursor: pointer; }
+            .g-header h2 { font-family: 'Bangers'; margin: 0; color: var(--dbz-yellow); letter-spacing: 2px; }
+            .g-close { font-size: 1.5rem; cursor: pointer; color: #ff3e3e; font-weight: bold; }
 
-            .inventory-scroll {
-                flex: 1; overflow-y: auto; margin: 20px 0;
-                display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-content: start;
+            .g-content { flex: 1; padding: 15px; overflow-y: auto; }
+            .g-grid { 
+                display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; 
+                background: #fff; padding: 15px; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
             }
-            .inv-slot {
-                aspect-ratio: 1/1; background: #1a1a1a; border: 2px solid #333;
+            .g-slot {
+                aspect-ratio: 1/1; background: #e0e4e8; border: 2px solid #ccc;
                 border-radius: 8px; display: flex; flex-direction: column; 
                 align-items: center; justify-content: center; position: relative;
+                transition: 0.2s;
             }
-            .inv-slot.selected { border-color: var(--dbz-yellow); background: #222; box-shadow: 0 0 10px var(--dbz-yellow); }
-            .inv-slot img { width: 70%; }
-            .slot-lvl { position: absolute; bottom: 2px; right: 4px; font-size: 0.6rem; color: #888; }
-            .rarity-tag { position: absolute; top: 2px; left: 4px; font-size: 0.5rem; padding: 1px 3px; border-radius: 2px; background: #444; }
+            .g-slot.selected { border-color: #3498db; background: #d6eaf8; transform: scale(1.05); }
+            
+            .g-type-icon { font-size: 1.4rem; }
+            .g-tier { position: absolute; top: 2px; left: 4px; font-size: 0.6rem; font-weight: bold; color: #7f8c8d; }
 
-            .action-bar {
-                background: #111; padding: 15px; border-radius: 10px; border: 1px solid #333;
+            .g-footer { 
+                background: white; padding: 20px; border-top: 1px solid #ddd;
                 display: flex; flex-direction: column; gap: 10px;
             }
-            .item-preview-name { font-family: 'Bangers'; color: white; font-size: 1.2rem; margin-bottom: 5px; }
-            .button-row { display: flex; gap: 10px; }
-            .btn-details { flex: 1; background: #3498db; color: white; border: none; padding: 10px; border-radius: 5px; font-family: 'Bangers'; }
-            .btn-sell { flex: 1; background: #2ecc71; color: white; border: none; padding: 10px; border-radius: 5px; font-family: 'Bangers'; }
-            .btn-sell:disabled, .btn-details:disabled { opacity: 0.3; }
+            .g-preview-box { background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
+            .g-item-name { font-family: 'Bangers'; font-size: 1.2rem; color: #2c3e50; }
+            .g-item-stats { font-size: 0.75rem; color: #7f8c8d; margin-top: 3px; }
 
-            /* Detail Modal */
-            #item-detail-modal {
+            .g-btn-row { display: flex; gap: 10px; }
+            .g-btn { 
+                flex: 1; border: none; padding: 12px; border-radius: 8px; 
+                font-family: 'Bangers'; font-size: 1.1rem; cursor: pointer; color: white;
+            }
+            .g-btn-blue { background: #3498db; }
+            .g-btn-green { background: #2ecc71; }
+            .g-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
+
+            /* Simple Detail Modal */
+            #g-modal {
                 position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                width: 80%; background: #222; border: 2px solid var(--dbz-yellow);
-                border-radius: 15px; padding: 20px; z-index: 4000; display: none;
-                box-shadow: 0 0 50px black;
+                width: 85%; background: white; border-radius: 15px; padding: 20px;
+                z-index: 6000; display: none; box-shadow: 0 0 50px rgba(0,0,0,0.5);
+                text-align: center; color: #333;
             }
         `;
         const styleSheet = document.createElement("style");
@@ -58,29 +66,37 @@ const GearSystem = {
         document.head.appendChild(styleSheet);
     },
 
-    // 2. Injects HTML structure into the document body
+    // 2. Setup HTML
     injectHTML: function() {
         const html = `
             <div id="gear-overlay">
-                <div class="gear-header">
-                    <h2>GEAR INVENTORY</h2>
-                    <button class="close-gear" onclick="GearSystem.close()">X</button>
+                <div class="g-header">
+                    <h2>GEAR BACKPACK</h2>
+                    <div class="g-close" onclick="GearSystem.close()">✕</div>
                 </div>
-                <div class="inventory-scroll" id="gear-inv-list"></div>
-                <div class="action-bar">
-                    <div id="preview-name" class="item-preview-name">Select an item</div>
-                    <div class="button-row">
-                        <button id="gear-details-btn" class="btn-details" disabled onclick="GearSystem.showDetails()">DETAILS</button>
-                        <button id="gear-sell-btn" class="btn-sell" disabled onclick="GearSystem.sellItem()">SELL</button>
+                
+                <div class="g-content">
+                    <p style="font-size: 0.7rem; color: #888; margin-bottom: 10px;">Tap an item to manage...</p>
+                    <div class="g-grid" id="gear-list"></div>
+                </div>
+
+                <div class="g-footer">
+                    <div class="g-preview-box">
+                        <div id="g-display-name" class="g-item-name">EMPTY SLOT</div>
+                        <div id="g-display-stats" class="g-item-stats">Select item to view potential power...</div>
+                    </div>
+                    <div class="g-btn-row">
+                        <button id="g-details-btn" class="g-btn g-btn-blue" disabled onclick="GearSystem.details()">DETAILS</button>
+                        <button id="g-sell-btn" class="g-btn g-btn-green" disabled onclick="GearSystem.sell()">SELL ITEM</button>
                     </div>
                 </div>
             </div>
 
-            <div id="item-detail-modal">
-                <h3 id="det-name" style="font-family: 'Bangers'; color: var(--dbz-yellow); margin-top:0;"></h3>
-                <p id="det-stats" style="font-size: 0.9rem; line-height: 1.4; color: #ccc;"></p>
-                <div id="det-value" style="color: gold; font-weight: bold; margin-bottom: 15px;"></div>
-                <button class="lvl-up-btn" style="padding: 5px; font-size: 1rem;" onclick="document.getElementById('item-detail-modal').style.display='none'">CLOSE</button>
+            <div id="g-modal">
+                <h3 id="gm-name" style="font-family:'Bangers'; color:#2c3e50; font-size:1.8rem;"></h3>
+                <div id="gm-body" style="font-size:0.9rem; margin-bottom:20px;"></div>
+                <div id="gm-price" style="color:#27ae60; font-weight:bold; margin-bottom:20px;"></div>
+                <button class="g-btn g-btn-blue" style="width:100%" onclick="document.getElementById('g-modal').style.display='none'">GOT IT</button>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', html);
@@ -92,83 +108,88 @@ const GearSystem = {
     },
 
     open: function() {
-        this.selectedItemIndex = -1;
+        this.selectedIdx = -1;
         document.getElementById('gear-overlay').style.display = 'flex';
         this.render();
     },
 
     close: function() {
         document.getElementById('gear-overlay').style.display = 'none';
-        document.getElementById('item-detail-modal').style.display = 'none';
+        document.getElementById('g-modal').style.display = 'none';
     },
 
     render: function() {
-        const list = document.getElementById('gear-inv-list');
+        const list = document.getElementById('gear-list');
         list.innerHTML = '';
 
-        // Reference the global player object from index.html
-        player.inv.forEach((item, index) => {
+        player.inv.forEach((item, i) => {
             const slot = document.createElement('div');
-            slot.className = `inv-slot ${this.selectedItemIndex === index ? 'selected' : ''}`;
+            slot.className = `g-slot ${this.selectedIdx === i ? 'selected' : ''}`;
             
-            // Icon Logic
-            let icon = item.type === 'w' ? '⚔️' : '🛡️';
-            
+            let emoji = item.type === 'w' ? '⚔️' : '🛡️';
+            let tierLetter = item.val > 5000 ? 'R' : 'B'; // R for Rare, B for Basic
+
             slot.innerHTML = `
-                <div class="rarity-tag">${item.type === 'w' ? 'ATK' : 'DEF'}</div>
-                <div style="font-size: 1.5rem;">${icon}</div>
-                <div class="slot-lvl">VAL: ${Math.floor(item.val / 10)}</div>
+                <div class="g-tier" style="color: ${tierLetter === 'R' ? '#f39c12' : '#7f8c8d'}">${tierLetter}</div>
+                <div class="g-type-icon">${emoji}</div>
             `;
             
-            slot.onclick = () => this.select(index);
+            slot.onclick = () => this.select(i);
             list.appendChild(slot);
         });
 
-        // Toggle buttons
-        const hasSelection = this.selectedItemIndex !== -1;
-        document.getElementById('gear-sell-btn').disabled = !hasSelection;
-        document.getElementById('gear-details-btn').disabled = !hasSelection;
-        
-        if (!hasSelection) {
-            document.getElementById('preview-name').innerText = "Select an item";
+        // Fill remaining 12 slots with empty boxes to look like a real inventory
+        for(let i = player.inv.length; i < 12; i++) {
+            const empty = document.createElement('div');
+            empty.className = 'g-slot';
+            empty.style.opacity = "0.4";
+            list.appendChild(empty);
         }
+
+        const hasItem = this.selectedIdx !== -1;
+        document.getElementById('g-sell-btn').disabled = !hasItem;
+        document.getElementById('g-details-btn').disabled = !hasItem;
     },
 
-    select: function(index) {
-        this.selectedItemIndex = index;
-        const item = player.inv[index];
-        document.getElementById('preview-name').innerText = item.n + " (Tier " + battle.world + ")";
+    select: function(i) {
+        this.selectedIdx = i;
+        const item = player.inv[i];
+        document.getElementById('g-display-name').innerText = item.n;
+        document.getElementById('g-display-stats').innerText = `Power Level: +${item.val.toLocaleString()} | Sell Value: 🪙 ${Math.floor(item.val / 5)}`;
         this.render();
     },
 
-    sellItem: function() {
-        if (this.selectedItemIndex === -1) return;
+    sell: function() {
+        if(this.selectedIdx === -1) return;
+        const item = player.inv[this.selectedIdx];
+        const price = Math.floor(item.val / 5);
         
-        const item = player.inv[this.selectedItemIndex];
-        const sellPrice = Math.floor(item.val / 2); // Sell for half value
+        player.coins += price;
+        player.inv.splice(this.selectedIdx, 1);
         
-        player.coins += sellPrice;
-        player.inv.splice(this.selectedItemIndex, 1);
+        this.selectedIdx = -1;
+        document.getElementById('g-display-name').innerText = "ITEM SOLD";
+        document.getElementById('g-display-stats').innerText = `You earned 🪙 ${price.toLocaleString()} coins!`;
         
-        this.selectedItemIndex = -1;
         this.render();
-        
-        // Update main game UI
         if(typeof syncUI === "function") syncUI();
-        alert(`Sold for 🪙 ${sellPrice}!`);
     },
 
-    showDetails: function() {
-        const item = player.inv[this.selectedItemIndex];
-        const modal = document.getElementById('item-detail-modal');
+    details: function() {
+        const item = player.inv[this.selectedIdx];
+        const modal = document.getElementById('g-modal');
         
-        document.getElementById('det-name').innerText = item.n;
-        document.getElementById('det-stats').innerText = `Type: ${item.type === 'w' ? 'Weapon' : 'Armor'}\nCombat Power Boost: +${item.val}\nMaterial: Saiyan Steel\nEffect: Instant Boost to total Power Level.`;
-        document.getElementById('det-value').innerText = `Sell Value: 🪙 ${Math.floor(item.val / 2)}`;
+        document.getElementById('gm-name').innerText = item.n;
+        document.getElementById('gm-body').innerHTML = `
+            <b>Type:</b> ${item.type === 'w' ? 'Offensive Weapon' : 'Defensive Armor'}<br>
+            <b>Stage Found:</b> World ${battle.world}<br><br>
+            This item increases your base stats significantly. Keeping a varied inventory allows for strategy in later worlds.
+        `;
+        document.getElementById('gm-price').innerText = `Market Value: 🪙 ${Math.floor(item.val / 5)}`;
         
         modal.style.display = 'block';
     }
 };
 
-// Auto-initialize when file is loaded
+// Start system
 GearSystem.init();
