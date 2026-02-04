@@ -267,6 +267,32 @@
         </div>
         <button class="g-btn g-btn-blue" style="margin:20px auto; width:80%; max-width:300px;" onclick="Skills.closeSkillScreen()">CLOSE</button>
     </div>
+    
+    <!-- STRATEGY MODAL -->
+    <div id="strategy-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="width:90%; max-width:400px; background:linear-gradient(135deg, #2c3e50, #000); border:2px solid #00d2ff; border-radius:15px; padding:20px; text-align:center; box-shadow:0 0 20px #00d2ff; position:relative;">
+            <div style="font-family:'Bangers'; color:#00d2ff; font-size:2.5rem; margin-bottom:10px; text-shadow:2px 2px black;">GRAVITRON CHAMBER</div>
+            
+            <div id="grav-anim" style="height:120px; display:flex; align-items:center; justify-content:center; margin:20px 0;">
+                <div class="grav-spinner">
+                    <span style="font-size:3rem;">💊</span>
+                </div>
+            </div>
+
+            <div style="font-family:'Orbitron'; color:white; font-size:0.9rem; margin-bottom:5px;">TIME IN CHAMBER: <span id="strat-time" style="color:yellow;">0</span> MINS</div>
+            <div style="font-family:'Orbitron'; color:white; font-size:0.9rem; margin-bottom:20px;">GRAVITY MULTIPLIER: <span id="strat-mult" style="color:red;">x1</span></div>
+            
+            <div style="background:rgba(0,0,0,0.5); padding:15px; border-radius:10px; border:1px solid #555; margin-bottom:20px;">
+                <div style="font-family:'Orbitron'; font-size:0.8rem; color:#aaa;">TRAINING RESULTS</div>
+                <div id="strat-xp-display" style="font-family:'Bangers'; font-size:2rem; color:#00ff00; text-shadow:2px 2px black;">0 XP</div>
+                <div id="strat-gold-display" style="font-family:'Bangers'; font-size:1.5rem; color:#f1c40f; text-shadow:1px 1px black;">0 COINS</div>
+                <div id="strat-item-display" style="font-family:'Orbitron'; font-size:0.8rem; color:#00d2ff; margin-top:5px;">No Items Found</div>
+            </div>
+
+            <button id="btn-claim-strat" onclick="claimStrategy()" style="width:100%; padding:15px; background:linear-gradient(to bottom, #27ae60, #2ecc71); border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer; text-shadow:1px 1px black;">CLAIM REWARDS</button>
+            <button onclick="closeStrategy()" style="margin-top:15px; background:transparent; border:none; color:#777; font-family:'Orbitron'; cursor:pointer; font-size:0.8rem;">LEAVE CHAMBER (NO CLAIM)</button>
+        </div>
+    </div>
 
 </body>
 </html>
