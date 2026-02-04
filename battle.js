@@ -14,7 +14,6 @@
 
     // --- DBZ VISUAL HELPERS ---
     
-    // 1. Screen Shake Effect
     function triggerShake() {
         const arena = document.querySelector('.arena');
         if(arena) {
@@ -24,38 +23,42 @@
         }
     }
 
-    // 2. Background Parallax (Simulate flying fast)
     function shiftBackground(direction) {
         const viewBattle = document.getElementById('view-battle');
         if(viewBattle) {
-            // Get current pos or default to 50%
             let currentPos = viewBattle.style.backgroundPositionX || '50%';
             let currentVal = parseInt(currentPos) || 50;
-            
-            // Shift background opposite to hit direction
-            let shift = direction === 'left' ? -5 : 5;
+            let shift = direction === 'left' ? -3 : 3; // Subtle shift
             viewBattle.style.backgroundPositionX = (currentVal + shift) + '%';
         }
     }
 
-    // 3. Teleport Logic (The "Zwwip" effect)
-    async function teleportVisual(element, targetX, targetY = 0) {
+    // FIXED: Now separates the Container (Movement) from the Sprite (Visuals)
+    async function teleportVisual(container, targetX, targetY = 0) {
+        // Find the sprite image INSIDE the container so we don't fade the bars
+        const sprite = container.querySelector('img');
+        
         return new Promise(resolve => {
-            // Vanish
-            element.classList.add('teleport-blur');
-            element.style.opacity = '0';
-            
+            // 1. Flash/Fade the sprite only
+            if(sprite) {
+                sprite.classList.add('teleport-flash');
+                sprite.style.opacity = '0'; // Vanish sprite
+            }
+
+            // 2. Move the container instantly while sprite is invisible
             setTimeout(() => {
-                // Move while invisible
-                element.style.transform = `translate(${targetX}px, ${targetY}px)`;
+                container.style.transition = 'none'; // Snap movement
+                container.style.transform = `translate(${targetX}px, ${targetY}px)`;
                 
-                // Reappear
+                // 3. Reappear
                 setTimeout(() => {
-                    element.style.opacity = '1';
-                    element.classList.remove('teleport-blur');
+                    if(sprite) {
+                        sprite.style.opacity = '1';
+                        sprite.classList.remove('teleport-flash');
+                    }
                     resolve();
-                }, 100);
-            }, 150);
+                }, 80); // Quick reappear
+            }, 100);
         });
     }
 
@@ -76,13 +79,12 @@
             
             dot.innerText = i;
             dot.onclick = () => {
-                // FIXED: Removed the "&& i !== battle.stage" check so you can start current stage
                 if(i <= battle.maxStage) {
                     battle.stage = i;
                     document.getElementById('battle-menu').style.display = 'none';
                     clearBattleTimers();
                     startBattle();
-                    buildStageSelector(); // Re-render to update active dot visually
+                    buildStageSelector(); 
                 }
             };
             fragment.appendChild(dot);
@@ -146,11 +148,16 @@
         const eImg = document.getElementById('e-img');
         if (eImg) {
             eImg.style.display = 'block';
-            eImg.classList.remove('dead-anim');
-            eImg.style.transform = 'translate(0,0)'; // Reset positions
+            eImg.className = ''; // Clear all classes
+            eImg.style.transform = '';
+            eImg.style.opacity = '1';
         }
+        
+        // Reset Positions
         const pBox = document.getElementById('p-box');
+        const eBox = document.getElementById('e-box');
         if(pBox) pBox.style.transform = 'translate(0,0)';
+        if(eBox) eBox.style.transform = 'translate(0,0)';
 
         const log = document.getElementById('log');
         if (log) log.innerHTML = `Stage ${battle.stage}: Finding guardian...`;
@@ -161,7 +168,7 @@
         if(apiData.planets.length > 0 && viewBattle) {
             const pIdx = (battle.world - 1) % apiData.planets.length;
             viewBattle.style.backgroundImage = `url('${apiData.planets[pIdx].image}')`;
-            viewBattle.style.backgroundPositionX = '50%'; // Reset parallax
+            viewBattle.style.backgroundPositionX = '50%';
         }
 
         spawnPersistentEnemy();
@@ -184,7 +191,6 @@
             if(!battle.active || battle.cinematic) return; 
 
             if (window.Skills) {
-                // Auto skills (can be enhanced with visuals later)
                 const dhDmg = Skills.useDoubleHit(battle);
                 if (dhDmg > 0) {
                     battle.enemy.hp -= dhDmg;
@@ -204,13 +210,13 @@
                 executeStrike('p');
             }
             updateBars();
-        }, 500); // Slightly slower tick to allow animations to play out
+        }, 600); 
 
         // Enemy Loop
         battle.eInterval = setInterval(() => {
             if(!battle.active || battle.cinematic) return; 
             executeStrike('e');
-        }, 800);
+        }, 900);
     }
 
     function spawnPersistentEnemy() {
@@ -237,7 +243,7 @@
         if (eName) eName.innerText = battle.enemy.name;
     }
 
-    // --- THE NEW DYNAMIC COMBAT LOGIC ---
+    // --- REFINED COMBAT VISUALS ---
     async function executeStrike(side) {
         if(!battle.active) return;
 
@@ -246,7 +252,6 @@
         const victimBox = document.getElementById(isP ? 'e-box' : 'p-box');
         const victimImg = isP ? document.getElementById('e-img') : document.getElementById('btl-p-sprite');
 
-        // Stats calculation
         const atkVal = isP ? (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) : battle.enemy.atk;
         const target = isP ? battle.enemy : player;
         const targetId = isP ? 'e-box' : 'p-box';
@@ -254,67 +259,70 @@
         if(isP) player.charge += 12; 
         if(player.charge > 100) player.charge = 100;
 
-        // DBZ RANDOMIZATION: 
-        // 1. Normal Hit, 2. Teleport Behind (Ambush)
-        const isAmbush = Math.random() > 0.7; // 30% chance to teleport behind
         const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
         
-        // --- ANIMATION SEQUENCE ---
+        // LOGIC: Teleport only happens rarely (Ambush) or if distance is huge (not implemented yet, keeping it RNG for flair)
+        // Reduced chance to 20% to make it feel special, not chaotic
+        const isAmbush = Math.random() > 0.8; 
 
         if(isAmbush) {
-            // TELEPORT SEQUENCE
-            // 1. Attacker vanishes
-            await teleportVisual(attackerBox, isP ? 100 : -100); 
+            // -- TELEPORT ATTACK --
+            // 1. Vanish (Move container to enemy side)
+            await teleportVisual(attackerBox, isP ? 80 : -80); 
             
-            // 2. Ambush Hit logic
-            target.hp -= (dmg * 1.2); // Bonus damage for ambush
+            // 2. Hit
+            target.hp -= (dmg * 1.5); // Crit
             popDamage("CRIT!", targetId);
-            popDamage(Math.floor(dmg * 1.2), targetId);
-
-            // 3. Visual Impact
+            popDamage(Math.floor(dmg * 1.5), targetId);
             triggerShake();
-            victimImg.classList.add(isP ? 'knockback-right' : 'knockback-left');
             
-            // 4. Reset positions after delay
+            // 3. Visual impact on victim
+            if(victimImg) {
+                victimImg.classList.add(isP ? 'knockback-right' : 'knockback-left');
+                setTimeout(() => victimImg.classList.remove('knockback-right', 'knockback-left'), 200);
+            }
+
+            // 4. Return to start
             setTimeout(() => {
-                victimImg.classList.remove('knockback-right', 'knockback-left');
-                teleportVisual(attackerBox, 0); // Return to start
-            }, 300);
+                teleportVisual(attackerBox, 0); 
+            }, 250);
 
         } else {
-            // STANDARD BUT HEAVY SEQUENCE
-            // 1. Dash forward (simulated by rapid translate)
-            attackerBox.style.transition = "transform 0.1s";
-            attackerBox.style.transform = isP ? 'translateX(120px)' : 'translateX(-120px)'; // Deep lunge
+            // -- STANDARD LUNGE (Simpler, cleaner) --
+            // 1. Quick Dash
+            attackerBox.style.transition = "transform 0.1s cubic-bezier(0.1, 0.7, 1.0, 0.1)";
+            attackerBox.style.transform = isP ? 'translateX(60px)' : 'translateX(-60px)'; // Less distance so it doesn't overlap weirdly
 
             setTimeout(() => {
-                // 2. Impact
+                // 2. Hit
                 target.hp -= dmg;
                 popDamage(dmg, targetId);
-                triggerShake();
-
-                // 3. Knockback Effect & Background Scroll
-                victimImg.classList.add(isP ? 'knockback-right' : 'knockback-left');
-                shiftBackground(isP ? 'right' : 'left'); // Parallax movement
-
-                // 4. Return to pos
+                
+                // Small Shake
+                if(Math.random() > 0.5) triggerShake();
+                
+                // Knockback victim slightly
+                if(victimImg) {
+                    victimImg.style.transition = "transform 0.1s";
+                    victimImg.style.transform = isP ? 'translateX(10px)' : 'translateX(-10px)';
+                    setTimeout(() => victimImg.style.transform = 'translateX(0)', 100);
+                }
+                
+                // 3. Retreat
                 setTimeout(() => {
+                    attackerBox.style.transition = "transform 0.2s ease-out";
                     attackerBox.style.transform = 'translateX(0)';
-                    victimImg.classList.remove('knockback-right', 'knockback-left');
-                }, 250);
+                }, 100);
 
             }, 100);
         }
         
         updateBars();
 
-        // Check Death
         if(battle.enemy.hp <= 0) {
             stopCombat();
             const eImg = document.getElementById('e-img');
             if (eImg) {
-                // Death knockback
-                eImg.style.transform = "rotate(90deg) scale(0.8)"; 
                 eImg.classList.add('dead-anim');
             }
             setTimeout(handleWin, 800);
@@ -341,10 +349,9 @@
 
         const beam = document.getElementById('fx-beam');
         if (beam) {
-            // Beam visuals
             beam.style.opacity = '1';
-            beam.style.width = '200%'; // Make beam huge
-            triggerShake(); // Shake screen during beam
+            beam.style.width = '200%'; 
+            triggerShake(); 
         }
 
         await new Promise(r => setTimeout(r, 200)); 
@@ -355,15 +362,13 @@
         const dmg = (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) * 6;
         battle.enemy.hp -= dmg;
         
-        // Huge Impact Visuals
         popDamage("ULTIMATE!", 'e-box', true);
         popDamage(dmg, 'e-box', true);
         
-        // Send enemy flying off screen
         const eImg = document.getElementById('e-img');
         if(eImg) {
-            eImg.style.transition = "transform 0.5s";
-            eImg.style.transform = "translateX(300px) rotate(45deg)";
+            // Apply knockback to image only
+            eImg.classList.add('knockback-right');
         }
         
         updateBars();
@@ -377,11 +382,8 @@
                     beam.style.transition = "none"; 
                     beam.style.width = "0"; 
                     
-                    // Reset Enemy Pos if alive
                     if(battle.enemy.hp > 0 && eImg) {
-                         // Teleport enemy back to center (they recover)
-                         teleportVisual(eImg.parentElement, 0); 
-                         eImg.style.transform = "translateX(0)";
+                         eImg.classList.remove('knockback-right');
                     }
 
                     setTimeout(() => {
@@ -402,7 +404,7 @@
         }
     }
 
-    // --- REWARDS & MENUS (Unchanged but ensuring scope is correct) ---
+    // --- REWARDS (Standard) ---
     function handleWin() {
         const tEl = document.getElementById('menu-title');
         if (tEl) {
