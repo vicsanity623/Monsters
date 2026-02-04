@@ -12,10 +12,33 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="IMG_0061.png">
 
+    <!-- FONTS -->
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- STYLES -->
     <link rel="stylesheet" href="style.css">
+
+    <!-- ASSET PRELOADING (Performance Boost) -->
+    <!-- Tells browser to download critical images immediately -->
+    <link rel="preload" as="image" href="IMG_0061.png">
+    <link rel="preload" as="image" href="IMG_0054.png">
+    <link rel="preload" as="image" href="hb_b.png">
+
+    <!-- GAME SCRIPTS (Deferred for non-blocking load) -->
+    <script src="strategy.js" defer></script>
+    <script src="skills.js" defer></script>
+    <script src="gear.js" defer></script>
+    <script src="battle.js" defer></script>
+    <script src="game.js" defer></script>
 </head>
 <body onload="initGame()">
+
+    <!-- Fallback if JS is disabled -->
+    <noscript>
+        <div style="color: red; text-align: center; padding: 20px;">
+            FATAL ERROR: Scouter indicates JavaScript is disabled. Please enable it to play!
+        </div>
+    </noscript>
 
     <div id="loader">
         <div class="load-title">POWERING UP...</div>
@@ -28,7 +51,7 @@
         
         <div style="position:relative; width:150px; height:150px; margin-bottom:20px;">
             <div style="position:absolute; width:100%; height:100%; border-radius:50%; background:radial-gradient(circle, rgba(255,215,0,0.6), transparent); animation:pulseGreen 1.5s infinite;"></div>
-            <img id="lvl-up-img" src="IMG_0061.png" style="width:100%; height:100%; object-fit:contain; position:relative; z-index:2;">
+            <img id="lvl-up-img" src="IMG_0061.png" alt="Level Up Form" style="width:100%; height:100%; object-fit:contain; position:relative; z-index:2;">
         </div>
 
         <div style="font-family:'Orbitron'; color:white; font-size:1.5rem; margin-bottom:15px;">LV <span id="lvl-up-old">1</span> ➔ <span id="lvl-up-new" style="color:#00ff00;">2</span></div>
@@ -77,7 +100,7 @@
 
         <div class="gacha-view" onclick="tapTrain()">
             <div id="ui-aura" class="aura"></div>
-            <img id="ui-sprite" src="IMG_0054.png" class="main-sprite">
+            <img id="ui-sprite" src="IMG_0054.png" alt="Goku Character" class="main-sprite">
         </div>
 
         <div class="bottom-panel">
@@ -181,31 +204,25 @@
         <div class="arena">
             <div id="fx-beam" class="beam"></div>
             <!-- Updated Beam Image Source -->
-            <img id="fx-beam" class="beam" src="hb_b.png">
+            <img id="fx-beam" class="beam" src="hb_b.png" alt="Energy Beam">
             
             <div class="unit" id="p-box">
                 <div class="bar-wrap" style="height:10px; margin-bottom: 2px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
                 <div class="bar-wrap" style="height:6px; border-color: gold; margin-top:0;">
                     <div id="btl-p-charge" class="bar-fill charge-f" style="width:0%"></div>
                 </div>
-                <img id="btl-p-sprite" src="IMG_0054.png">
+                <img id="btl-p-sprite" src="IMG_0054.png" alt="Player Goku">
                 <div style="font-family:'Bangers'; font-size:1rem; margin-top:5px;">GOKU</div>
             </div>
 
             <div class="unit" id="e-box">
                 <div class="bar-wrap" style="height:10px;"><div id="btl-e-hp" class="bar-fill hp-f" style="width:100%"></div></div>
-                <img id="e-img" src="" style="display:none;">
+                <img id="e-img" src="" style="display:none;" alt="Enemy">
                 <div id="e-name" style="font-family:'Bangers'; font-size:1rem; margin-top:5px; color:red; text-shadow: 1px 1px black;"></div>
             </div>
         </div>
 
         <div id="log">Battle Log initialized...</div>
     </div>
-
-<script src="strategy.js"></script>
-<script src="skills.js"></script>
-<script src="gear.js"></script>
-<script src="battle.js"></script>
-<script src="game.js"></script>
 </body>
 </html>
