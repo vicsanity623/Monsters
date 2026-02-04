@@ -295,9 +295,9 @@ function handleWin() {
     document.getElementById('r-xp').innerText = xpGain;
     document.getElementById('r-coins').innerText = coinGain;
     document.getElementById('r-drops').innerHTML = dropText; 
-
     document.getElementById('r-lvl').innerText = player.lvl;
-
+        
+        // Handle Text Color for Level Up
     const xpTextEl = document.getElementById('r-xp-text');
     if(leveledUp) {
         xpTextEl.innerText = "LEVEL UP!";
@@ -309,20 +309,35 @@ function handleWin() {
         xpTextEl.style.textShadow = "none";
     }
 
-    const rBar = document.getElementById('r-bar-xp');
+        // --- FIX STARTS HERE ---
 
+        // 6. SHOW MENU FIRST
+        // We must display the menu BEFORE manipulating the bar, 
+        // otherwise the browser cannot calculate the animation start point.
+    const menu = document.getElementById('battle-menu');
+    menu.style.display = 'flex';
+
+        // 7. ANIMATION LOGIC (Now that menu is visible)
+    const rBar = document.getElementById('r-bar-xp');
+        
+        // Calculate end percentage
     let endPct = leveledUp ? 100 : (player.xp / player.nextXp) * 100;
 
+        // A. INSTANT RESET: Set to START position with NO transition
     rBar.style.transition = 'none';
     rBar.style.width = startPct + "%";
 
+        // B. FORCE REFLOW: Tell browser to apply the width immediately
     void rBar.offsetWidth; 
-    rBar.style.transition = 'width 3s ease-out';
-    rBar.style.width = endPct + "%";
 
-    const menu = document.getElementById('battle-menu');
-    menu.style.display = 'flex';
-        
+        // C. TRIGGER ANIMATION: Wait one frame, then slide to END position
+        // usage of requestAnimationFrame ensures the DOM is ready for the transition
+    requestAnimationFrame(() => {
+        rBar.style.transition = 'width 3s ease-out';
+        rBar.style.width = endPct + "%";
+    });
+
+        // 8. BUTTON TIMER
     const btnNext = document.querySelector('#battle-menu .menu-btn:first-of-type');
     btnNext.innerText = "NEXT STAGE (3)";
     btnNext.onclick = autoStartNext; 
