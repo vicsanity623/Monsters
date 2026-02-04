@@ -392,3 +392,66 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
     z-index: 100000; display: none; box-shadow: 0 0 50px rgba(0,0,0,0.5);
     text-align: center; color: #333;
 }
+/* --- SKILLS SYSTEM --- */
+.skill-card {
+    background: #111;
+    border: 2px solid #f5c542;
+    border-radius: 14px;
+    padding: 20px;
+    margin: 15px 0;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+    font-family: 'Orbitron', sans-serif;
+    color: white;
+}
+.skill-card.locked {
+    border-color: #444;
+    opacity: 0.7;
+}
+.skill-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.skill-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--dbz-yellow);
+}
+.skill-lvl {
+    font-size: 0.9rem;
+    color: #ccc;
+}
+.skill-bar-bg {
+    background: #333;
+    height: 14px;
+    border-radius: 7px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+.skill-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffcc00, #ff6600);
+    transition: width 0.3s ease;
+}
+.skill-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.kame-visual-beam {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle, #00ccff 0%, #0044ff 40%, #000 70%);
+    animation: flash 0.3s infinite;
+    z-index: 9998;
+    pointer-events: none;
+}
+
+@keyframes flash {
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
+}
