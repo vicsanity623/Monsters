@@ -23,20 +23,19 @@
         const fragment = document.createDocumentFragment();
 
         for(let i = 1; i <= 20; i++) {
-            const dot = document.createElement('div');
-            // Optimization: Use classList for cleaner manipulation
+            const dot = document.createElement('div')
             dot.className = 'stage-dot';
             if (i > battle.maxStage) dot.classList.add('locked');
             if (i === battle.stage) dot.classList.add('active');
             
             dot.innerText = i;
             dot.onclick = () => {
-                // Prevent clicking locked stages or the current stage
-                if(i <= battle.maxStage && i !== battle.stage) {
+                if(i <= battle.maxStage) {
                     battle.stage = i;
                     document.getElementById('battle-menu').style.display = 'none';
                     clearBattleTimers(); // Ensure clean slate
                     startBattle();
+                    buildStageSelector(); 
                 }
             };
             fragment.appendChild(dot);
