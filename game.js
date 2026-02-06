@@ -21,7 +21,6 @@
     const RARITY_NAMES = {1:"B", 2:"R", 3:"L", 4:"S", 5:"SS", 6:"SSS"};
 
     // --- STATE MANAGEMENT (GLOBAL) ---
-    // We attach these to 'window' so battle.js, gear.js, and strategy.js can access them.
     
     window.isDirty = false; 
 
@@ -46,14 +45,12 @@
         cinematic: false 
     };
 
-    // Service Worker Registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed', err));
         });
     }
 
-    // Expose GameState for readable derived stats
     window.GameState = {
         get gokuLevel() { return window.player.lvl; },
         get gokuPower() {
@@ -70,13 +67,11 @@
     // --- INITIALIZATION ---
     async function initGame() {
         try {
-            // OPTIMIZATION: Check LocalStorage for cached API data first
             const cachedData = localStorage.getItem(CONFIG.CACHE_KEY);
             
             if (cachedData) {
                 window.apiData = JSON.parse(cachedData);
             } else {
-                // If not in cache, fetch from network
                 const [charRes, planRes] = await Promise.all([
                     fetch(`${CONFIG.API_BASE}/characters?limit=58`),
                     fetch(`${CONFIG.API_BASE}/planets?limit=20`)
@@ -88,7 +83,6 @@
                 window.apiData.characters = charJson.items;
                 window.apiData.planets = planJson.items;
 
-                // Save to cache to save bandwidth on next load
                 localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify(window.apiData));
             }
             
@@ -99,9 +93,12 @@
             
             syncUI();
             
-            // Initialize External Modules if they exist
+            // Initialize External Modules
             if(typeof window.buildStageSelector === 'function') window.buildStageSelector();
             if(typeof window.initStrategy === 'function') window.initStrategy();
+            
+            // Initialize Tap and Hold Logic
+            setupRebirthHandler();
         
             setInterval(saveGame, CONFIG.SAVE_INTERVAL);
             setInterval(updateCapsuleBtn, 1000);
@@ -110,6 +107,76 @@
             console.error("Game Init Error", e);
             document.getElementById('loader').style.display = 'none';
         }
+    }
+
+    // --- REBIRTH TAP & HOLD HANDLER ---
+    function setupRebirthHandler() {
+        const btn = document.getElementById('btn-rebirth');
+        if(!btn) return;
+
+        let intervalId = null;
+        let timeoutId = null;
+
+        const performAction = () => {
+            // Cost is 100 per train. Rebirth calls both ATK and DEF (Total 200)
+            let didTrain = false;
+
+            // Try ATK
+            if (window.player.coins >= 100) {
+                train('atk', true); // Skip Sync
+                didTrain = true;
+            }
+
+            // Try DEF (only if still have coins)
+            if (window.player.coins >= 100) {
+                train('def', true); // Skip Sync
+                didTrain = true;
+            }
+
+            if (didTrain) {
+                // We sync UI once at end of interaction, not here
+                // unless we want visual feedback during hold (optional)
+            } else {
+                // Out of coins, stop auto
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                    syncUI(); // Ensure UI updates final state
+                }
+            }
+        };
+
+        const start = (e) => {
+            if(e.cancelable && e.type === 'touchstart') e.preventDefault();
+            
+            // Execute once immediately
+            performAction();
+            syncUI();
+
+            // Delay before rapid fire (0.3s hold)
+            timeoutId = setTimeout(() => {
+                // 0.02s Interval (20ms) -> 50 times per second
+                intervalId = setInterval(performAction, 20); 
+            }, 300);
+        };
+
+        const end = (e) => {
+            if(e.cancelable && e.type === 'touchend') e.preventDefault();
+            clearTimeout(timeoutId);
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+            syncUI(); // Final sync to show updated stats
+        };
+
+        // Events
+        btn.addEventListener('mousedown', start);
+        btn.addEventListener('mouseup', end);
+        btn.addEventListener('mouseleave', end);
+        btn.addEventListener('touchstart', start, {passive: false});
+        btn.addEventListener('touchend', end);
+        btn.addEventListener('touchcancel', end);
     }
 
     // --- CORE LOGIC ---
@@ -166,7 +233,7 @@
         if(leveledUp) {
             showLevelUp(oldLvl, window.player.lvl);
             syncUI();
-            saveGame(); // Force save on level up
+            saveGame();
         }
     }
 
@@ -271,14 +338,13 @@
                     window.battle.world = parsed.battle.world || 1;
                     window.battle.maxStage = parsed.battle.maxStage || 1;
                 }
-                // Ensure inventory quantity integrity
                 window.player.inv.forEach(i => { if(!i.qty) i.qty = 1; });
             } catch (e) { console.error("Save file corrupted", e); }
         }
     }
 
     window.addEventListener('beforeunload', () => {
-        window.isDirty = true; // Force save on exit
+        window.isDirty = true;
         saveGame();
     });
 
@@ -303,7 +369,6 @@
                 if(eName) eName.innerText = "";
             }
         } else {
-            // Check if stopCombat exists globally (from battle.js)
             if(typeof window.stopCombat === 'function') window.stopCombat();
             
             const menu = document.getElementById('battle-menu');
@@ -367,7 +432,6 @@
             els.xpBar.style.width = xpPct + "%";
         }
         
-        // OPTIMIZATION: Use DocumentFragment to batch DOM updates
         if(els.grid) {
             els.grid.innerHTML = '';
             const fragment = document.createDocumentFragment();
@@ -495,14 +559,15 @@
         }
     }
 
-    function train(s) {
+    function train(s, skipSync = false) {
         if(window.player.coins >= 100) {
             window.player.coins -= 100;
             if(s === 'atk') window.player.bAtk += 20; else window.player.bDef += 10;
             window.isDirty = true;
-            syncUI();
+            if(!skipSync) syncUI();
         } else {
-            alert("Need 100 Coins to Train!");
+            // Only alert if we are tapping normally (not holding) to prevent spam
+            if(!skipSync) alert("Need 100 Coins to Train!");
         }
     }
 
@@ -576,9 +641,9 @@
     window.doEquip = doEquip;
     window.mergeItems = mergeItems;
     window.closeLevelUp = closeLevelUp;
-    window.checkLevelUp = checkLevelUp; // Needed by battle.js
-    window.addToInventory = addToInventory; // Needed by battle.js
-    window.syncUI = syncUI; // Needed by battle.js
-    window.popDamage = popDamage; // Needed by battle.js and skills.js
+    window.checkLevelUp = checkLevelUp;
+    window.addToInventory = addToInventory;
+    window.syncUI = syncUI;
+    window.popDamage = popDamage;
 
 })();
