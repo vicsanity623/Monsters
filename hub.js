@@ -23,7 +23,7 @@
             
             // Create Mini Goku
             this.playerEl = document.createElement('img');
-            this.playerEl.src = "IMG_0054.png"; // Reuse player sprite
+            this.playerEl.src = "IMG_0061.png"; // Reuse player sprite
             this.playerEl.className = "hub-goku";
             this.container.appendChild(this.playerEl);
             
