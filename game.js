@@ -13,7 +13,7 @@
 
     const ASSETS = {
         BASE: "IMG_0061.png",
-        SSJ: "IMG_0081.png",
+        SSJ: "IMG_0062.png",
         BEAM: "hb_b.png"
     };
 
@@ -36,15 +36,9 @@
     };
 
     window.battle = { 
-        stage: 1, 
-        world: 1, 
-        maxStage: 1, 
-        active: false, 
-        enemy: null,
-        autoTimerId: null,
-        pInterval: null,
-        eInterval: null,
-        cinematic: false 
+        stage: 1, world: 1, maxStage: 1, 
+        active: false, enemy: null, 
+        autoTimerId: null, pInterval: null, eInterval: null, cinematic: false 
     };
     
     // Auto Merge State
@@ -59,7 +53,6 @@
     // --- MATH & STATS ---
     function getSoulMult() {
         const lvl = window.player.soulLevel || 1;
-        // Level 1 = +100% (2x), Level 4 = +400% (5x)
         return 1 + (lvl * 1.0); 
     }
 
@@ -375,7 +368,6 @@
         const found = window.player.inv.find(i => i.n === item.n && i.type === item.type && i.val === item.val && i.rarity === item.rarity && i.qty < 99);
         if(found) found.qty++; else { item.qty = 1; window.player.inv.push(item); }
         window.isDirty = true;
-        // Trigger Auto Merge Check on new item
         if(isAutoMerging) setTimeout(processAutoMerge, 200);
         else syncUI();
     }
@@ -403,7 +395,6 @@
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
         const def = Math.floor(rawDef * getSoulMult());
 
-        // FIXED: Force HP to Max when in Hub so visual stats look correct
         if (!window.battle.active) {
             window.player.hp = maxHp;
         }
@@ -416,14 +407,12 @@
         document.getElementById('ui-def').innerText = window.formatNumber(def);
         document.getElementById('ui-coins').innerText = window.formatNumber(window.player.coins);
         
-        // FIXED: Use maxHp here for the text to ensure it shows the boosted value
         document.getElementById('ui-hp-txt').innerText = window.formatNumber(maxHp);
         document.getElementById('ui-power').innerText = window.formatNumber(atk * 30 + maxHp);
         
         const xpPct = (window.player.xp / window.player.nextXp) * 100;
         document.getElementById('bar-xp').style.width = xpPct + "%";
         
-        // Inventory Logic
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
         const fragment = document.createDocumentFragment();
@@ -435,7 +424,6 @@
         if(mergeBtn) mergeBtn.style.display = 'none';
         if(equipBtn) equipBtn.style.display = 'flex'; 
 
-        // Auto Merge Button Logic
         if(autoMergeBtn) {
             if(window.player.inv.length > 0) {
                 autoMergeBtn.style.display = 'flex';
@@ -472,21 +460,31 @@
         updateVisualSlot('w', 'slot-w');
         updateVisualSlot('a', 'slot-a');
 
-        if(window.player.selected !== -1 && equipBtn && mergeBtn) {
+        if(window.player.selected !== -1) {
             const sItem = window.player.inv[window.player.selected];
-            let totalCount = 0;
-            window.player.inv.forEach(i => {
-                if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) totalCount += i.qty;
-            });
+            
+            // FIX: Ensure item exists before checking
+            if(sItem) {
+                let totalCount = 0;
+                window.player.inv.forEach(i => {
+                    if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) {
+                        totalCount += i.qty;
+                    }
+                });
 
-            if(totalCount >= 3 && sItem.rarity < 6) {
-                mergeBtn.style.display = 'flex';
-                equipBtn.style.display = 'none';
-                mergeBtn.innerHTML = `<span>⬆️ MERGE (3) - $${window.formatNumber(sItem.rarity * 500)}</span>`;
+                if(totalCount >= 3 && sItem.rarity < 6) {
+                    mergeBtn.style.display = 'flex';
+                    equipBtn.style.display = 'none';
+                    mergeBtn.innerHTML = `<span>⬆️ MERGE (3) - $${window.formatNumber(sItem.rarity * 500)}</span>`;
+                } else {
+                    equipBtn.innerHTML = `<span>EQUIP ${sItem.type === 'w' ? 'WEAPON' : 'ARMOR'}</span>`;
+                }
             } else {
-                equipBtn.innerHTML = `<span>EQUIP ${sItem.type === 'w' ? 'WEAPON' : 'ARMOR'}</span>`;
+                // If item doesn't exist (deleted), reset
+                window.player.selected = -1;
+                equipBtn.innerHTML = `<span>SELECT GEAR</span>`;
             }
-        } else if (equipBtn) {
+        } else {
             equipBtn.innerHTML = `<span>SELECT GEAR</span>`;
         }
         
@@ -517,6 +515,8 @@
     function mergeItems() {
         if(window.player.selected === -1) return;
         const sItem = window.player.inv[window.player.selected];
+        if(!sItem) return; // FIX
+
         const cost = sItem.rarity * 500;
         if(window.player.coins < cost) { alert("Not enough coins!"); return; }
 
@@ -558,21 +558,17 @@
         for(let i = 0; i < window.player.inv.length; i++) {
             const item = window.player.inv[i];
             
-            // Skip max rarity
             if(item.rarity >= 6) continue;
 
-            // Calculate cost
             const cost = item.rarity * 500;
             if(window.player.coins < cost) continue;
 
-            // Count Total
             let count = 0;
             window.player.inv.forEach(x => {
                 if(x.n === item.n && x.type === item.type && x.rarity === item.rarity) count += x.qty;
             });
 
             if(count >= 3) {
-                // Perform Merge
                 window.player.coins -= cost;
                 removeItems(item, 3);
 
@@ -587,7 +583,7 @@
 
                 window.addToInventory({ n: newName, type: item.type, val: newVal, rarity: newRarity });
                 mergedSomething = true;
-                break; // Stop and restart scan
+                break; 
             }
         }
 
@@ -631,12 +627,24 @@
     function doEquip() {
         if(window.player.selected === -1) return;
         const stackItem = window.player.inv[window.player.selected]; 
+        
+        // Safety Check
+        if(!stackItem) {
+            window.player.selected = -1;
+            syncUI();
+            return;
+        }
+
         const itemToEquip = { n: stackItem.n, type: stackItem.type, val: stackItem.val, rarity: stackItem.rarity, qty: 1 };
         const old = window.player.gear[stackItem.type]; 
+        
         window.player.gear[stackItem.type] = itemToEquip;
+        
         stackItem.qty--;
         if(stackItem.qty <= 0) window.player.inv.splice(window.player.selected, 1);
+        
         if(old) window.addToInventory(old);
+        
         window.player.selected = -1;
         window.isDirty = true;
         syncUI();
