@@ -375,9 +375,16 @@
 
     function syncUI() {
         const sprite = (window.player.rank >= 1) ? ASSETS.SSJ : ASSETS.BASE;
-        document.getElementById('ui-sprite').src = sprite;
-        document.getElementById('btl-p-sprite').src = sprite;
-        document.getElementById('ui-aura').style.display = (window.player.rank >= 1) ? "block" : "none";
+        const uiSprite = document.getElementById('ui-sprite');
+        if (uiSprite) uiSprite.src = sprite;
+
+        const btlSprite = document.getElementById('btl-p-sprite');
+        if (btlSprite) btlSprite.src = sprite;
+
+        const uiAura = document.getElementById('ui-aura');
+        if (uiAura) {
+            uiAura.style.display = (window.player.rank >= 1) ? "block" : "none";
+        }
         
         const atk = window.GameState.gokuPower;
         const maxHp = window.GameState.gokuMaxHP;
