@@ -59,6 +59,7 @@
     // --- MATH & STATS ---
     function getSoulMult() {
         const lvl = window.player.soulLevel || 1;
+        // Level 1 = +100% (2x), Level 4 = +400% (5x)
         return 1 + (lvl * 1.0); 
     }
 
@@ -402,6 +403,11 @@
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
         const def = Math.floor(rawDef * getSoulMult());
 
+        // FIXED: Force HP to Max when in Hub so visual stats look correct
+        if (!window.battle.active) {
+            window.player.hp = maxHp;
+        }
+
         document.getElementById('ui-rank-badge').innerText = RANKS[window.player.rank].substring(0,2);
         document.getElementById('ui-name').innerText = window.player.rank > 0 ? "Goku " + RANKS[window.player.rank] : "Goku";
         document.getElementById('ui-lvl').innerText = window.player.lvl;
@@ -409,7 +415,9 @@
         document.getElementById('ui-atk').innerText = window.formatNumber(atk);
         document.getElementById('ui-def').innerText = window.formatNumber(def);
         document.getElementById('ui-coins').innerText = window.formatNumber(window.player.coins);
-        document.getElementById('ui-hp-txt').innerText = window.formatNumber(Math.floor(window.player.hp));
+        
+        // FIXED: Use maxHp here for the text to ensure it shows the boosted value
+        document.getElementById('ui-hp-txt').innerText = window.formatNumber(maxHp);
         document.getElementById('ui-power').innerText = window.formatNumber(atk * 30 + maxHp);
         
         const xpPct = (window.player.xp / window.player.nextXp) * 100;
@@ -547,8 +555,6 @@
 
         let mergedSomething = false;
 
-        // Iterate backwards so we can modify the array safely if needed
-        // but we actually need to restart scan if we merge something to handle cascading merges
         for(let i = 0; i < window.player.inv.length; i++) {
             const item = window.player.inv[i];
             
@@ -589,11 +595,7 @@
         syncUI();
 
         if(mergedSomething && isAutoMerging) {
-            // Delay slightly for animation effect
             setTimeout(processAutoMerge, 200);
-        } else if(!mergedSomething) {
-            // Nothing left to merge
-            // We keep it active so new drops trigger it, but we stop the loop
         }
     }
 
@@ -675,6 +677,6 @@
     window.addToInventory = addToInventory;
     window.syncUI = syncUI;
     window.popDamage = popDamage;
-    window.toggleAutoMerge = toggleAutoMerge; // Exposed for button click
+    window.toggleAutoMerge = toggleAutoMerge;
 
 })();
