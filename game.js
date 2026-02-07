@@ -108,9 +108,13 @@
             
             syncUI();
             
+            // Initialize External Modules
             if(typeof window.buildStageSelector === 'function') window.buildStageSelector();
             if(typeof window.initStrategy === 'function') window.initStrategy();
-            if(window.SoulSystem) window.SoulSystem.updateBtnUI(); // Init Soul Button
+            if(window.SoulSystem) window.SoulSystem.updateBtnUI(); 
+            
+            // START HUB BATTLE INITIALLY
+            if(window.HubBattle) window.HubBattle.init();
             
             setupRebirthHandler();
         
@@ -174,8 +178,7 @@
     }
 
     function updateStatsOnly() {
-        const atk = window.GameState.gokuPower; // Use calculated power
-        // Calculate raw def for display or use multiplier if defense should scale too
+        const atk = window.GameState.gokuPower; 
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
         const def = Math.floor(rawDef * getSoulMult());
 
@@ -200,7 +203,7 @@
         document.getElementById('lvl-up-old').innerText = oldLvl;
         document.getElementById('lvl-up-new').innerText = newLvl;
         
-        // Show Stats (Calculated with Soul Mult)
+        // Show Stats
         const maxHp = window.GameState.gokuMaxHP;
         const atk = window.GameState.gokuPower;
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
@@ -236,7 +239,6 @@
             window.player.bAtk += 5; 
             window.player.bDef += 2;
             
-            // Heal fully on level up
             window.player.hp = window.GameState.gokuMaxHP;
             
             if(window.player.lvl >= 100) { window.player.lvl = 1; window.player.rank++; }
@@ -361,6 +363,7 @@
         saveGame();
     });
 
+    // --- UPDATED SHOWTAB FUNCTION ---
     function showTab(t) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
@@ -372,6 +375,9 @@
         if(tab) tab.classList.add('active');
         
         if(t === 'battle') {
+            // STOP HUB BATTLE TO SAVE RESOURCES
+            if(window.HubBattle) window.HubBattle.stop();
+
             if(!window.battle.active) {
                 const prompt = document.getElementById('start-prompt');
                 const eImg = document.getElementById('e-img');
@@ -382,6 +388,9 @@
                 if(eName) eName.innerText = "";
             }
         } else {
+            // START HUB BATTLE
+            if(window.HubBattle) window.HubBattle.start();
+
             if(typeof window.stopCombat === 'function') window.stopCombat();
             
             const menu = document.getElementById('battle-menu');
