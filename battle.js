@@ -427,32 +427,43 @@
 
         if(!window.battle.active) { window.battle.cinematic = false; return; }
         
+        // --- FIXED LOGIC HERE ---
+        // 1. Calculate Damage
         const soulLvl = window.player.soulLevel || 1;
         const power = window.GameState ? window.GameState.gokuPower : 100;
         const soulBonus = 1 + (soulLvl * 0.1); 
         const dmg = Math.floor(power * 6 * soulBonus);
         
+        // 2. Visuals
         if (window.popDamage) popDamage("ULTIMATE!", 'e-box', true);
-        
         const eImg = document.getElementById('e-img');
         if(eImg) eImg.classList.add('knockback-right');
         
+        // 3. APPLY DAMAGE (This will trigger death check if needed)
         applyDamage(dmg, 'p');
 
+        // 4. CLEANUP (Even if enemy died, we clear the beam visuals)
         setTimeout(() => {
             if (beam) {
                 beam.style.transition = "opacity 0.2s ease-out"; 
                 beam.style.opacity = '0'; 
+                
                 setTimeout(() => {
                     beam.style.transition = "none"; 
                     beam.style.width = "0"; 
+                    
+                    // Only reset enemy class if still alive
                     if(window.battle.active && window.battle.enemy.hp > 0 && eImg) {
                          eImg.classList.remove('knockback-right');
                     }
+                    
                     setTimeout(() => {
-                        beam.style.transition = "width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1), opacity 0.2s ease-in";
+                         beam.style.transition = "width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1), opacity 0.2s ease-in";
                     }, 50);
+
+                    // End cinematic state
                     window.battle.cinematic = false; 
+                    
                 }, 200);
             } else {
                 window.battle.cinematic = false;
@@ -483,15 +494,11 @@
         // --- BOSS REWARDS (Stage 20) ---
         let bossSouls = 0;
         if (window.battle.stage === 20) {
-            // XP/Coin Bonus
             xpGain *= 5;
             coinGain *= 5;
-
-            // Soul Drop (30-100)
             bossSouls = Math.floor(30 + Math.random() * 70);
             window.player.souls = (window.player.souls || 0) + bossSouls;
         }
-        // -------------------------------
 
         window.player.xp += xpGain; 
         window.player.coins += coinGain;
@@ -503,14 +510,12 @@
         let dropCount = 0;
         const qty = Math.floor(Math.random() * 4); 
 
-        // Determine Drop Rarity
         let dropRarity = Math.min(6, window.battle.world);
-        
-        // BOSS GUARANTEE: Minimum Legendary (3) for Stage 20
         if (window.battle.stage === 20 && dropRarity < 3) dropRarity = 3;
 
         let baseVal = 700;
         let baseName = "Saiyan Gear";
+
         if (dropRarity === 2) { baseVal = 1500; baseName = "Elite Gear"; }
         else if (dropRarity === 3) { baseVal = 3500; baseName = "Legendary Gear"; }
         else if (dropRarity === 4) { baseVal = 8500; baseName = "God Gear"; }
@@ -529,13 +534,10 @@
             }
         }
 
-        // Construct Reward Text
         let dropsHtml = "";
-        
         if(bossSouls > 0) {
             dropsHtml += `<div style="color:#00ffff; font-weight:bold;">+${bossSouls} SOULS</div>`;
         }
-
         if(dropCount > 0) {
             let rColor = "#fff";
             if(dropRarity === 2) rColor = "#00d2ff"; 
@@ -556,7 +558,7 @@
 
         document.getElementById('r-xp').innerText = xpGain;
         document.getElementById('r-coins').innerText = coinGain;
-        document.getElementById('r-drops').innerHTML = dropText; // Use InnerHTML for multi-line
+        document.getElementById('r-drops').innerHTML = dropText; 
         document.getElementById('r-lvl').innerText = window.player.lvl;
             
         const xpTextEl = document.getElementById('r-xp-text');
