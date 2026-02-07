@@ -56,10 +56,13 @@
             if(!this.running || document.hidden) return;
             
             const el = document.createElement('img');
-            // Using a colored box if frieza image is missing, or use a placeholder URL
-            el.src = "https://upload.wikimedia.org/wikipedia/en/2/29/Frieza_in_Dragon_Ball_Super.png"; // Placeholder Frieza
+            
+            // --- UPDATED HERE ---
+            el.src = "IMG_0206.png"; 
+            // --------------------
+
             el.className = "hub-enemy";
-            el.onerror = function() { this.style.display='none'; }; // Hide if broken
+            el.onerror = function() { this.style.display='none'; }; 
             
             // Random Y Position
             const maxY = this.container.clientHeight - 60;
@@ -113,8 +116,6 @@
             this.playerEl.style.left = (enemy.x - 40) + "px";
             this.playerEl.classList.add('hub-flash');
             
-            // Play attack animation via CSS class swap
-            this.playerEl.src = "IMG_0061.png"; // Switch to attack sprite if available (using base for now)
             this.playerEl.style.transform = "scale(1.2)";
 
             // Impact
@@ -154,10 +155,6 @@
                 }
             }
             
-            // Sync specific UI elements periodically or rely on other loops
-            // We won't call syncUI() every kill to save performance, 
-            // but the train loop or battle loop elsewhere will eventually catch it.
-            // Or we can simple update the text fields directly.
             const xpBar = document.getElementById('bar-xp');
             if(xpBar) {
                 const xpPct = (window.player.xp / window.player.nextXp) * 100;
