@@ -27,6 +27,7 @@
     <script src="strategy.js" defer></script>
     <script src="skills.js" defer></script>
     <script src="gear.js" defer></script>
+    <script src="soul.js" defer></script> <!-- NEW FILE -->
     <script src="battle.js" defer></script>
     <script src="game.js" defer></script>
 </head>
@@ -89,10 +90,17 @@
             <div class="side-btn" onclick="openStrategy()">
                 <i>💊</i> Strategy
             </div>
-            <div class="side-btn" onclick="alert('Coming soon!')">
-                <i>🔒</i> Lock-on
+            
+            <!-- NEW SOUL GAUGE BUTTON -->
+            <div class="side-btn soul-btn-container" id="btn-soul" onclick="SoulSystem.openModal()">
+                <div class="soul-progress-ring" id="soul-ring"></div>
+                <div class="soul-content">
+                    <div style="font-size:0.6rem; color:#00ffff;">SOUL</div>
+                    <div id="soul-btn-pct" style="font-weight:bold; font-size:0.8rem;">0%</div>
+                    <div id="soul-btn-lvl" style="font-size:0.6rem; color:#aaa;">Lv.1</div>
+                </div>
             </div>
-            <!-- UPDATED REBIRTH BUTTON: Added ID, Removed onclick for Tap & Hold support -->
+
             <div class="side-btn" id="btn-rebirth">
                 <i>♻️</i> Rebirth
             </div>
@@ -203,7 +211,6 @@
 
         <div class="arena">
             <div id="fx-beam" class="beam"></div>
-            <!-- Updated Beam Image Source -->
             <img id="fx-beam" class="beam" src="hb_b.png" alt="Energy Beam">
             
             <div class="unit" id="p-box">
@@ -231,12 +238,10 @@
             <h2>GEAR BACKPACK</h2>
             <div class="g-close" id="g-close-btn">✕</div>
         </div>
-        
         <div class="g-content">
             <p style="font-size: 0.7rem; color: #888; margin-bottom: 10px;">Tap an item to manage...</p>
             <div class="g-grid" id="gear-list"></div>
         </div>
-
         <div class="g-footer">
             <div class="g-preview-box">
                 <div id="g-display-name" class="g-item-name">EMPTY SLOT</div>
@@ -263,9 +268,7 @@
             <h1 style="color:var(--dbz-orange);">🔥 SKILLS 🔥</h1>
             <div class="g-close" onclick="Skills.closeSkillScreen()" style="color:#fff;">✕</div>
         </div>
-        <div id="skills-list-container" style="padding:20px; max-width:800px; margin:0 auto; width:100%;">
-            <!-- Skill Cards Injected Here -->
-        </div>
+        <div id="skills-list-container" style="padding:20px; max-width:800px; margin:0 auto; width:100%;"></div>
         <button class="g-btn g-btn-blue" style="margin:20px auto; width:80%; max-width:300px;" onclick="Skills.closeSkillScreen()">CLOSE</button>
     </div>
     
@@ -273,25 +276,52 @@
     <div id="strategy-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; flex-direction:column; align-items:center; justify-content:center;">
         <div style="width:90%; max-width:400px; background:linear-gradient(135deg, #2c3e50, #000); border:2px solid #00d2ff; border-radius:15px; padding:20px; text-align:center; box-shadow:0 0 20px #00d2ff; position:relative;">
             <div style="font-family:'Bangers'; color:#00d2ff; font-size:2.5rem; margin-bottom:10px; text-shadow:2px 2px black;">GRAVITRON CHAMBER</div>
-            
             <div id="grav-anim" style="height:120px; display:flex; align-items:center; justify-content:center; margin:20px 0;">
                 <div class="grav-spinner">
                     <span style="font-size:3rem;">💊</span>
                 </div>
             </div>
-
             <div style="font-family:'Orbitron'; color:white; font-size:0.9rem; margin-bottom:5px;">TIME IN CHAMBER: <span id="strat-time" style="color:yellow;">0</span> MINS</div>
             <div style="font-family:'Orbitron'; color:white; font-size:0.9rem; margin-bottom:20px;">GRAVITY MULTIPLIER: <span id="strat-mult" style="color:red;">x1</span></div>
-            
             <div style="background:rgba(0,0,0,0.5); padding:15px; border-radius:10px; border:1px solid #555; margin-bottom:20px;">
                 <div style="font-family:'Orbitron'; font-size:0.8rem; color:#aaa;">TRAINING RESULTS</div>
                 <div id="strat-xp-display" style="font-family:'Bangers'; font-size:2rem; color:#00ff00; text-shadow:2px 2px black;">0 XP</div>
                 <div id="strat-gold-display" style="font-family:'Bangers'; font-size:1.5rem; color:#f1c40f; text-shadow:1px 1px black;">0 COINS</div>
                 <div id="strat-item-display" style="font-family:'Orbitron'; font-size:0.8rem; color:#00d2ff; margin-top:5px;">No Items Found</div>
             </div>
-
             <button id="btn-claim-strat" onclick="claimStrategy()" style="width:100%; padding:15px; background:linear-gradient(to bottom, #27ae60, #2ecc71); border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer; text-shadow:1px 1px black;">CLAIM REWARDS</button>
             <button onclick="closeStrategy()" style="margin-top:15px; background:transparent; border:none; color:#777; font-family:'Orbitron'; cursor:pointer; font-size:0.8rem;">LEAVE CHAMBER (NO CLAIM)</button>
+        </div>
+    </div>
+
+    <!-- SOUL LIBERATION MODAL (NEW) -->
+    <div id="soul-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="width:90%; max-width:400px; background:#1a1a1a; border:2px solid #e74c3c; border-radius:15px; padding:20px; box-shadow:0 0 25px rgba(231,76,60,0.5); color:white; font-family:'Orbitron'; position:relative;">
+            <div class="g-close" onclick="SoulSystem.closeModal()" style="position:absolute; top:10px; right:15px; color:#aaa;">✕</div>
+            
+            <div style="text-align:center; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px;">
+                <div style="color:#e74c3c; font-size:0.8rem;">SOUL STONE LEVEL</div>
+                <div id="sm-level" style="font-family:'Bangers'; font-size:2.5rem; color:white;">Lv.1</div>
+            </div>
+
+            <div style="display:flex; justify-content:space-around; margin-bottom:20px;">
+                <div style="text-align:center;">
+                    <div class="grav-spinner" style="width:80px; height:80px; border-color:#00ffff; box-shadow:0 0 10px #00ffff;">
+                        <span id="sm-pct" style="font-size:1.2rem; font-weight:bold;">0%</span>
+                    </div>
+                </div>
+                <div style="flex:1; margin-left:15px;">
+                    <div style="font-size:0.8rem; color:#aaa;">SOUL ABILITIES</div>
+                    <div id="sm-stats" style="font-size:0.75rem; line-height:1.6; margin-top:5px; color:#00d2ff;">
+                        <!-- Stats injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-liberate" onclick="SoulSystem.liberate()" style="width:100%; padding:15px; background:#444; border:none; border-radius:8px; color:#777; font-family:'Bangers'; font-size:1.5rem; cursor:default;">
+                SOUL LIBERATION
+            </button>
+            <div id="sm-req" style="text-align:center; font-size:0.7rem; color:#555; margin-top:5px;">Requires 100% Soul Gauge</div>
         </div>
     </div>
 
