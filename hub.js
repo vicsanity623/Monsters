@@ -15,7 +15,7 @@
         
         // Settings
         spawnRate: 800, // ms
-        speed: 2,
+        speed: 3,
         
         init: function() {
             this.container = document.getElementById('hub-arena');
