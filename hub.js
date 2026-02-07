@@ -21,14 +21,29 @@
             this.container = document.getElementById('hub-arena');
             if(!this.container) return;
             
+            // Clear container just in case
+            this.container.innerHTML = '';
+
             // Create Mini Goku
             this.playerEl = document.createElement('img');
-            this.playerEl.src = "IMG_0061.png"; // Reuse player sprite
+            
+            // --- FIX: Use current player rank sprite if available, else default ---
+            const currentSprite = (window.player && window.player.rank >= 1) ? "IMG_0081.png" : "IMG_0061.png";
+            this.playerEl.src = currentSprite; 
+            
             this.playerEl.className = "hub-goku";
             this.container.appendChild(this.playerEl);
             
             this.start();
         },
+
+        // --- NEW FUNCTION: ALLOWS GAME.JS TO UPDATE THE SPRITE ---
+        updateSprite: function(src) {
+            if (this.playerEl && src) {
+                this.playerEl.src = src;
+            }
+        },
+        // ---------------------------------------------------------
 
         start: function() {
             if(this.running) return;
@@ -57,9 +72,8 @@
             
             const el = document.createElement('img');
             
-            // --- UPDATED HERE ---
+            // Enemy Sprite
             el.src = "IMG_0206.png"; 
-            // --------------------
 
             el.className = "hub-enemy";
             el.onerror = function() { this.style.display='none'; }; 
@@ -139,10 +153,8 @@
 
         handleReward: function() {
             this.killCount++;
-            
-            // Reward Values
             const xpReward = 10;
-            const goldReward = 5; // Gold per kill
+            const goldReward = 5; 
 
             // Apply to Player State
             window.player.xp += xpReward;
@@ -153,25 +165,20 @@
                 if(window.SoulSystem) {
                     window.SoulSystem.gainSoul();
                     window.SoulSystem.gainSoul(); // +2
-                    
-                    // Show Floating Text
                     this.showFloat("+2 SOULS", "#00ffff");
                 }
             } else {
-                // Show Floating Text for Gold occasionally to reduce clutter
-                // or show every kill if desired
                 this.showFloat(`+${goldReward} G`, "#f1c40f");
             }
             
-            // --- UI UPDATE ---
-            // 1. Update XP Bar
+            // Sync UI logic
+            // Note: calling syncUI() here might create an infinite loop if not careful.
+            // Instead, update DOM directly for performance or throttle syncUI.
             const xpBar = document.getElementById('bar-xp');
             if(xpBar) {
                 const xpPct = (window.player.xp / window.player.nextXp) * 100;
                 xpBar.style.width = xpPct + "%";
             }
-
-            // 2. Update Coin Display Immediately
             const coinEl = document.getElementById('ui-coins');
             if(coinEl) {
                 coinEl.innerText = window.player.coins.toLocaleString();
