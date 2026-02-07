@@ -14,7 +14,7 @@
         animFrame: null,
         
         // Settings
-        spawnRate: 800, // ms
+        spawnRate: 250, // ms
         speed: 3,
         
         init: function() {
