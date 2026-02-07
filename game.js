@@ -376,25 +376,27 @@
     function syncUI() {
         const sprite = (window.player.rank >= 1) ? ASSETS.SSJ : ASSETS.BASE;
         
-        // 1. SAFE CHECK: Only update 'ui-sprite' if it actually exists in HTML
+        // 1. Try to update the static UI sprite (if it exists)
         const uiSprite = document.getElementById('ui-sprite');
-        if (uiSprite) {
-            uiSprite.src = sprite;
-        }
+        if (uiSprite) uiSprite.src = sprite;
 
-        // 2. Update Battle Sprite (This exists in your HTML at line 158)
+        // 2. Try to update the Battle sprite
         const btlSprite = document.getElementById('btl-p-sprite');
-        if (btlSprite) {
-            btlSprite.src = sprite;
-        }
+        if (btlSprite) btlSprite.src = sprite;
 
-        // 3. SAFE CHECK: Only update aura if it exists (It is currently missing from your HTML)
+        // 3. --- NEW: UPDATE HUB BATTLE SPRITE ---
+        if (window.HubBattle && typeof window.HubBattle.updateSprite === 'function') {
+            window.HubBattle.updateSprite(sprite);
+        }
+        // ----------------------------------------
+
+        // 4. Update Aura (if it exists)
         const uiAura = document.getElementById('ui-aura');
         if (uiAura) {
             uiAura.style.display = (window.player.rank >= 1) ? "block" : "none";
         }
-        
-        // --- The rest of the logic remains exactly the same ---
+
+        // --- Standard Stat Updates ---
         const atk = window.GameState.gokuPower;
         const maxHp = window.GameState.gokuMaxHP;
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
@@ -413,7 +415,7 @@
         const xpPct = (window.player.xp / window.player.nextXp) * 100;
         document.getElementById('bar-xp').style.width = xpPct + "%";
         
-        // Inventory Grid Logic
+        // Inventory Logic
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
         const fragment = document.createDocumentFragment();
@@ -421,7 +423,6 @@
         const mergeBtn = document.getElementById('btn-merge');
         const equipBtn = document.getElementById('btn-action');
         
-        // Safety check for buttons, in case they are hidden/removed in future
         if(mergeBtn) mergeBtn.style.display = 'none';
         if(equipBtn) equipBtn.style.display = 'flex'; 
 
