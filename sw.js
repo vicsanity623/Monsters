@@ -1,9 +1,10 @@
-const CACHE_NAME = 'goku-rpg-v4.11';
+const CACHE_NAME = 'goku-rpg-v4.12';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './game.js',
+  './soul.js',
   './strategy.js',
   './skills.js',
   './gear.js',
