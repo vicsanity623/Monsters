@@ -566,3 +566,63 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
     50% { box-shadow: 0 0 20px #e74c3c; } 
     100% { box-shadow: 0 0 5px #e74c3c; } 
 }
+
+/* --- HUB ARENA STYLES --- */
+#hub-arena {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Optional: Faint grid or ground to give depth */
+    background: linear-gradient(to bottom, transparent 80%, rgba(255,255,255,0.05) 80%);
+}
+
+.hub-goku {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    z-index: 10;
+    filter: drop-shadow(0 0 10px gold);
+    pointer-events: none; /* Let clicks pass to container */
+    transition: top 0.1s;
+}
+
+.hub-enemy {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    z-index: 5;
+    filter: drop-shadow(0 0 5px red);
+}
+
+.hub-flash {
+    filter: brightness(10) !important;
+    transform: scale(1.3) !important;
+}
+
+.hub-die {
+    animation: hubDie 0.3s forwards;
+}
+
+@keyframes hubDie {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2) rotate(15deg); filter: hue-rotate(90deg); }
+    100% { transform: scale(0); opacity: 0; }
+}
+
+.hub-float {
+    position: absolute;
+    font-family: 'Bangers';
+    font-size: 1.2rem;
+    pointer-events: none;
+    z-index: 20;
+    text-shadow: 1px 1px black;
+    animation: hubFloatAnim 0.8s forwards;
+}
+
+@keyframes hubFloatAnim {
+    0% { transform: translateY(0) scale(0.5); opacity: 1; }
+    100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
+}
