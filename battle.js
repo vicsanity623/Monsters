@@ -14,12 +14,11 @@
     }
 
     // --- DBZ VISUAL HELPERS ---
-    
     function triggerShake(intensity = 'normal') {
         const arena = document.querySelector('.arena');
         if(arena) {
             arena.classList.remove('shake-screen');
-            void arena.offsetWidth; // Force reflow
+            void arena.offsetWidth; 
             arena.style.animationDuration = intensity === 'heavy' ? '0.2s' : '0.3s';
             arena.classList.add('shake-screen');
         }
@@ -37,17 +36,14 @@
 
     async function teleportVisual(container, targetX, targetY = 0) {
         const sprite = container.querySelector('img');
-        
         return new Promise(resolve => {
             if(sprite) {
                 sprite.classList.add('teleport-flash');
                 sprite.style.opacity = '0'; 
             }
-
             setTimeout(() => {
                 container.style.transition = 'none'; 
                 container.style.transform = `translate(${targetX}px, ${targetY}px)`;
-                
                 setTimeout(() => {
                     if(sprite) {
                         sprite.style.opacity = '1';
@@ -59,13 +55,99 @@
         });
     }
 
+    // --- STAGE SELECTION & MODAL LOGIC ---
+
+    // 1. Show the Modal with details
+    window.openStageDetails = function(stageNum) {
+        window.battle.selectedStage = stageNum; // Store selection
+        
+        const modal = document.getElementById('stage-details-modal');
+        if(!modal) return;
+
+        // Calculate potential stats based on stage logic
+        const scale = Math.pow(1.8, stageNum) * Math.pow(25, window.battle.world - 1);
+        const estHp = Math.floor(250 * scale);
+        const estAtk = Math.floor(30 * scale);
+        const recPower = Math.floor((estAtk * 15) + estHp); // Rough formula for recommended power
+
+        // Rewards
+        const xp = 100 * stageNum * window.battle.world;
+        const coins = 250;
+        let drops = "Common";
+        if(stageNum % 5 === 0) drops = "High";
+        if(stageNum === 20) drops = "LEGENDARY";
+
+        // Determine Enemy Image & Name
+        let imgUrl = "";
+        let name = "Enemy";
+        
+        // Check if API is ready
+        if (window.apiData && window.apiData.characters) {
+            if(stageNum === 20) {
+                // Boss Logic
+                let bossName = "Frieza";
+                const wMod = window.battle.world % 3;
+                if(wMod === 2) bossName = "Cell";
+                if(wMod === 0) bossName = "Majin";
+                let charData = window.apiData.characters.find(c => c.name.includes(bossName));
+                if(!charData) charData = window.apiData.characters[(window.battle.world * 5) % window.apiData.characters.length];
+                
+                imgUrl = charData ? charData.image : "";
+                name = "BOSS " + (charData ? charData.name : "Titan");
+            } else {
+                // Normal Logic
+                const charIdx = (stageNum + (window.battle.world * 3)) % window.apiData.characters.length;
+                let dat = window.apiData.characters[charIdx];
+                if(dat) {
+                    imgUrl = dat.image;
+                    name = dat.name;
+                }
+            }
+        }
+
+        // Update DOM
+        document.getElementById('sd-num').innerText = stageNum;
+        document.getElementById('sd-enemy-img').src = imgUrl;
+        document.getElementById('sd-enemy-name').innerText = name;
+        document.getElementById('sd-power').innerText = window.formatNumber ? window.formatNumber(recPower) : recPower;
+        document.getElementById('sd-xp').innerText = xp;
+        document.getElementById('sd-coins').innerText = coins;
+        document.getElementById('sd-drops').innerText = drops;
+
+        // Aura Color for Boss
+        const aura = document.querySelector('.enemy-aura');
+        if(aura) {
+            aura.style.background = (stageNum === 20) 
+                ? "radial-gradient(circle, rgba(255,0,0,0.8), transparent 70%)" // Red for Boss
+                : "radial-gradient(circle, rgba(0,255,255,0.6), transparent 70%)"; // Blue for Normal
+        }
+
+        modal.style.display = 'flex';
+    };
+
+    // 2. Hide Modal
+    window.closeStageDetails = function() {
+        const modal = document.getElementById('stage-details-modal');
+        if(modal) modal.style.display = 'none';
+    };
+
+    // 3. Actually Start Battle
+    window.confirmStart = function() {
+        closeStageDetails();
+        if(window.battle.selectedStage) {
+            window.battle.stage = window.battle.selectedStage;
+            document.getElementById('battle-menu').style.display = 'none';
+            clearBattleTimers();
+            startBattle();
+            buildStageSelector();
+        }
+    };
+
     // --- CORE BATTLE FUNCTIONS ---
 
     function buildStageSelector() {
         const container = document.getElementById('ui-stage-selector');
-        if (!container) return;
-        // Safety check: ensure battle object exists
-        if (!window.battle) return;
+        if (!container || !window.battle) return;
 
         container.innerHTML = '';
         const fragment = document.createDocumentFragment();
@@ -75,18 +157,13 @@
             dot.className = 'stage-dot';
             if (i > window.battle.maxStage) dot.classList.add('locked');
             if (i === window.battle.stage) dot.classList.add('active');
-            
-            // Mark Stage 20 as special red dot
             if (i === 20) dot.style.borderColor = "red";
 
             dot.innerText = i;
             dot.onclick = () => {
+                // FIXED: Now opens modal instead of auto-starting
                 if(i <= window.battle.maxStage) {
-                    window.battle.stage = i;
-                    document.getElementById('battle-menu').style.display = 'none';
-                    clearBattleTimers();
-                    startBattle();
-                    buildStageSelector(); 
+                    openStageDetails(i);
                 }
             };
             fragment.appendChild(dot);
@@ -122,6 +199,8 @@
         } else if (window.battle.stage < window.battle.maxStage) {
              window.battle.stage++;
         }
+        
+        // For auto-start next, we skip the modal and just fight
         startBattle();
     }
 
@@ -156,7 +235,7 @@
             eImg.style.display = 'block';
             eImg.className = ''; 
             eImg.style.transform = '';
-            eImg.style.filter = ''; // Reset Boss Filters
+            eImg.style.filter = ''; 
             eImg.style.opacity = '1';
         }
         if(pBox) pBox.style.transform = 'translate(0,0)';
@@ -180,7 +259,6 @@
         const banner = document.getElementById('ready-msg');
         if (banner) {
             banner.style.display = "block";
-            // Custom text for Boss
             if(window.battle.stage === 20) {
                 banner.innerText = "BOSS BATTLE";
                 banner.style.color = "red";
@@ -190,9 +268,7 @@
             }
             
             await new Promise(r => setTimeout(r, 1000));
-            
             if(!window.battle.active) { banner.style.display = 'none'; return; }
-            
             banner.innerText = "FIGHT!";
             await new Promise(r => setTimeout(r, 600));
             banner.style.display = "none";
@@ -200,22 +276,13 @@
         
         if (log) log.innerHTML = `<div style="color:white">Battle Started!</div>`;
         
-        // Player Loop
         window.battle.pInterval = setInterval(() => {
             if(!window.battle.active || window.battle.cinematic) return; 
-
-            if (window.Skills) {
-                window.Skills.autoBattleTick(window.battle);
-            }
-
-            if(window.player.charge >= 100) {
-                executeSpecial();
-            } else {
-                executeStrike('p');
-            }
+            if (window.Skills) window.Skills.autoBattleTick(window.battle);
+            if(window.player.charge >= 100) executeSpecial();
+            else executeStrike('p');
         }, 600); 
 
-        // Enemy Loop
         window.battle.eInterval = setInterval(() => {
             if(!window.battle.active || window.battle.cinematic) return; 
             executeStrike('e');
@@ -223,36 +290,28 @@
     }
 
     function spawnPersistentEnemy() {
-        // Difficulty Scaling
         const scale = Math.pow(1.8, window.battle.stage) * Math.pow(25, window.battle.world - 1);
         
-        // Safety: If API data isn't ready, use default
         if (!window.apiData || !window.apiData.characters || window.apiData.characters.length === 0) {
             window.battle.enemy = { name: "Loading...", hp: 100, maxHp: 100, atk: 10, i: "" };
             return;
         }
 
-        // --- BOSS LOGIC (Stage 20) ---
         if (window.battle.stage === 20) {
-            window.battle.bossPhase = 1; // Start Phase 1
-            
-            // Cycle Bosses based on World: 1=Frieza, 2=Cell, 3=Buu
+            window.battle.bossPhase = 1; 
             let bossName = "Frieza";
             const wMod = window.battle.world % 3;
             if(wMod === 2) bossName = "Cell";
             if(wMod === 0) bossName = "Majin";
 
-            // Find Boss Image in API Data
             let charData = window.apiData.characters.find(c => c.name.includes(bossName));
-            // Fallback if specific boss not found
             if(!charData) charData = window.apiData.characters[(window.battle.world * 5) % window.apiData.characters.length];
 
-            // Boss Stats (Much higher than normal)
             window.battle.enemy = { 
                 name: "BOSS " + (charData ? charData.name : "Titan"),
-                hp: 2000 * scale, // Massive HP
+                hp: 2000 * scale,
                 maxHp: 2000 * scale, 
-                atk: 80 * scale,  // High Attack
+                atk: 80 * scale,
                 i: charData ? charData.image : ""
             };
 
@@ -264,8 +323,7 @@
             }
         } 
         else {
-            // NORMAL STAGE
-            window.battle.bossPhase = 0; // Not a boss
+            window.battle.bossPhase = 0;
             const charIdx = (window.battle.stage + (window.battle.world * 3)) % window.apiData.characters.length;
             let dat = window.apiData.characters[charIdx] || { name: "Guardian", image: "" };
             
@@ -288,35 +346,26 @@
         if (eImg) eImg.src = window.battle.enemy.i;
     }
 
-    // --- TRANSFORM BOSS (Phase 2) ---
     async function transformBoss() {
         window.battle.cinematic = true;
-        
-        // 1. Visual Effect
         const eImg = document.getElementById('e-img');
         if(eImg) {
             eImg.style.transition = "transform 1s, filter 1s";
-            eImg.style.transform = "scale(0.1) rotate(360deg)"; // Shrink to transform
+            eImg.style.transform = "scale(0.1) rotate(360deg)"; 
         }
-        
         if (window.popDamage) window.popDamage("FINAL FORM!", 'e-box', true);
         triggerShake('heavy');
-
         await new Promise(r => setTimeout(r, 1000));
 
-        // 2. Apply Transformation Stats
         window.battle.bossPhase = 2;
-        window.battle.enemy.maxHp = window.battle.enemy.maxHp * 1.5; // More HP
-        window.battle.enemy.hp = window.battle.enemy.maxHp; // Full Heal
-        window.battle.enemy.atk = window.battle.enemy.atk * 1.5; // Stronger
+        window.battle.enemy.maxHp = window.battle.enemy.maxHp * 1.5; 
+        window.battle.enemy.hp = window.battle.enemy.maxHp; 
+        window.battle.enemy.atk = window.battle.enemy.atk * 1.5; 
         
-        // 3. Visual Reveal (Red Hue, Large Scale)
         if(eImg) {
-            eImg.style.transform = "scale(1.4)"; // Much bigger
-            // Red Hue Filter
+            eImg.style.transform = "scale(1.4)"; 
             eImg.style.filter = "sepia(1) saturate(5) hue-rotate(-50deg) drop-shadow(0 0 20px red)";
         }
-
         const eName = document.getElementById('e-name');
         if(eName) eName.innerText = "MAX POWER " + window.battle.enemy.name;
 
@@ -324,33 +373,24 @@
         window.battle.cinematic = false;
     }
 
-    // --- CENTRALIZED DAMAGE HANDLER ---
     function applyDamage(amt, sourceSide) {
         if(!window.battle.active) return; 
-
         const target = (sourceSide === 'p') ? window.battle.enemy : window.player;
         const targetId = (sourceSide === 'p') ? 'e-box' : 'p-box';
-        
         target.hp -= amt;
         if (window.popDamage) window.popDamage(amt, targetId);
         updateBars();
 
-        // --- DEATH CHECK ---
         if(window.battle.enemy.hp <= 0) {
-            
-            // BOSS TRANSFORMATION CHECK
             if (window.battle.stage === 20 && window.battle.bossPhase === 1) {
-                // Don't die, Transform instead!
-                window.battle.enemy.hp = 1; // Keep alive for anim
+                window.battle.enemy.hp = 1; 
                 transformBoss();
                 return;
             }
-
             stopCombat(); 
             const eImg = document.getElementById('e-img');
             if (eImg) eImg.classList.add('dead-anim');
             setTimeout(handleWin, 800);
-
         } else if(window.player.hp <= 0) {
             stopCombat(); 
             handleDefeat();
@@ -359,11 +399,9 @@
 
     async function executeStrike(side) {
         if(!window.battle.active) return;
-
         const isP = (side === 'p');
         const attackerBox = document.getElementById(isP ? 'p-box' : 'e-box');
         const victimImg = isP ? document.getElementById('e-img') : document.getElementById('btl-p-sprite');
-
         const atkVal = isP ? (window.GameState ? window.GameState.gokuPower : 10) : window.battle.enemy.atk;
         
         if(isP) {
@@ -411,26 +449,22 @@
 
     async function executeSpecial() {
         if(!window.battle.active || window.battle.cinematic) return; 
-        
         window.battle.cinematic = true; 
         window.player.charge = 0; 
         updateBars();
 
         const cutInWrap = document.getElementById('cutin-overlay');
         const cutInImg = document.getElementById('cutin-img');
-        
         if (cutInImg) cutInImg.src = (window.player.rank >= 1) ? 'charged_s.png' : 'charged_b.png';
         if (cutInWrap) cutInWrap.style.display = 'flex';
 
         await new Promise(r => setTimeout(r, 450)); 
-
         const beam = document.getElementById('fx-beam');
         if (beam) {
             beam.style.opacity = '1';
             beam.style.width = '200%'; 
             triggerShake('heavy'); 
         }
-
         await new Promise(r => setTimeout(r, 200)); 
         if (cutInWrap) cutInWrap.style.display = 'none';
 
@@ -442,7 +476,6 @@
         const dmg = Math.floor(power * 6 * soulBonus);
         
         if (window.popDamage) window.popDamage("ULTIMATE!", 'e-box', true);
-        
         const eImg = document.getElementById('e-img');
         if(eImg) eImg.classList.add('knockback-right');
         
@@ -485,11 +518,8 @@
         if(isNaN(startPct)) startPct = 0;
         let oldLvl = window.player.lvl; 
 
-        // Base Gains
         let xpGain = 100 * window.battle.stage * window.battle.world;
         let coinGain = 250;
-
-        // --- BOSS REWARDS (Stage 20) ---
         let bossSouls = 0;
         if (window.battle.stage === 20) {
             xpGain *= 5;
@@ -533,9 +563,7 @@
         }
 
         let dropsHtml = "";
-        if(bossSouls > 0) {
-            dropsHtml += `<div style="color:#00ffff; font-weight:bold;">+${bossSouls} SOULS</div>`;
-        }
+        if(bossSouls > 0) dropsHtml += `<div style="color:#00ffff; font-weight:bold;">+${bossSouls} SOULS</div>`;
         if(dropCount > 0) {
             let rColor = "#fff";
             if(dropRarity === 2) rColor = "#00d2ff"; 
@@ -612,9 +640,8 @@
         const menu = document.getElementById('battle-menu');
         if(menu && menu.style.display === 'flex') return;
 
-        if (window.GameState) {
-            window.player.hp = window.GameState.gokuMaxHP;
-        } else {
+        if (window.GameState) window.player.hp = window.GameState.gokuMaxHP;
+        else {
             const maxHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
             window.player.hp = maxHp; 
         }
@@ -629,10 +656,8 @@
 
         document.getElementById('r-lvl').innerText = window.player.lvl;
         document.getElementById('r-xp-text').innerText = `${Math.floor(window.player.xp)} / ${Math.floor(window.player.nextXp)}`;
-        
         const xpPct = Math.min(100, (window.player.xp / window.player.nextXp) * 100);
         document.getElementById('r-bar-xp').style.width = xpPct + "%";
-
         document.getElementById('r-xp').innerText = "0";
         document.getElementById('r-coins').innerText = "0";
         document.getElementById('r-drops').innerText = "NONE";
@@ -644,7 +669,6 @@
             btnNext.innerText = `RESTART (STAGE 1) (${time})`;
             
             if (menu) menu.style.display = 'flex';
-            
             if(window.battle.autoTimerId) clearTimeout(window.battle.autoTimerId);
             window.battle.autoTimerId = setInterval(() => {
                 time--;
@@ -659,7 +683,6 @@
 
     function updateBars() {
         let m = window.GameState ? window.GameState.gokuMaxHP : 100;
-        
         const btlPHp = document.getElementById('btl-p-hp');
         const btlEHp = document.getElementById('btl-e-hp');
         const btlPCharge = document.getElementById('btl-p-charge');
@@ -669,7 +692,6 @@
         if (btlPCharge) btlPCharge.style.width = window.player.charge + "%";
     }
 
-    // --- EXPOSE NECESSARY FUNCTIONS ---
     window.startBattle = startBattle;
     window.stopCombat = stopCombat;
     window.exitBattle = exitBattle;
