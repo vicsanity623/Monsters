@@ -8,6 +8,36 @@
         STAT_MULTIPLIER: 0.1, // +10% stats per level
     };
 
+    // --- HELPER: Custom In-Game Notification ---
+    function showToast(msg, isError = true) {
+        // Remove existing toast if any
+        const existing = document.querySelector('.game-toast');
+        if(existing) existing.remove();
+
+        const t = document.createElement('div');
+        t.className = 'game-toast';
+        t.innerHTML = msg;
+        
+        // Change color if it's a success message vs error
+        if(!isError) {
+            t.style.borderColor = "#00ff00";
+            t.style.boxShadow = "0 0 30px rgba(0, 255, 0, 0.4)";
+        }
+
+        document.body.appendChild(t);
+
+        // Animate In
+        requestAnimationFrame(() => {
+            t.classList.add('show');
+        });
+
+        // Remove after 2 seconds
+        setTimeout(() => {
+            t.classList.remove('show');
+            setTimeout(() => t.remove(), 200);
+        }, 2000);
+    }
+
     const AdvanceSystem = {
         
         // Open the Advance Screen
@@ -46,11 +76,11 @@
             const cost = this.getCost();
             
             if (window.player.coins < cost.gold) {
-                alert("Not enough Gold!");
+                showToast(`Need <span style="color:#f1c40f">${window.formatNumber(cost.gold - window.player.coins)}</span> more Gold!`, true);
                 return;
             }
             if ((window.player.dragonShards || 0) < cost.shards) {
-                alert("Not enough Dragon Shards!");
+                showToast(`Need <span style="color:#00d2ff">${cost.shards - (window.player.dragonShards || 0)}</span> more Shards!`, true);
                 return;
             }
 
@@ -61,8 +91,11 @@
             // Level Up
             window.player.advanceLevel = (window.player.advanceLevel || 0) + 1;
             
+            // Success Notification
+            showToast("GEAR UPGRADED!", false);
+            
             // Visual Flair
-            window.popDamage("UPGRADE SUCCESS!", 'adv-visual-container', true);
+            if(window.popDamage) window.popDamage("SUCCESS!", 'adv-visual-container', true);
             
             window.isDirty = true;
             window.syncUI(); // Update Hub
@@ -117,7 +150,7 @@
             
             if(lvl >= 4 || nextBonuses.critChance > 0) {
                 const color = lvl >= 5 ? '#00ff00' : '#777';
-                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>Crit Chance:</span> <span>${bonuses.critChance}% ➤ ${nextBonuses.critChance}%</span></div>`;
+                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>Crit Chance:</span> <span>${bonuses.critChance.toFixed(1)}% ➤ ${nextBonuses.critChance.toFixed(1)}%</span></div>`;
             }
             
             if(lvl >= 9 || nextBonuses.lifeSteal > 0) {
@@ -135,7 +168,6 @@
             
             if(item) {
                 el.className = 'slot-box slot-filled';
-                // Copy existing rarity colors logic
                 let rColor = '#333';
                 if(item.rarity === 2) rColor = '#00d2ff';
                 if(item.rarity === 3) rColor = '#ff00ff';
