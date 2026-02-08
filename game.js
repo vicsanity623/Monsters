@@ -32,7 +32,9 @@
         inv: [], gear: { w: null, a: null }, selected: -1,
         lastCapsule: 0,
         soulLevel: 1,
-        souls: 0
+        souls: 0,
+        dragonShards: 0, // NEW: For Advance System
+        advanceLevel: 0  // NEW: For Advance System
     };
 
     window.battle = { 
@@ -56,17 +58,24 @@
         return 1 + (lvl * 1.0); 
     }
 
+    // NEW: Calculate Advance Multiplier (10% per level)
+    function getAdvMult() {
+        return 1 + ((window.player.advanceLevel || 0) * 0.1);
+    }
+
     window.GameState = {
         get gokuLevel() { return window.player.lvl; },
         get gokuPower() {
             const rawAtk = window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0);
-            return Math.floor(rawAtk * getSoulMult());
+            // Apply Soul Mult AND Advance Mult
+            return Math.floor(rawAtk * getSoulMult() * getAdvMult());
         },
         get gokuHP() { return window.player.hp; },
         set gokuHP(v) { window.player.hp = v; },
         get gokuMaxHP() {
             const rawHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
-            return Math.floor(rawHp * getSoulMult());
+            // Apply Soul Mult AND Advance Mult
+            return Math.floor(rawHp * getSoulMult() * getAdvMult());
         },
         inBattle: false
     };
@@ -110,6 +119,8 @@
 
         const p = window.player;
         const sMult = getSoulMult();
+        const aMult = getAdvMult(); // Get Advance multiplier
+        
         const baseAtk = p.bAtk + (p.rank * 400);
         const gearAtk = p.gear.w?.val || 0;
         const baseDef = p.bDef + (p.rank * 150);
@@ -119,7 +130,9 @@
         document.getElementById('det-hp').innerText = window.formatNumber(window.GameState.gokuMaxHP);
         document.getElementById('det-atk').innerText = window.formatNumber(baseAtk + gearAtk);
         document.getElementById('det-def').innerText = window.formatNumber(baseDef + gearDef);
-        document.getElementById('det-soul').innerText = `x${sMult.toFixed(1)} (+${Math.floor((sMult-1)*100)}%)`;
+        
+        // Show Soul + Advance info
+        document.getElementById('det-soul').innerText = `x${sMult.toFixed(1)} (Adv: x${aMult.toFixed(1)})`;
         document.getElementById('det-crit').innerText = `${(1 + p.rank * 0.5).toFixed(1)}%`;
         document.getElementById('det-coins').innerText = window.formatNumber(p.coins);
         
@@ -150,6 +163,9 @@
             
             if(!window.player.soulLevel) window.player.soulLevel = 1;
             if(!window.player.souls) window.player.souls = 0;
+            // Initialize new props if missing
+            if(window.player.dragonShards === undefined) window.player.dragonShards = 0;
+            if(window.player.advanceLevel === undefined) window.player.advanceLevel = 0;
 
             const loader = document.getElementById('loader');
             if(loader) loader.style.display = 'none';
@@ -212,7 +228,7 @@
     function updateStatsOnly() {
         const atk = window.GameState.gokuPower; 
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
-        const def = Math.floor(rawDef * getSoulMult());
+        const def = Math.floor(rawDef * getSoulMult() * getAdvMult());
 
         document.getElementById('ui-atk').innerText = window.formatNumber(atk);
         document.getElementById('ui-def').innerText = window.formatNumber(def);
@@ -230,7 +246,7 @@
         const maxHp = window.GameState.gokuMaxHP;
         const power = window.GameState.gokuPower;
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
-        const def = Math.floor(rawDef * getSoulMult());
+        const def = Math.floor(rawDef * getSoulMult() * getAdvMult());
 
         // Update the HTML to show the REAL dynamic gains instead of hardcoded numbers
         const hpEl = document.getElementById('lvl-stats-hp');
@@ -268,8 +284,6 @@
             
             // --- DYNAMIC SCALING FORMULA ---
             // Formula: Base + (CurrentLevel * Multiplier)
-            // Lvl 1: +750 HP
-            // Lvl 29: +14,750 HP
             const levelMult = window.player.lvl;
             
             const hpGain = 250 + (levelMult * 500); 
@@ -429,7 +443,7 @@
         const atk = window.GameState.gokuPower;
         const maxHp = window.GameState.gokuMaxHP;
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
-        const def = Math.floor(rawDef * getSoulMult());
+        const def = Math.floor(rawDef * getSoulMult() * getAdvMult()); // Apply adv mult
 
         if (!window.battle.active) {
             window.player.hp = maxHp;
@@ -525,9 +539,12 @@
         if(window.SoulSystem) window.SoulSystem.updateBtnUI();
     }
 
+    // UPDATED: Show Advance Level Badge
     function updateVisualSlot(type, id) {
         const el = document.getElementById(id);
         const item = window.player.gear[type];
+        const advLvl = window.player.advanceLevel || 0; // Get level
+
         if(item) {
             el.className = 'slot-box slot-filled';
             let rColor = '#333';
@@ -537,7 +554,11 @@
             if(item.rarity === 5) rColor = '#f1c40f';
             if(item.rarity === 6) rColor = '#00ffff';
             el.style.borderColor = rColor;
-            el.innerHTML = `<span>${type === 'w' ? '⚔️' : '🛡️'}</span><div class="slot-label" style="color:${rColor}">${window.formatNumber(item.val)}</div>`;
+            
+            // Add Badge HTML
+            let badgeHtml = advLvl > 0 ? `<div class="adv-badge">+${advLvl}</div>` : '';
+
+            el.innerHTML = `<span>${type === 'w' ? '⚔️' : '🛡️'}</span><div class="slot-label" style="color:${rColor}">${window.formatNumber(item.val)}</div>${badgeHtml}`;
         } else {
             el.className = 'slot-box';
             el.style.borderColor = '#b2bec3';
