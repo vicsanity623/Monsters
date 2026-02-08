@@ -673,3 +673,86 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
     50% { box-shadow: 0 0 15px #2ecc71; }
     100% { box-shadow: 0 0 5px #2ecc71; }
 }
+
+/* --- STAGE DETAILS MODAL --- */
+.stage-card {
+    background: linear-gradient(135deg, #2c3e50, #000);
+    border: 2px solid #00d2ff;
+    border-radius: 15px;
+    padding: 20px;
+    width: 90%;
+    max-width: 350px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 0 20px #00d2ff;
+    position: relative;
+    animation: popUp 0.3s ease-out;
+}
+
+.stage-header {
+    font-family: 'Bangers';
+    font-size: 2.5rem;
+    color: white;
+    text-shadow: 2px 2px black;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #00d2ff;
+    width: 100%;
+    text-align: center;
+}
+
+.enemy-preview-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.enemy-aura {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,0,0,0.6), transparent 70%);
+    filter: blur(10px);
+    animation: auraPulse 1s infinite alternate;
+    z-index: 1;
+}
+
+#sd-enemy-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 2;
+    filter: drop-shadow(0 0 5px black);
+}
+
+.stage-stats {
+    background: rgba(0,0,0,0.5);
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 10px;
+    border: 1px solid #444;
+}
+
+.stage-rewards {
+    width: 100%;
+    font-family: 'Orbitron';
+    font-size: 0.8rem;
+    background: rgba(255,255,255,0.05);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.reward-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    border-bottom: 1px dashed #444;
+    padding-bottom: 2px;
+}
