@@ -398,6 +398,9 @@
     }
 
     async function executeStrike(side) {
+        let critChance = 0.1 + (window.player.rank * 0.05);
+        if(window.player.advanceLevel >= 5) critChance += 0.05 + (window.player.advanceLevel * 0.005);
+        const isAmbush = Math.random() > (1.0 - critChance);
         if(!window.battle.active) return;
         const isP = (side === 'p');
         const attackerBox = document.getElementById(isP ? 'p-box' : 'e-box');
@@ -560,6 +563,21 @@
                 });
                 dropCount++;
             }
+        }
+        
+        let shardDrop = 0;
+        if ((window.battle.world === 1 && window.battle.stage >= 15) || window.battle.world > 1) {
+            if(Math.random() < 0.35) {
+                shardDrop = 1;
+                if(window.battle.stage === 20) shardDrop = Math.floor(Math.random() * 3) + 1;
+            }
+        }
+        if(shardDrop > 0) window.player.dragonShards = (window.player.dragonShards || 0) + shardDrop;
+        
+        // Add healing logic if level >= 10
+        if(window.player.advanceLevel >= 10) {
+            const healAmt = window.GameState.gokuMaxHP * 0.15;
+            window.player.hp = Math.min(window.player.hp + healAmt, window.GameState.gokuMaxHP);
         }
 
         let dropsHtml = "";
