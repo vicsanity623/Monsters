@@ -288,29 +288,35 @@
     </div>
     
     <!-- STRATEGY OFFLINE MODAL -->
-    <div id="strategy-modal" class="modal-overlay" style="display:none;">
+    <div id="strategy-modal">
         <div class="strategy-box">
-            
+    
             <!-- LEFT SIDE: Bulma & Bubble -->
             <div class="strategy-visuals">
                 <div class="comic-bubble">
                     Welcome back! Here is what you got while you were away!
                 </div>
-                <!-- Using the Raw GitHub URL from your screenshot -->
-                <img src="https://raw.githubusercontent.com/vicsanity623/Monsters/main/Monsters/IMG_0222.png" 
-                     alt="Bulma Strategy" 
-                     class="bulma-sprite">
+    
+                <!-- IMPORTANT: Local relative path -->
+                <img
+                    src="./IMG_0222.png"
+                    alt="Bulma Strategy"
+                    class="bulma-sprite"
+                    loading="eager"
+                    decoding="async"
+                    draggable="false"
+                >
             </div>
     
-            <!-- RIGHT SIDE: The Stats (IDs match your JS) -->
+            <!-- RIGHT SIDE: Details -->
             <div class="strategy-details">
                 <h2 class="strat-title">OFFLINE REPORT</h2>
-                
+    
                 <div class="strat-info-row">
                     <span class="label">Time Away:</span>
                     <span class="value"><span id="strat-time">0</span> Min</span>
                 </div>
-                
+    
                 <div class="strat-info-row">
                     <span class="label">Rank Multiplier:</span>
                     <span class="value" id="strat-mult">x1</span>
@@ -327,6 +333,7 @@
                 <button class="strat-claim-btn" onclick="claimStrategy()">CLAIM REWARDS</button>
                 <button class="strat-close-btn" onclick="closeStrategy()">CLOSE</button>
             </div>
+    
         </div>
     </div>
 
