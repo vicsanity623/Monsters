@@ -989,3 +989,49 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
     border-bottom: 15px solid cyan;
     transform: rotate(25deg);
 }
+
+/* --- FIX CLOSE BUTTON POSITION --- */
+#advance-modal .g-close {
+    /* Move down to avoid Dynamic Island/Notch */
+    top: calc(60px + env(safe-area-inset-top)) !important; 
+    right: 25px !important;
+    
+    /* Make it easier to tap */
+    background: rgba(0,0,0,0.8);
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid #555;
+    z-index: 6000; /* Ensure on top */
+}
+
+/* --- IN-GAME NOTIFICATION (TOAST) --- */
+.game-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: rgba(20, 20, 20, 0.95);
+    border: 2px solid #ff3e3e; /* Red border for errors */
+    color: white;
+    padding: 25px 40px;
+    border-radius: 15px;
+    font-family: 'Bangers';
+    font-size: 1.8rem;
+    z-index: 200000; /* Above everything */
+    opacity: 0;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(255, 62, 62, 0.4);
+    text-shadow: 2px 2px black;
+    white-space: nowrap;
+}
+
+.game-toast.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
