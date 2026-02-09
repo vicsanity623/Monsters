@@ -63,12 +63,22 @@
 
     window.GameState = {
         get gokuLevel() { return window.player.lvl; },
+        
+        // Attack Power
         get gokuPower() {
             const rawAtk = window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0);
             return Math.floor(rawAtk * getSoulMult() * getAdvMult());
         },
+        
+        // Defense Power (Used for damage absorption)
+        get gokuDefense() {
+            const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
+            return Math.floor(rawDef * getSoulMult() * getAdvMult());
+        },
+
         get gokuHP() { return window.player.hp; },
         set gokuHP(v) { window.player.hp = v; },
+        
         get gokuMaxHP() {
             const rawHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
             return Math.floor(rawHp * getSoulMult() * getAdvMult());
@@ -109,7 +119,6 @@
         const sMult = getSoulMult();
         const aMult = getAdvMult(); 
         
-        // Calculate Totals correctly including ALL multipliers
         const baseAtk = p.bAtk + (p.rank * 400);
         const gearAtk = p.gear.w?.val || 0;
         const totalAtk = Math.floor((baseAtk + gearAtk) * sMult * aMult);
@@ -118,17 +127,14 @@
         const gearDef = p.gear.a?.val || 0;
         const totalDef = Math.floor((baseDef + gearDef) * sMult * aMult);
 
-        // Calculate Crit Chance Dynamically
-        let critChance = 1 + (p.rank * 0.5); // Base %
-        if(p.advanceLevel >= 5) critChance += 5 + (p.advanceLevel * 0.5); // Add Advance Bonus
+        let critChance = 1 + (p.rank * 0.5); 
+        if(p.advanceLevel >= 5) critChance += 5 + (p.advanceLevel * 0.5); 
 
-        // Update DOM
         document.getElementById('det-power').innerText = window.formatNumber(window.GameState.gokuPower);
         document.getElementById('det-hp').innerText = window.formatNumber(window.GameState.gokuMaxHP);
         document.getElementById('det-atk').innerText = window.formatNumber(totalAtk);
         document.getElementById('det-def').innerText = window.formatNumber(totalDef);
         
-        // Show Soul + Advance info clearly
         document.getElementById('det-soul').innerHTML = `
             <div>💎 Soul Boost: <span style="color:#00ffff">x${sMult.toFixed(1)}</span></div>
             <div style="margin-top:2px;">⚙️ Gear Adv: <span style="color:#00ff00">+${Math.round((aMult-1)*100)}%</span></div>
@@ -227,8 +233,7 @@
 
     function updateStatsOnly() {
         const atk = window.GameState.gokuPower; 
-        const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
-        const def = Math.floor(rawDef * getSoulMult() * getAdvMult());
+        const def = window.GameState.gokuDefense;
 
         document.getElementById('ui-atk').innerText = window.formatNumber(atk);
         document.getElementById('ui-def').innerText = window.formatNumber(def);
@@ -244,8 +249,7 @@
         
         const maxHp = window.GameState.gokuMaxHP;
         const power = window.GameState.gokuPower;
-        const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
-        const def = Math.floor(rawDef * getSoulMult() * getAdvMult());
+        const defense = window.GameState.gokuDefense;
 
         const hpEl = document.getElementById('lvl-stats-hp');
         if(hpEl) hpEl.parentElement.innerHTML = `HP: <span id="lvl-stats-hp">${window.formatNumber(maxHp)}</span> <span style="color:#00ff00;">(+${window.formatNumber(hpGain)})</span>`;
@@ -254,7 +258,7 @@
         if(atkEl) atkEl.parentElement.innerHTML = `ATK: <span id="lvl-stats-atk">${window.formatNumber(power)}</span> <span style="color:#00ff00;">(+${window.formatNumber(atkGain)})</span>`;
 
         const defEl = document.getElementById('lvl-stats-def');
-        if(defEl) defEl.parentElement.innerHTML = `DEF: <span id="lvl-stats-def">${window.formatNumber(def)}</span> <span style="color:#00ff00;">(+${window.formatNumber(defGain)})</span>`;
+        if(defEl) defEl.parentElement.innerHTML = `DEF: <span id="lvl-stats-def">${window.formatNumber(defense)}</span> <span style="color:#00ff00;">(+${window.formatNumber(defGain)})</span>`;
 
         const img = (window.player.rank >= 1) ? ASSETS.SSJ : ASSETS.BASE;
         document.getElementById('lvl-up-img').src = img;
@@ -433,8 +437,7 @@
 
         const atk = window.GameState.gokuPower;
         const maxHp = window.GameState.gokuMaxHP;
-        const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
-        const def = Math.floor(rawDef * getSoulMult() * getAdvMult()); 
+        const def = window.GameState.gokuDefense;
 
         if (!window.battle.active) {
             window.player.hp = maxHp;
@@ -555,6 +558,7 @@
         }
     }
 
+    // --- MANUAL MERGE ---
     function mergeItems() {
         if(window.player.selected === -1) return;
         const sItem = window.player.inv[window.player.selected];
@@ -586,6 +590,7 @@
         }
     }
 
+    // --- AUTO MERGE SYSTEM ---
     function toggleAutoMerge() {
         isAutoMerging = !isAutoMerging;
         syncUI();
@@ -669,6 +674,8 @@
     function doEquip() {
         if(window.player.selected === -1) return;
         const stackItem = window.player.inv[window.player.selected]; 
+        
+        // Safety Check
         if(!stackItem) {
             window.player.selected = -1;
             syncUI();
