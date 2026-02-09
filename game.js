@@ -54,23 +54,21 @@
     // --- MATH & STATS ---
     function getSoulMult() {
         const lvl = window.player.soulLevel || 1;
-        return 1 + (lvl * 1.0); 
+        return 1 + (lvl * 1.0); // e.g. Lvl 16 = 17x
     }
 
     function getAdvMult() {
-        return 1 + ((window.player.advanceLevel || 0) * 0.1);
+        return 1 + ((window.player.advanceLevel || 0) * 0.1); // e.g. Lvl 35 = 4.5x
     }
 
     window.GameState = {
         get gokuLevel() { return window.player.lvl; },
         
-        // Attack Power
         get gokuPower() {
             const rawAtk = window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0);
             return Math.floor(rawAtk * getSoulMult() * getAdvMult());
         },
         
-        // Defense Power (Used for damage absorption)
         get gokuDefense() {
             const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
             return Math.floor(rawDef * getSoulMult() * getAdvMult());
@@ -110,7 +108,7 @@
         return shortValue + suffix;
     };
 
-    // --- DETAILS MODAL LOGIC (UPDATED) ---
+    // --- DETAILS MODAL LOGIC (COMPLETELY OVERHAULED) ---
     window.openDetails = function() {
         const modal = document.getElementById('details-modal');
         if(!modal) return;
@@ -118,30 +116,86 @@
         const p = window.player;
         const sMult = getSoulMult();
         const aMult = getAdvMult(); 
+        const advLvl = p.advanceLevel || 0;
+
+        // --- 1. CORE STATS ---
+        const totalPower = window.GameState.gokuPower; // Already includes ALL multipliers
+        const maxHp = window.GameState.gokuMaxHP;
+        const defense = window.GameState.gokuDefense;
+
+        // --- 2. ADVANCE PERK CALCULATIONS ---
         
-        const baseAtk = p.bAtk + (p.rank * 400);
-        const gearAtk = p.gear.w?.val || 0;
-        const totalAtk = Math.floor((baseAtk + gearAtk) * sMult * aMult);
-
-        const baseDef = p.bDef + (p.rank * 150);
-        const gearDef = p.gear.a?.val || 0;
-        const totalDef = Math.floor((baseDef + gearDef) * sMult * aMult);
-
+        // Crit: Base (1%) + Rank (0.5% per rank) + Advance (5% base at lvl 5 + 0.5% per lvl above 5)
         let critChance = 1 + (p.rank * 0.5); 
-        if(p.advanceLevel >= 5) critChance += 5 + (p.advanceLevel * 0.5); 
+        if(advLvl >= 5) critChance += 5 + ((advLvl - 5) * 0.5);
 
-        document.getElementById('det-power').innerText = window.formatNumber(window.GameState.gokuPower);
-        document.getElementById('det-hp').innerText = window.formatNumber(window.GameState.gokuMaxHP);
-        document.getElementById('det-atk').innerText = window.formatNumber(totalAtk);
-        document.getElementById('det-def').innerText = window.formatNumber(totalDef);
+        // Evasion: Advance (5% base at lvl 15 + 0.2% per lvl above 15). Lvl 50 cap is handled in display logic usually, but here:
+        let evasion = 0;
+        if(advLvl >= 50) evasion = 15; // Ultra Instinct Cap
+        else if(advLvl >= 15) evasion = 5 + ((advLvl - 15) * 0.2);
+
+        // Life Steal: Lvl 10 (15% + 1% per lvl)
+        let lifeSteal = 0;
+        if(advLvl >= 10) lifeSteal = 15 + ((advLvl - 10) * 1.0);
+
+        // Double Strike: Lvl 20 (5% + 0.5% per lvl)
+        let doubleStrike = 0;
+        if(advLvl >= 20) doubleStrike = 5 + ((advLvl - 20) * 0.5);
+
+        // Gold/XP Boosts
+        let goldBoost = 0;
+        if(advLvl >= 25) goldBoost = 10 + (advLvl - 25);
+        let xpBoost = 0;
+        if(advLvl >= 30) xpBoost = 10 + (advLvl - 30);
+
+        // --- 3. DOM UPDATES ---
+        document.getElementById('det-power').innerText = window.formatNumber(totalPower);
+        document.getElementById('det-hp').innerText = window.formatNumber(maxHp);
+        document.getElementById('det-atk').innerText = window.formatNumber(totalPower); // Attack is Power in this system
+        document.getElementById('det-def').innerText = window.formatNumber(defense);
         
+        // Multipliers Section
         document.getElementById('det-soul').innerHTML = `
-            <div>💎 Soul Boost: <span style="color:#00ffff">x${sMult.toFixed(1)}</span></div>
-            <div style="margin-top:2px;">⚙️ Gear Adv: <span style="color:#00ff00">+${Math.round((aMult-1)*100)}%</span></div>
+            <div style="display:flex; justify-content:space-between; width:100%;">
+                <span>💎 Soul Boost:</span> <span style="color:#00ffff">x${sMult.toFixed(1)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; width:100%; margin-top:2px;">
+                <span>⚙️ Gear Adv:</span> <span style="color:#00ff00">+${Math.round((aMult-1)*100)}%</span>
+            </div>
         `;
         
         document.getElementById('det-crit').innerText = `${critChance.toFixed(1)}%`;
         document.getElementById('det-coins').innerText = window.formatNumber(p.coins);
+
+        // --- 4. INJECT EXTRA STATS (Perks) ---
+        // Find or create a container for extra stats to avoid duplicates
+        let extraContainer = document.getElementById('det-extra-stats');
+        if(!extraContainer) {
+            extraContainer = document.createElement('div');
+            extraContainer.id = 'det-extra-stats';
+            extraContainer.style.marginTop = '10px';
+            extraContainer.style.borderTop = '1px solid #444';
+            extraContainer.style.paddingTop = '10px';
+            // Insert before the Coins row
+            const coinRow = document.getElementById('det-coins').parentNode;
+            coinRow.parentNode.insertBefore(extraContainer, coinRow);
+        }
+
+        let extraHtml = "";
+        
+        if(evasion > 0) extraHtml += `<div class="stat-row"><span>💨 Dodge Chance</span> <span style="color:#00d2ff">${evasion.toFixed(1)}%</span></div>`;
+        if(lifeSteal > 0) extraHtml += `<div class="stat-row"><span>🩸 Life Steal</span> <span style="color:#e74c3c">${lifeSteal.toFixed(0)}%</span></div>`;
+        if(doubleStrike > 0) extraHtml += `<div class="stat-row"><span>⚔️ Double Strike</span> <span style="color:#f1c40f">${doubleStrike.toFixed(1)}%</span></div>`;
+        if(goldBoost > 0) extraHtml += `<div class="stat-row"><span>💰 Gold Bonus</span> <span style="color:gold">+${goldBoost}%</span></div>`;
+        if(xpBoost > 0) extraHtml += `<div class="stat-row"><span>🌟 XP Bonus</span> <span style="color:cyan">+${xpBoost}%</span></div>`;
+        
+        // Specific Perks
+        if(advLvl >= 35) extraHtml += `<div class="stat-row"><span>😡 Rage Mode</span> <span style="color:#ff0000">Active</span></div>`;
+        if(advLvl >= 40) extraHtml += `<div class="stat-row"><span>⚡ Starter Ki</span> <span style="color:#ffff00">+20%</span></div>`;
+        if(advLvl >= 45) extraHtml += `<div class="stat-row"><span>💀 Boss Slayer</span> <span style="color:#ff8c00">+20% Dmg</span></div>`;
+        if(advLvl >= 60) extraHtml += `<div class="stat-row"><span>❤️ Zenkai Revive</span> <span style="color:#2ecc71">Active</span></div>`;
+
+        extraContainer.innerHTML = extraHtml;
         
         modal.style.display = 'flex';
     };
@@ -241,7 +295,7 @@
         document.getElementById('ui-power').innerText = window.formatNumber(atk * 30 + window.GameState.gokuMaxHP);
     }
 
-    // --- UPDATED LEVEL UP LOGIC (DYNAMIC SCALING) ---
+    // --- UPDATED LEVEL UP LOGIC ---
     function showLevelUp(oldLvl, newLvl, hpGain, atkGain, defGain) {
         if(window.battle.active) window.battle.cinematic = true;
         document.getElementById('lvl-up-old').innerText = oldLvl;
