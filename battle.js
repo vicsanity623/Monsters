@@ -57,32 +57,27 @@
 
     // --- STAGE SELECTION & MODAL LOGIC ---
 
-    // 1. Show the Modal with details
     function openStageDetails(stageNum) {
         window.battle.selectedStage = stageNum; 
         
         const modal = document.getElementById('stage-details-modal');
         if(!modal) return;
 
-        // Calculate potential stats
         const scale = Math.pow(1.8, stageNum) * Math.pow(25, window.battle.world - 1);
         const estHp = Math.floor(250 * scale);
         const estAtk = Math.floor(30 * scale);
         const recPower = Math.floor((estAtk * 15) + estHp); 
 
-        // Rewards
         const xp = 100 * stageNum * window.battle.world;
         const coins = 250;
         let drops = "Common";
         if(stageNum % 5 === 0) drops = "High";
         if(stageNum === 20) drops = "LEGENDARY";
         
-        // Add Shard indicator for eligible stages
         if ((window.battle.world === 1 && stageNum >= 15) || window.battle.world > 1) {
             drops += " + 💎"; 
         }
 
-        // Determine Enemy Image & Name
         let imgUrl = "";
         let name = "Enemy";
         
@@ -125,13 +120,11 @@
         modal.style.display = 'flex';
     }
 
-    // 2. Hide Modal
     function closeStageDetails() {
         const modal = document.getElementById('stage-details-modal');
         if(modal) modal.style.display = 'none';
     }
 
-    // 3. Actually Start Battle
     function confirmStart() {
         closeStageDetails();
         if(window.battle.selectedStage) {
@@ -171,7 +164,10 @@
     }
 
     function stopCombat() {
-        if(window.battle) window.battle.active = false;
+        if(window.battle) {
+            window.battle.active = false;
+            window.battle.zenkaiUsed = false; // Reset Zenkai
+        }
         if (window.GameState) window.GameState.inBattle = false;
         clearBattleTimers();
     }
@@ -220,11 +216,15 @@
         stopCombat(); 
         window.battle.active = true;
         window.battle.cinematic = false;
+        window.battle.zenkaiUsed = false; // Reset perk
         if (window.GameState) window.GameState.inBattle = true;
         
         document.getElementById('start-prompt').style.display = 'none';
         document.getElementById('battle-menu').style.display = 'none';
         
+        // PERK: Starter Ki (Lvl 40)
+        window.player.charge = (window.player.advanceLevel >= 40) ? 20 : 0;
+
         const eImg = document.getElementById('e-img');
         const pBox = document.getElementById('p-box');
         const eBox = document.getElementById('e-box');
@@ -390,6 +390,15 @@
             if (eImg) eImg.classList.add('dead-anim');
             setTimeout(handleWin, 800);
         } else if(window.player.hp <= 0) {
+            // PERK: ZENKAI REVIVE (Level 60)
+            if(window.player.advanceLevel >= 60 && !window.battle.zenkaiUsed) {
+                window.battle.zenkaiUsed = true;
+                window.player.hp = Math.floor(window.GameState.gokuMaxHP * 0.3); // Revive with 30%
+                if(window.popDamage) window.popDamage("ZENKAI BOOST!", 'p-box', true);
+                triggerShake();
+                updateBars();
+                return; // Continue fight
+            }
             stopCombat(); 
             handleDefeat();
         }
@@ -400,31 +409,54 @@
 
         const isP = (side === 'p');
 
+        // --- EVASION PERK (Lvl 15/50) ---
+        // If Player is being hit (side is 'e' meaning Enemy is attacking)
+        if(!isP) {
+            let dodgeChance = 0;
+            if(window.player.advanceLevel >= 50) dodgeChance = 0.15; // Ultra Instinct
+            else if(window.player.advanceLevel >= 15) dodgeChance = 0.05 + ((window.player.advanceLevel-15) * 0.002);
+            
+            if(Math.random() < dodgeChance) {
+                if(window.popDamage) window.popDamage("MISS!", 'p-box');
+                // Visual Dodge Effect
+                const pSprite = document.getElementById('btl-p-sprite');
+                if(pSprite) { 
+                    pSprite.style.opacity='0.5'; 
+                    pSprite.style.transform='translateX(-20px)'; 
+                    setTimeout(()=>{pSprite.style.opacity='1'; pSprite.style.transform='translateX(0)'}, 200); 
+                }
+                return; // Exit, no damage
+            }
+        }
+
         // --- CALCULATE AMBUSH/CRIT CHANCE ---
-        let threshold = 0.8; // Default for Enemy (20% chance)
+        let threshold = 0.8; // Default for Enemy
 
         if (isP) {
-            // Player Logic: Base 10% + 5% per Rank
             let critChance = 0.1 + (window.player.rank * 0.05);
-            
-            // Advance Level Bonus
-            if(window.player.advanceLevel && window.player.advanceLevel >= 5) {
+            if(window.player.advanceLevel >= 5) {
                 critChance += 0.05 + (window.player.advanceLevel * 0.005);
             }
-            
-            // Convert percentage to threshold (e.g. 30% chance means > 0.7)
             threshold = 1.0 - critChance;
         }
 
-        // Declare isAmbush ONLY ONCE here
         const isAmbush = Math.random() > threshold;
-        // -------------------------------------
 
         const attackerBox = document.getElementById(isP ? 'p-box' : 'e-box');
         const victimImg = isP ? document.getElementById('e-img') : document.getElementById('btl-p-sprite');
-        const atkVal = isP ? (window.GameState ? window.GameState.gokuPower : 10) : window.battle.enemy.atk;
+        let atkVal = isP ? (window.GameState ? window.GameState.gokuPower : 10) : window.battle.enemy.atk;
         
         if(isP) {
+            // PERK: Rage Mode (Lvl 35)
+            if(window.player.advanceLevel >= 35 && (window.player.hp / window.GameState.gokuMaxHP) < 0.2) {
+                atkVal *= 2;
+                if(window.popDamage && Math.random() > 0.7) window.popDamage("RAGE!", 'p-box');
+            }
+            // PERK: Boss Slayer (Lvl 45)
+            if(window.player.advanceLevel >= 45 && window.battle.stage === 20) {
+                atkVal *= 1.2;
+            }
+
             const soulLvl = window.player.soulLevel || 1;
             const chargeBonus = Math.floor(soulLvl * 0.5);
             window.player.charge += (12 + chargeBonus);
@@ -433,45 +465,65 @@
 
         const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
 
-        if(isAmbush) {
-            await teleportVisual(attackerBox, isP ? 80 : -80); 
+        // Define Strike Animation Function
+        const performHit = async (isDouble = false) => {
             if(!window.battle.active) return;
             
-            triggerShake();
-            
-            if(victimImg) {
-                victimImg.classList.add(isP ? 'knockback-right' : 'knockback-left');
-                setTimeout(() => victimImg.classList.remove('knockback-right', 'knockback-left'), 200);
-            }
-            
-            if (window.popDamage) window.popDamage("CRIT!", isP ? 'e-box' : 'p-box');
-            applyDamage(Math.floor(dmg * 1.5), side);
-            
-            setTimeout(() => { if(window.battle.active) teleportVisual(attackerBox, 0); }, 250);
-        } else {
-            attackerBox.style.transition = "transform 0.1s cubic-bezier(0.1, 0.7, 1.0, 0.1)";
-            attackerBox.style.transform = isP ? 'translateX(60px)' : 'translateX(-60px)';
-            
-            setTimeout(() => {
+            if(isAmbush && !isDouble) {
+                await teleportVisual(attackerBox, isP ? 80 : -80); 
                 if(!window.battle.active) return;
                 
-                if(Math.random() > 0.5) triggerShake();
+                triggerShake();
                 
                 if(victimImg) {
-                    victimImg.style.transition = "transform 0.1s";
-                    victimImg.style.transform = isP ? 'translateX(10px)' : 'translateX(-10px)';
-                    setTimeout(() => victimImg.style.transform = 'translateX(0)', 100);
+                    victimImg.classList.add(isP ? 'knockback-right' : 'knockback-left');
+                    setTimeout(() => victimImg.classList.remove('knockback-right', 'knockback-left'), 200);
                 }
                 
-                applyDamage(dmg, side);
+                if (window.popDamage) window.popDamage("CRIT!", isP ? 'e-box' : 'p-box');
+                applyDamage(Math.floor(dmg * 1.5), side);
+                
+                setTimeout(() => { if(window.battle.active) teleportVisual(attackerBox, 0); }, 250);
+            } else {
+                attackerBox.style.transition = "transform 0.1s cubic-bezier(0.1, 0.7, 1.0, 0.1)";
+                attackerBox.style.transform = isP ? 'translateX(60px)' : 'translateX(-60px)';
                 
                 setTimeout(() => {
-                    if(window.battle.active) {
-                        attackerBox.style.transition = "transform 0.2s ease-out";
-                        attackerBox.style.transform = 'translateX(0)';
+                    if(!window.battle.active) return;
+                    
+                    if(Math.random() > 0.5) triggerShake();
+                    
+                    if(victimImg) {
+                        victimImg.style.transition = "transform 0.1s";
+                        victimImg.style.transform = isP ? 'translateX(10px)' : 'translateX(-10px)';
+                        setTimeout(() => victimImg.style.transform = 'translateX(0)', 100);
                     }
+                    
+                    applyDamage(dmg, side);
+                    
+                    setTimeout(() => {
+                        if(window.battle.active) {
+                            attackerBox.style.transition = "transform 0.2s ease-out";
+                            attackerBox.style.transform = 'translateX(0)';
+                        }
+                    }, 100);
                 }, 100);
-            }, 100);
+            }
+        };
+
+        // Perform the first hit
+        await performHit();
+
+        // PERK: Double Strike (Lvl 20)
+        if(isP && window.player.advanceLevel >= 20) {
+            // Chance increases with level: 5% + 0.5% per level above 20
+            let doubleChance = 0.05 + ((window.player.advanceLevel - 20) * 0.005);
+            if(Math.random() < doubleChance) {
+                setTimeout(() => {
+                    if(window.popDamage) window.popDamage("DOUBLE!", 'p-box');
+                    performHit(true); // Recursive call for second hit (never crit)
+                }, 300);
+            }
         }
     }
 
@@ -556,11 +608,20 @@
             window.player.souls = (window.player.souls || 0) + bossSouls;
         }
 
+        // PERK: Gold Boost (Lvl 25)
+        if(window.player.advanceLevel >= 25) {
+            coinGain *= (1 + (0.10 + ((window.player.advanceLevel-25)*0.01)));
+        }
+        // PERK: XP Boost (Lvl 30)
+        if(window.player.advanceLevel >= 30) {
+            xpGain *= (1 + (0.10 + ((window.player.advanceLevel-30)*0.01)));
+        }
+
         window.player.xp += xpGain; 
         window.player.coins += coinGain;
             
         const log = document.getElementById('log');
-        if (log) log.innerHTML = `<div style="color:cyan">> WON! +${xpGain} XP</div>`;
+        if (log) log.innerHTML = `<div style="color:cyan">> WON! +${xpGain.toFixed(0)} XP</div>`;
             
         let dropText = "NONE";
         let dropCount = 0;
@@ -599,8 +660,10 @@
         }
         if(shardDrop > 0) window.player.dragonShards = (window.player.dragonShards || 0) + shardDrop;
         
+        // PERK: Life Steal (Lvl 10)
         if(window.player.advanceLevel >= 10) {
-            const healAmt = window.GameState.gokuMaxHP * 0.15;
+            const healMult = 0.15 + ((window.player.advanceLevel - 10) * 0.01);
+            const healAmt = window.GameState.gokuMaxHP * healMult;
             window.player.hp = Math.min(window.player.hp + healAmt, window.GameState.gokuMaxHP);
         }
 
@@ -624,8 +687,8 @@
         if (typeof window.syncUI === 'function') syncUI();
         if (window.Skills) Skills.autoBattleTick();
 
-        document.getElementById('r-xp').innerText = xpGain;
-        document.getElementById('r-coins').innerText = coinGain;
+        document.getElementById('r-xp').innerText = Math.floor(xpGain);
+        document.getElementById('r-coins').innerText = Math.floor(coinGain);
         document.getElementById('r-drops').innerHTML = dropText; 
         document.getElementById('r-lvl').innerText = window.player.lvl;
             
