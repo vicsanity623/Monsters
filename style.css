@@ -1035,3 +1035,78 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
 }
+
+/* --- EXPLORE MODE STYLES --- */
+#explore-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#explore-hud {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; /* Let touches pass to canvas/buttons */
+}
+
+.hud-stat-bar {
+    position: absolute; top: 15px; left: 15px;
+    width: 150px; display: flex; flex-direction: column; gap: 2px;
+}
+
+.hud-bar-bg {
+    width: 100%; height: 10px; background: #333; border: 1px solid white;
+    border-radius: 5px; overflow: hidden;
+}
+
+#joy-zone {
+    position: absolute; bottom: 50px; left: 30px;
+    width: 120px; height: 120px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    pointer-events: auto;
+}
+
+#joy-stick {
+    position: absolute; top: 50%; left: 50%;
+    width: 50px; height: 50px;
+    background: rgba(255, 215, 0, 0.8);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px gold;
+}
+
+.explore-controls {
+    position: absolute; bottom: 40px; right: 20px;
+    display: flex; gap: 15px; align-items: flex-end;
+    pointer-events: auto;
+}
+
+.ex-btn {
+    width: 70px; height: 70px; border-radius: 50%;
+    border: 3px solid white; display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; color: white; cursor: pointer; user-select: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    background: #333;
+}
+.ex-btn:active { transform: scale(0.9); }
+.ex-btn.attack { background: #e74c3c; width: 90px; height: 90px; }
+.ex-btn.dodge { background: #3498db; width: 60px; height: 60px; margin-bottom: 10px; }
+.ex-btn.charge { background: #f1c40f; }
+
+#ex-charge-overlay {
+    display: none; position: absolute; top: 40%; left: 50%;
+    transform: translate(-50%, -50%); text-align: center;
+}
+.charge-text {
+    font-family: 'Bangers'; font-size: 3rem; color: yellow;
+    text-shadow: 0 0 15px red; animation: pulse 0.2s infinite;
+}
+.charge-meter { width: 200px; height: 20px; background: #000; border: 2px solid white; margin: 0 auto; }
+#ex-charge-fill { height: 100%; width: 0%; background: cyan; box-shadow: 0 0 10px cyan; }
+
+.flash-screen {
+    animation: flashAnim 3s forwards;
+    position: absolute; inset: 0; background: white; pointer-events: none; z-index: 100;
+}
+@keyframes flashAnim { 0% { opacity: 0; } 10% { opacity: 1; } 100% { opacity: 0; } }
