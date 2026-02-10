@@ -447,23 +447,55 @@
     window.addEventListener('beforeunload', () => { window.isDirty = true; saveGame(); });
 
     function showTab(t) {
+        // 1. Hide all screens & reset nav buttons
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-        document.getElementById('view-' + t).classList.add('active-screen');
-        document.getElementById('tab-' + t).classList.add('active');
         
+        // 2. Show target screen & active button
+        const targetView = document.getElementById('view-' + t);
+        const targetBtn = document.getElementById('tab-' + t);
+        
+        if(targetView) targetView.classList.add('active-screen');
+        if(targetBtn) targetBtn.classList.add('active');
+        
+        // 3. Logic for specific tabs
+        
+        // --- BATTLE TAB (STAGES) ---
         if(t === 'battle') {
-            if(window.HubBattle) window.HubBattle.stop();
+            if(window.HubBattle) window.HubBattle.stop(); // Stop Hub animation
+            if(typeof window.stopExplore === 'function') window.stopExplore(); // Stop Explore loop
+            
+            // If battle isn't running, show prompt
             if(!window.battle.active) {
-                document.getElementById('start-prompt').style.display = 'block';
-                document.getElementById('e-img').style.display = 'none';
-                document.getElementById('e-name').innerText = "";
+                const prompt = document.getElementById('start-prompt');
+                const eImg = document.getElementById('e-img');
+                const eName = document.getElementById('e-name');
+                if(prompt) prompt.style.display = 'block';
+                if(eImg) eImg.style.display = 'none';
+                if(eName) eName.innerText = "";
             }
-        } else {
-            if(window.HubBattle) window.HubBattle.start();
-            if(typeof window.stopCombat === 'function') window.stopCombat();
-            document.getElementById('battle-menu').style.display = 'none';
+        } 
+        // --- EXPLORE TAB (NEW) ---
+        else if (t === 'explore') {
+            if(window.HubBattle) window.HubBattle.stop(); // Stop Hub
+            if(typeof window.stopCombat === 'function') window.stopCombat(); // Stop Stages
+            document.getElementById('battle-menu').style.display = 'none'; // Hide win screen
+            
+            // Start the physics engine for Explore Mode
+            if(typeof window.initExplore === 'function') {
+                window.initExplore();
+            }
         }
+        // --- HUB TAB (DEFAULT) ---
+        else {
+            if(window.HubBattle) window.HubBattle.start(); // Start Hub animation
+            if(typeof window.stopCombat === 'function') window.stopCombat(); // Stop Stages
+            if(typeof window.stopExplore === 'function') window.stopExplore(); // Stop Explore
+            
+            const bMenu = document.getElementById('battle-menu');
+            if(bMenu) bMenu.style.display = 'none';
+        }
+        
         syncUI();
     }
 
