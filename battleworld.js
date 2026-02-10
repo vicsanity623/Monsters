@@ -1,10 +1,8 @@
 (function() {
     // --- ASSETS & CONFIG ---
     const ASSETS = {
-        // Updated Tileable Texture
         BG: "https://i.imgur.com/sji5KLp.jpg", 
-        // Fallback Enemy
-        ENEMY_FALLBACK: "https://dragonball-api.com/characters/Freezer.webp" 
+        ENEMY_FALLBACK: "https://dragonball-api.com/transformations/frieza-final.png" 
     };
 
     const canvas = document.getElementById('explore-canvas');
@@ -14,7 +12,7 @@
     let isRunning = false;
     let lastTime = 0;
     let camera = { x: 0, y: 0 };
-    let bgPattern = null;
+    let bgImage = new Image(); // Store image directly for better tiling control
     let kills = 0;
 
     // Entities
@@ -43,12 +41,11 @@
             player.hp = window.GameState.gokuMaxHP;
         }
         
-        // Load Player Sprite from HUD
+        // Load Player Sprite
         const hudSprite = document.getElementById('ui-sprite');
         if(hudSprite && hudSprite.src) {
             player.img.src = hudSprite.src;
         } else {
-            // Fallback if hud not ready
             player.img.src = "IMG_0061.png"; 
         }
 
@@ -56,15 +53,13 @@
         window.addEventListener('resize', resize);
         setupControls();
 
-        // Load BG Pattern
-        const img = new Image();
-        img.crossOrigin = "Anonymous"; // Helpful for some CDNs
-        img.src = ASSETS.BG;
-        img.onload = () => { bgPattern = ctx.createPattern(img, 'repeat'); };
+        // Load BG Image
+        bgImage.crossOrigin = "Anonymous";
+        bgImage.src = ASSETS.BG;
 
         // Reset World
-        player.x = canvas.width/2;
-        player.y = canvas.height/2;
+        player.x = 0; // Start at 0,0 world coordinates
+        player.y = 0;
         enemies = [];
         bullets = [];
         particles = [];
@@ -78,7 +73,7 @@
 
         // Spawn Loop
         setInterval(() => {
-            if(isRunning && enemies.length < 10) spawnEnemy();
+            if(isRunning && enemies.length < 12) spawnEnemy();
         }, 1200);
     }
 
@@ -101,7 +96,7 @@
         // Ensure Invisible Style
         joyZone.style.background = 'none';
         joyZone.style.border = 'none';
-        joyZone.style.width = '100%';
+        joyZone.style.width = '50%'; // Restrict joystick to Left Half Only
         joyZone.style.height = '100%';
         joyZone.style.left = '0';
         joyZone.style.bottom = '0';
@@ -110,6 +105,9 @@
 
         const handleStart = (e) => {
             e.preventDefault();
+            // Only handle first touch in zone
+            if (activeTouchId !== null) return;
+
             const touch = e.changedTouches[0];
             activeTouchId = touch.identifier;
             
@@ -128,7 +126,7 @@
             for (let i = 0; i < e.changedTouches.length; i++) {
                 if (e.changedTouches[i].identifier === activeTouchId) {
                     const touch = e.changedTouches[i];
-                    const maxDist = 50;
+                    const maxDist = 60; // Increased range
                     let dx = touch.clientX - startX;
                     let dy = touch.clientY - startY;
                     const dist = Math.sqrt(dx*dx + dy*dy);
@@ -162,7 +160,7 @@
         joyZone.addEventListener('touchmove', handleMove, {passive: false});
         joyZone.addEventListener('touchend', handleEnd);
 
-        // Buttons
+        // Buttons (Ensure they work)
         const btnAtk = document.getElementById('btn-ex-attack');
         if(btnAtk) btnAtk.onclick = () => { if(!input.charging) shoot(); };
         
@@ -190,10 +188,11 @@
     // --- GAMEPLAY ---
 
     function spawnEnemy() {
-        const dist = Math.max(canvas.width, canvas.height); 
+        // Spawn randomly around player
         const angle = Math.random() * Math.PI * 2;
+        const radius = Math.max(canvas.width, canvas.height) * 0.8; // Distance
+        
         const gPower = window.GameState ? window.GameState.gokuPower : 100;
-        const scalePower = gPower * 0.5; 
         const isStrong = Math.random() > 0.85;
         
         // Pick Random Enemy from API
@@ -208,13 +207,12 @@
         eImg.src = enemySrc;
 
         enemies.push({
-            x: player.x + Math.cos(angle) * dist,
-            y: player.y + Math.sin(angle) * dist,
-            w: isStrong ? 100 : 60, 
-            h: isStrong ? 100 : 60,
-            hp: isStrong ? scalePower * 8 : scalePower * 1.5,
-            maxHp: isStrong ? scalePower * 8 : scalePower * 1.5,
-            atk: (window.GameState ? window.GameState.gokuMaxHP : 100) * (isStrong ? 0.08 : 0.02),
+            x: player.x + Math.cos(angle) * radius,
+            y: player.y + Math.sin(angle) * radius,
+            size: isStrong ? 120 : 80, // Base size
+            hp: isStrong ? gPower * 20 : gPower * 4, // More HP relative to player dmg
+            maxHp: isStrong ? gPower * 20 : gPower * 4,
+            atk: (window.GameState ? window.GameState.gokuMaxHP : 100) * (isStrong ? 0.15 : 0.05),
             speed: isStrong ? 3 : 5,
             img: eImg,
             isStrong: isStrong
@@ -222,7 +220,6 @@
     }
 
     function shoot() {
-        // Auto-Aim
         let vx = input.x; let vy = input.y;
         if (Math.abs(vx) < 0.1 && Math.abs(vy) < 0.1) {
             let nearest = null; let minD = Infinity;
@@ -242,7 +239,7 @@
         bullets.push({
             x: player.x, y: player.y,
             vx: vx * 22, vy: vy * 22,
-            life: 60,
+            life: 50, // Frames
             damage: window.GameState ? window.GameState.gokuPower : 50
         });
     }
@@ -253,8 +250,8 @@
         let len = Math.sqrt(dx*dx + dy*dy);
         if(len === 0) len = 1;
         
-        player.x += (dx/len) * 280;
-        player.y += (dy/len) * 280;
+        player.x += (dx/len) * 300;
+        player.y += (dy/len) * 300;
         
         for(let i=0; i<6; i++) {
             particles.push({
@@ -315,23 +312,28 @@
         camera.x = player.x - canvas.width/2;
         camera.y = player.y - canvas.height/2;
 
-        // Render Background
-        ctx.save();
-        ctx.translate(-camera.x % canvas.width, -camera.y % canvas.height);
-        if(bgPattern) {
-            ctx.fillStyle = bgPattern;
-            for(let i=-1; i<=1; i++) {
-                for(let j=-1; j<=1; j++) {
-                    ctx.fillRect(i*canvas.width, j*canvas.height, canvas.width, canvas.height);
+        // --- RENDER BACKGROUND (INFINITE TILING) ---
+        // Calculate offset based on camera position
+        const tileW = bgImage.width || 1024; // Fallback size
+        const tileH = bgImage.height || 1024;
+        
+        // Find the top-left tile index that overlaps the camera
+        const startCol = Math.floor(camera.x / tileW);
+        const startRow = Math.floor(camera.y / tileH);
+        
+        // Draw 3x3 grid around camera to cover all movement
+        for(let c = startCol - 1; c <= startCol + 2; c++) {
+            for(let r = startRow - 1; r <= startRow + 2; r++) {
+                if(bgImage.complete && bgImage.width > 0) {
+                    ctx.drawImage(bgImage, c * tileW - camera.x, r * tileH - camera.y, tileW, tileH);
+                } else {
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.fillRect(c * tileW - camera.x, r * tileH - camera.y, tileW, tileH);
                 }
             }
-        } else {
-            ctx.fillStyle = '#222';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
-        ctx.restore();
 
-        // Render World
+        // --- RENDER WORLD ---
         ctx.save();
         ctx.translate(-camera.x, -camera.y);
 
@@ -357,6 +359,7 @@
         
         try {
             if(player.img.complete) {
+                // Keep Aspect Ratio if possible, but fit in box
                 ctx.drawImage(player.img, player.x - player.size/2, player.y - player.size/2, player.size, player.size);
             } else {
                 ctx.fillStyle = 'orange';
@@ -372,34 +375,45 @@
             e.x += Math.cos(ang) * e.speed;
             e.y += Math.sin(ang) * e.speed;
 
-            // Draw Enemy
+            // --- DRAW ENEMY (Proportional Scaling) ---
             try {
-                if(e.img.complete) {
-                    ctx.drawImage(e.img, e.x - e.w/2, e.y - e.h/2, e.w, e.h);
+                if(e.img.complete && e.img.naturalWidth > 0) {
+                    const aspect = e.img.naturalWidth / e.img.naturalHeight;
+                    let drawW = e.size;
+                    let drawH = e.size;
+                    
+                    if (aspect > 1) { drawH = e.size / aspect; } 
+                    else { drawW = e.size * aspect; }
+
+                    ctx.drawImage(e.img, e.x - drawW/2, e.y - drawH/2, drawW, drawH);
                 } else {
                     ctx.fillStyle = e.isStrong ? 'red' : 'purple';
-                    ctx.fillRect(e.x - e.w/2, e.y - e.h/2, e.w, e.h);
+                    ctx.fillRect(e.x - e.size/2, e.y - e.size/2, e.size, e.size);
                 }
             } catch(err){}
 
             // HP Bar
-            ctx.fillStyle = 'red'; ctx.fillRect(e.x - 30, e.y - e.h/2 - 10, 60, 5);
-            ctx.fillStyle = '#00ff00'; ctx.fillRect(e.x - 30, e.y - e.h/2 - 10, 60 * (e.hp/e.maxHp), 5);
+            ctx.fillStyle = 'red'; ctx.fillRect(e.x - 30, e.y - 50, 60, 6);
+            ctx.fillStyle = 'lime'; ctx.fillRect(e.x - 30, e.y - 50, 60 * Math.max(0, e.hp/e.maxHp), 6);
 
-            // Collision (Bullet)
+            // Bullet Collision
             for(let j = bullets.length - 1; j >= 0; j--) {
                 let b = bullets[j];
-                if(Math.hypot(b.x - e.x, b.y - e.y) < (e.w/2 + 10)) {
+                if(Math.hypot(b.x - e.x, b.y - e.y) < (e.size/2 + 10)) {
                     e.hp -= b.damage;
                     bullets.splice(j, 1);
                     particles.push({x: e.x, y:e.y, vx:(Math.random()-0.5)*5, vy:(Math.random()-0.5)*5, life:10, color:'white'});
                 }
             }
 
-            // Collision (Player)
-            if(Math.hypot(player.x - e.x, player.y - e.y) < (e.w/2 + 20)) {
+            // Player Collision (Damage)
+            if(Math.hypot(player.x - e.x, player.y - e.y) < (e.size/2 + 20)) {
                 if(player.invincible <= 0) {
                     let dmg = input.charging ? e.atk * 2 : e.atk;
+                    // Cap damage to prevent 1-shot (max 20% hp per hit)
+                    const maxDmg = player.maxHp * 0.2;
+                    if(dmg > maxDmg) dmg = maxDmg;
+                    
                     player.hp -= dmg;
                     player.invincible = 30; 
                     updateHUD();
