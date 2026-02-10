@@ -30,6 +30,7 @@
     <script src="gear.js" defer></script>
     <script src="soul.js" defer></script>
     <script src="battle.js" defer></script>
+    <script src="battleworld.js" defer></script>
     <script src="hub.js" defer></script>
     <script src="game.js" defer></script>
     <script src="advance.js" defer></script>
@@ -73,6 +74,7 @@
     <nav>
         <button id="tab-char" class="active" onclick="showTab('char')">HUB</button>
         <button id="tab-battle" onclick="showTab('battle')">BATTLE</button>
+        <button id="tab-explore" onclick="showTab('explore')">EXPLORE</button>
     </nav>
 
     <!-- GACHA STYLE HUB SCREEN -->
@@ -471,6 +473,41 @@
                 <div>💰 Gold: <span id="adv-gold-count" style="color:#f1c40f;">0</span></div>
             </div>
             <button id="btn-do-advance" onclick="AdvanceSystem.upgrade()" class="action-btn" style="background:linear-gradient(to right, #00d2ff, #0055ff); border:1px solid cyan; box-shadow:0 0 15px cyan;">ADVANCE</button>
+        </div>
+    </div>
+    
+    <!-- NEW EXPLORE SCREEN -->
+    <div id="view-explore" class="screen" style="position:relative; background:black; overflow:hidden;">
+        <canvas id="explore-canvas"></canvas>
+        
+        <!-- EXPLORE HUD -->
+        <div id="explore-hud">
+            <div class="hud-stat-bar">
+                <div style="color:#ff3e3e; font-weight:bold;">HP</div>
+                <div class="hud-bar-bg"><div id="hud-hp-bar" style="width:100%; background:#ff3e3e;"></div></div>
+            </div>
+            
+            <div style="position:absolute; top:15px; right:15px; color:gold; font-family:'Bangers'; font-size:1.5rem;">
+                KILLS: <span id="hud-kill-count">0</span>
+            </div>
+
+            <!-- JOYSTICK -->
+            <div id="joy-zone">
+                <div id="joy-stick"></div>
+            </div>
+
+            <!-- CONTROLS -->
+            <div class="explore-controls">
+                <div class="ex-btn charge" id="btn-ex-charge">⚡</div>
+                <div class="ex-btn attack" id="btn-ex-attack">👊</div>
+                <div class="ex-btn dodge" id="btn-ex-dodge">💨</div>
+            </div>
+
+            <!-- CHARGE OVERLAY -->
+            <div id="ex-charge-overlay">
+                <div class="charge-text">MAX POWER!</div>
+                <div class="charge-meter"><div id="ex-charge-fill"></div></div>
+            </div>
         </div>
     </div>
 
