@@ -12,7 +12,7 @@
     let isRunning = false;
     let lastTime = 0;
     let camera = { x: 0, y: 0 };
-    let bgImage = new Image(); // Store image directly for better tiling control
+    let bgImage = new Image(); 
     let kills = 0;
 
     // Entities
@@ -26,6 +26,7 @@
     let enemies = [];
     let bullets = [];
     let particles = [];
+    let loots = []; // NEW: Loot Array
 
     // Inputs
     const input = { x: 0, y: 0, charging: false, chargeVal: 0 };
@@ -35,10 +36,13 @@
     function initExplore() {
         if(isRunning) return;
         
-        // Sync Stats
+        // Sync Stats - FORCE REFRESH
         if(window.GameState) {
             player.maxHp = window.GameState.gokuMaxHP;
-            player.hp = window.GameState.gokuMaxHP;
+            player.hp = window.GameState.gokuMaxHP; // Start FULL health
+        } else {
+            // Fallback if GameState isn't ready
+            player.maxHp = 100; player.hp = 100;
         }
         
         // Load Player Sprite
@@ -58,23 +62,27 @@
         bgImage.src = ASSETS.BG;
 
         // Reset World
-        player.x = 0; // Start at 0,0 world coordinates
+        player.x = 0; 
         player.y = 0;
         enemies = [];
         bullets = [];
         particles = [];
+        loots = []; // Reset Loot
         input.chargeVal = 0;
         input.charging = false;
         kills = 0;
+        
+        // Force update HUD immediately
         updateHUD();
 
         isRunning = true;
         requestAnimationFrame(loop);
 
-        // Spawn Loop
+        // Spawn Loop - REDUCED RATE
         setInterval(() => {
-            if(isRunning && enemies.length < 12) spawnEnemy();
-        }, 1200);
+            // Max 6 enemies at once to prevent swarm
+            if(isRunning && enemies.length < 6) spawnEnemy();
+        }, 2000); // Slower spawn (2s)
     }
 
     function stopExplore() {
@@ -93,10 +101,9 @@
         let startX, startY;
         let activeTouchId = null;
 
-        // Ensure Invisible Style
         joyZone.style.background = 'none';
         joyZone.style.border = 'none';
-        joyZone.style.width = '50%'; // Restrict joystick to Left Half Only
+        joyZone.style.width = '50%'; 
         joyZone.style.height = '100%';
         joyZone.style.left = '0';
         joyZone.style.bottom = '0';
@@ -105,15 +112,11 @@
 
         const handleStart = (e) => {
             e.preventDefault();
-            // Only handle first touch in zone
             if (activeTouchId !== null) return;
-
             const touch = e.changedTouches[0];
             activeTouchId = touch.identifier;
-            
             startX = touch.clientX;
             startY = touch.clientY;
-            
             stick.style.transition = 'none';
             stick.style.opacity = '0.6';
             stick.style.left = startX + 'px';
@@ -126,16 +129,11 @@
             for (let i = 0; i < e.changedTouches.length; i++) {
                 if (e.changedTouches[i].identifier === activeTouchId) {
                     const touch = e.changedTouches[i];
-                    const maxDist = 60; // Increased range
+                    const maxDist = 60; 
                     let dx = touch.clientX - startX;
                     let dy = touch.clientY - startY;
                     const dist = Math.sqrt(dx*dx + dy*dy);
-                    
-                    if(dist > maxDist) {
-                        dx = (dx/dist) * maxDist;
-                        dy = (dy/dist) * maxDist;
-                    }
-                    
+                    if(dist > maxDist) { dx = (dx/dist) * maxDist; dy = (dy/dist) * maxDist; }
                     stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
                     input.x = dx / maxDist;
                     input.y = dy / maxDist;
@@ -160,13 +158,10 @@
         joyZone.addEventListener('touchmove', handleMove, {passive: false});
         joyZone.addEventListener('touchend', handleEnd);
 
-        // Buttons (Ensure they work)
         const btnAtk = document.getElementById('btn-ex-attack');
         if(btnAtk) btnAtk.onclick = () => { if(!input.charging) shoot(); };
-        
         const btnDodge = document.getElementById('btn-ex-dodge');
         if(btnDodge) btnDodge.onclick = () => { if(!input.charging) dodge(); };
-        
         const btnCharge = document.getElementById('btn-ex-charge');
         if(btnCharge) {
             const startCharge = (e) => { e.preventDefault(); input.charging = true; };
@@ -188,14 +183,11 @@
     // --- GAMEPLAY ---
 
     function spawnEnemy() {
-        // Spawn randomly around player
         const angle = Math.random() * Math.PI * 2;
-        const radius = Math.max(canvas.width, canvas.height) * 0.8; // Distance
-        
+        const radius = Math.max(canvas.width, canvas.height) * 0.8; 
         const gPower = window.GameState ? window.GameState.gokuPower : 100;
         const isStrong = Math.random() > 0.85;
         
-        // Pick Random Enemy from API
         let enemySrc = ASSETS.ENEMY_FALLBACK;
         if(window.apiData && window.apiData.characters && window.apiData.characters.length > 0) {
             const rIdx = Math.floor(Math.random() * window.apiData.characters.length);
@@ -209,14 +201,29 @@
         enemies.push({
             x: player.x + Math.cos(angle) * radius,
             y: player.y + Math.sin(angle) * radius,
-            size: isStrong ? 120 : 80, // Base size
-            hp: isStrong ? gPower * 20 : gPower * 4, // More HP relative to player dmg
+            size: isStrong ? 120 : 80, 
+            hp: isStrong ? gPower * 20 : gPower * 4, 
             maxHp: isStrong ? gPower * 20 : gPower * 4,
             atk: (window.GameState ? window.GameState.gokuMaxHP : 100) * (isStrong ? 0.15 : 0.05),
             speed: isStrong ? 3 : 5,
             img: eImg,
             isStrong: isStrong
         });
+    }
+
+    function spawnLoot(x, y, isStrong) {
+        // Drop 1-3 coins/xp orbs
+        const count = isStrong ? 5 : 1;
+        for(let i=0; i<count; i++) {
+            loots.push({
+                x: x + (Math.random()-0.5)*40,
+                y: y + (Math.random()-0.5)*40,
+                type: Math.random() > 0.5 ? 'coin' : 'xp',
+                val: isStrong ? 500 : 100,
+                vx: (Math.random()-0.5)*10,
+                vy: (Math.random()-0.5)*10
+            });
+        }
     }
 
     function shoot() {
@@ -239,7 +246,7 @@
         bullets.push({
             x: player.x, y: player.y,
             vx: vx * 22, vy: vy * 22,
-            life: 50, // Frames
+            life: 50, 
             damage: window.GameState ? window.GameState.gokuPower : 50
         });
     }
@@ -249,16 +256,10 @@
         let dy = input.y || 0;
         let len = Math.sqrt(dx*dx + dy*dy);
         if(len === 0) len = 1;
-        
         player.x += (dx/len) * 300;
         player.y += (dy/len) * 300;
-        
         for(let i=0; i<6; i++) {
-            particles.push({
-                x: player.x, y: player.y,
-                vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12,
-                life: 15, color: 'cyan'
-            });
+            particles.push({x: player.x, y: player.y, vx:(Math.random()-0.5)*12, vy:(Math.random()-0.5)*12, life:15, color:'cyan'});
         }
     }
 
@@ -271,13 +272,7 @@
 
         enemies.forEach(e => {
             e.hp = 0;
-            for(let i=0; i<10; i++) {
-                particles.push({
-                    x: e.x, y: e.y,
-                    vx: (Math.random()-0.5)*25, vy: (Math.random()-0.5)*25,
-                    life: 30, color: 'orange'
-                });
-            }
+            for(let i=0; i<10; i++) particles.push({x: e.x, y: e.y, vx:(Math.random()-0.5)*25, vy:(Math.random()-0.5)*25, life:30, color:'orange'});
         });
     }
 
@@ -289,11 +284,10 @@
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Update
+        // Update Player
         if(input.charging) {
             input.chargeVal += 1.2; 
             if(input.chargeVal > 100) input.chargeVal = 100;
-            
             const hud = document.getElementById('ex-charge-overlay');
             if(hud) {
                 hud.style.display = 'block';
@@ -312,30 +306,58 @@
         camera.x = player.x - canvas.width/2;
         camera.y = player.y - canvas.height/2;
 
-        // --- RENDER BACKGROUND (INFINITE TILING) ---
-        // Calculate offset based on camera position
-        const tileW = bgImage.width || 1024; // Fallback size
-        const tileH = bgImage.height || 1024;
-        
-        // Find the top-left tile index that overlaps the camera
-        const startCol = Math.floor(camera.x / tileW);
-        const startRow = Math.floor(camera.y / tileH);
-        
-        // Draw 3x3 grid around camera to cover all movement
-        for(let c = startCol - 1; c <= startCol + 2; c++) {
-            for(let r = startRow - 1; r <= startRow + 2; r++) {
-                if(bgImage.complete && bgImage.width > 0) {
-                    ctx.drawImage(bgImage, c * tileW - camera.x, r * tileH - camera.y, tileW, tileH);
-                } else {
-                    ctx.fillStyle = '#2c3e50';
-                    ctx.fillRect(c * tileW - camera.x, r * tileH - camera.y, tileW, tileH);
+        // Render BG
+        ctx.save();
+        ctx.translate(-camera.x % canvas.width, -camera.y % canvas.height);
+        if(bgImage.complete && bgImage.width > 0) {
+            for(let i=-1; i<=1; i++) {
+                for(let j=-1; j<=1; j++) {
+                    ctx.drawImage(bgImage, i*canvas.width, j*canvas.height, canvas.width, canvas.height);
                 }
             }
+        } else {
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
+        ctx.restore();
 
-        // --- RENDER WORLD ---
         ctx.save();
         ctx.translate(-camera.x, -camera.y);
+
+        // Loot Logic (Magnet)
+        for(let i = loots.length - 1; i >= 0; i--) {
+            let l = loots[i];
+            // Slow down physics
+            l.x += l.vx; l.y += l.vy;
+            l.vx *= 0.9; l.vy *= 0.9;
+
+            // Magnet
+            const d = Math.hypot(player.x - l.x, player.y - l.y);
+            if(d < 200) { // Magnet Range
+                const ang = Math.atan2(player.y - l.y, player.x - l.x);
+                l.x += Math.cos(ang) * 15; // Fly to player
+                l.y += Math.sin(ang) * 15;
+            }
+
+            // Collect
+            if(d < 40) {
+                if(window.player) {
+                    if(l.type === 'coin') window.player.coins += l.val;
+                    else window.player.xp += l.val;
+                }
+                loots.splice(i, 1);
+                continue;
+            }
+
+            // Draw Loot
+            ctx.beginPath();
+            ctx.arc(l.x, l.y, 8, 0, Math.PI*2);
+            ctx.fillStyle = l.type === 'coin' ? 'gold' : 'cyan';
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
 
         // Bullets
         ctx.fillStyle = '#00ffff';
@@ -359,11 +381,9 @@
         
         try {
             if(player.img.complete) {
-                // Keep Aspect Ratio if possible, but fit in box
                 ctx.drawImage(player.img, player.x - player.size/2, player.y - player.size/2, player.size, player.size);
             } else {
-                ctx.fillStyle = 'orange';
-                ctx.fillRect(player.x - 30, player.y - 30, 60, 60);
+                ctx.fillStyle = 'orange'; ctx.fillRect(player.x - 30, player.y - 30, 60, 60);
             }
         } catch(e) {}
         ctx.restore();
@@ -375,16 +395,11 @@
             e.x += Math.cos(ang) * e.speed;
             e.y += Math.sin(ang) * e.speed;
 
-            // --- DRAW ENEMY (Proportional Scaling) ---
             try {
                 if(e.img.complete && e.img.naturalWidth > 0) {
                     const aspect = e.img.naturalWidth / e.img.naturalHeight;
-                    let drawW = e.size;
-                    let drawH = e.size;
-                    
-                    if (aspect > 1) { drawH = e.size / aspect; } 
-                    else { drawW = e.size * aspect; }
-
+                    let drawW = e.size; let drawH = e.size;
+                    if (aspect > 1) drawH = e.size / aspect; else drawW = e.size * aspect;
                     ctx.drawImage(e.img, e.x - drawW/2, e.y - drawH/2, drawW, drawH);
                 } else {
                     ctx.fillStyle = e.isStrong ? 'red' : 'purple';
@@ -392,11 +407,9 @@
                 }
             } catch(err){}
 
-            // HP Bar
             ctx.fillStyle = 'red'; ctx.fillRect(e.x - 30, e.y - 50, 60, 6);
             ctx.fillStyle = 'lime'; ctx.fillRect(e.x - 30, e.y - 50, 60 * Math.max(0, e.hp/e.maxHp), 6);
 
-            // Bullet Collision
             for(let j = bullets.length - 1; j >= 0; j--) {
                 let b = bullets[j];
                 if(Math.hypot(b.x - e.x, b.y - e.y) < (e.size/2 + 10)) {
@@ -406,14 +419,11 @@
                 }
             }
 
-            // Player Collision (Damage)
             if(Math.hypot(player.x - e.x, player.y - e.y) < (e.size/2 + 20)) {
                 if(player.invincible <= 0) {
                     let dmg = input.charging ? e.atk * 2 : e.atk;
-                    // Cap damage to prevent 1-shot (max 20% hp per hit)
                     const maxDmg = player.maxHp * 0.2;
                     if(dmg > maxDmg) dmg = maxDmg;
-                    
                     player.hp -= dmg;
                     player.invincible = 30; 
                     updateHUD();
@@ -421,12 +431,10 @@
             }
 
             if(e.hp <= 0) {
+                // Drop Loot before removing
+                spawnLoot(e.x, e.y, e.isStrong);
                 enemies.splice(i, 1);
                 kills++;
-                if(window.player) {
-                    window.player.coins += e.isStrong ? 500 : 100;
-                    window.player.xp += e.isStrong ? 200 : 50;
-                }
                 updateHUD();
             }
         }
@@ -458,7 +466,6 @@
     function updateHUD() {
         const kc = document.getElementById('hud-kill-count');
         if(kc) kc.innerText = kills;
-        
         const hpBar = document.getElementById('hud-hp-bar');
         if(hpBar) {
             const pct = Math.max(0, (player.hp / player.maxHp) * 100);
@@ -466,7 +473,6 @@
         }
     }
 
-    // Expose
     window.initExplore = initExplore;
     window.stopExplore = stopExplore;
 
