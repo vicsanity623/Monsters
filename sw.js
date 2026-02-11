@@ -20,8 +20,8 @@ const ASSETS_TO_CACHE = [
   './IMG_0081.png',
   './IMG_0206.png',
   './IMG_0287.png',
-  './IMG_0289.png',
-  './IMG_0290.png',
+  './IMG_0299.png',
+  './IMG_0300.png',
   './IMG_0292.png',
   './IMG_0222.png'
 ];
