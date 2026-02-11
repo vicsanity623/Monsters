@@ -1,88 +1,95 @@
 (function() {
     // --- ASSETS & CONFIG ---
     const ASSETS = {
-        BG: "https://i.imgur.com/sji5KLp.jpg", 
+        // Using a grass tile for the ground to allow seamless tiling
+        GROUND_TILE: "https://i.imgur.com/sji5KLp.jpg", 
+        // Simple sprites for structures (placeholders, you can swap these)
+        HOUSE: "https://i.imgur.com/2Xj3x7s.png", // Placeholder House
+        TREE: "https://i.imgur.com/5u5F7Xj.png", // Placeholder Tree
+        NPC: "https://i.imgur.com/8y7F9rS.jpg", // Placeholder NPC (Villager)
+        // Fallback Enemy
         ENEMY_FALLBACK: "https://dragonball-api.com/transformations/frieza-final.png" 
     };
 
     const canvas = document.getElementById('explore-canvas');
     const ctx = canvas.getContext('2d');
 
+    // World Settings
+    const WORLD_WIDTH = 3000;
+    const WORLD_HEIGHT = 3000;
+    const TILE_SIZE = 512; // Size of background tile
+
     // Game State
     let isRunning = false;
     let lastTime = 0;
     let camera = { x: 0, y: 0 };
     let bgImage = new Image(); 
+    
+    // Stats
     let kills = 0;
+    let currentQuest = { target: 5, progress: 0, desc: "Defeat 5 Enemies" };
 
     // Entities
     let player = { 
-        x: 0, y: 0, size: 70, speed: 8, 
+        x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2, size: 60, speed: 6, 
         hp: 100, maxHp: 100, 
-        faceRight: true,
-        invincible: 0,
-        img: new Image()
+        faceRight: true, invincible: 0, img: new Image()
     };
+    
     let enemies = [];
+    let npcs = [];
     let bullets = [];
     let particles = [];
-    let loots = []; // NEW: Loot Array
+    let loots = [];
+    let structures = []; // Houses, trees, walls
 
     // Inputs
     const input = { x: 0, y: 0, charging: false, chargeVal: 0 };
 
-    // --- MAIN FUNCTIONS ---
-
+    // --- INITIALIZATION ---
     function initExplore() {
         if(isRunning) return;
         
-        // Sync Stats - FORCE REFRESH
+        // Sync Player Stats
         if(window.GameState) {
             player.maxHp = window.GameState.gokuMaxHP;
-            player.hp = window.GameState.gokuMaxHP; // Start FULL health
+            player.hp = window.GameState.gokuMaxHP;
         } else {
-            // Fallback if GameState isn't ready
             player.maxHp = 100; player.hp = 100;
         }
         
         // Load Player Sprite
         const hudSprite = document.getElementById('ui-sprite');
-        if(hudSprite && hudSprite.src) {
-            player.img.src = hudSprite.src;
-        } else {
-            player.img.src = "IMG_0061.png"; 
-        }
+        if(hudSprite && hudSprite.src) player.img.src = hudSprite.src;
+        else player.img.src = "IMG_0061.png"; 
 
         resize();
         window.addEventListener('resize', resize);
         setupControls();
 
-        // Load BG Image
+        // Load BG
         bgImage.crossOrigin = "Anonymous";
-        bgImage.src = ASSETS.BG;
+        bgImage.src = ASSETS.GROUND_TILE;
 
-        // Reset World
-        player.x = 0; 
-        player.y = 0;
+        // Generate World Content
+        generateWorld();
+
+        // Reset State
         enemies = [];
         bullets = [];
         particles = [];
-        loots = []; // Reset Loot
-        input.chargeVal = 0;
-        input.charging = false;
+        loots = [];
         kills = 0;
-        
-        // Force update HUD immediately
+        currentQuest = { target: 5, progress: 0, desc: "Defeat Invaders" };
         updateHUD();
 
         isRunning = true;
         requestAnimationFrame(loop);
 
-        // Spawn Loop - REDUCED RATE
+        // Spawn Loop
         setInterval(() => {
-            // Max 6 enemies at once to prevent swarm
-            if(isRunning && enemies.length < 6) spawnEnemy();
-        }, 2000); // Slower spawn (2s)
+            if(isRunning && enemies.length < 15) spawnEnemy();
+        }, 3000);
     }
 
     function stopExplore() {
@@ -94,20 +101,62 @@
         canvas.height = window.innerHeight;
     }
 
+    // --- WORLD GENERATION ---
+    function generateWorld() {
+        structures = [];
+        npcs = [];
+
+        // 1. Create Town Center (Safe Zone)
+        // Fountain in middle
+        structures.push({ type: 'fountain', x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2, w: 150, h: 150, color: 'cyan' });
+
+        // 2. Houses around center
+        for(let i=0; i<8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const dist = 400;
+            structures.push({
+                type: 'house',
+                x: WORLD_WIDTH/2 + Math.cos(angle) * dist,
+                y: WORLD_HEIGHT/2 + Math.sin(angle) * dist,
+                w: 200, h: 150, color: '#8e44ad'
+            });
+        }
+
+        // 3. Random Trees/Rocks outside town
+        for(let i=0; i<50; i++) {
+            const x = Math.random() * WORLD_WIDTH;
+            const y = Math.random() * WORLD_HEIGHT;
+            // Don't spawn too close to center
+            if(Math.hypot(x - WORLD_WIDTH/2, y - WORLD_HEIGHT/2) > 600) {
+                structures.push({
+                    type: 'tree',
+                    x: x, y: y, w: 80, h: 80, color: '#27ae60'
+                });
+            }
+        }
+
+        // 4. NPCs
+        for(let i=0; i<5; i++) {
+            npcs.push({
+                x: WORLD_WIDTH/2 + (Math.random()-0.5)*300,
+                y: WORLD_HEIGHT/2 + (Math.random()-0.5)*300,
+                w: 50, h: 50,
+                color: 'white',
+                name: "Villager",
+                tx: WORLD_WIDTH/2, ty: WORLD_HEIGHT/2 // Target destination
+            });
+        }
+    }
+
     // --- CONTROLS ---
     function setupControls() {
         const joyZone = document.getElementById('joy-zone');
         const stick = document.getElementById('joy-stick');
-        let startX, startY;
-        let activeTouchId = null;
+        let startX, startY, activeTouchId = null;
 
-        joyZone.style.background = 'none';
-        joyZone.style.border = 'none';
-        joyZone.style.width = '50%'; 
-        joyZone.style.height = '100%';
-        joyZone.style.left = '0';
-        joyZone.style.bottom = '0';
-        joyZone.style.zIndex = '10'; 
+        joyZone.style.background = 'none'; joyZone.style.border = 'none';
+        joyZone.style.width = '50%'; joyZone.style.height = '100%';
+        joyZone.style.left = '0'; joyZone.style.bottom = '0'; joyZone.style.zIndex = '10'; 
         stick.style.opacity = '0'; 
 
         const handleStart = (e) => {
@@ -115,12 +164,9 @@
             if (activeTouchId !== null) return;
             const touch = e.changedTouches[0];
             activeTouchId = touch.identifier;
-            startX = touch.clientX;
-            startY = touch.clientY;
-            stick.style.transition = 'none';
-            stick.style.opacity = '0.6';
-            stick.style.left = startX + 'px';
-            stick.style.top = startY + 'px';
+            startX = touch.clientX; startY = touch.clientY;
+            stick.style.transition = 'none'; stick.style.opacity = '0.6';
+            stick.style.left = startX + 'px'; stick.style.top = startY + 'px';
             stick.style.transform = `translate(-50%, -50%)`;
         };
 
@@ -130,13 +176,11 @@
                 if (e.changedTouches[i].identifier === activeTouchId) {
                     const touch = e.changedTouches[i];
                     const maxDist = 60; 
-                    let dx = touch.clientX - startX;
-                    let dy = touch.clientY - startY;
+                    let dx = touch.clientX - startX; let dy = touch.clientY - startY;
                     const dist = Math.sqrt(dx*dx + dy*dy);
                     if(dist > maxDist) { dx = (dx/dist) * maxDist; dy = (dy/dist) * maxDist; }
                     stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                    input.x = dx / maxDist;
-                    input.y = dy / maxDist;
+                    input.x = dx / maxDist; input.y = dy / maxDist;
                     break;
                 }
             }
@@ -146,10 +190,7 @@
             e.preventDefault();
             for (let i = 0; i < e.changedTouches.length; i++) {
                 if (e.changedTouches[i].identifier === activeTouchId) {
-                    activeTouchId = null;
-                    input.x = 0; input.y = 0;
-                    stick.style.opacity = '0';
-                    break;
+                    activeTouchId = null; input.x = 0; input.y = 0; stick.style.opacity = '0'; break;
                 }
             }
         };
@@ -165,26 +206,19 @@
         const btnCharge = document.getElementById('btn-ex-charge');
         if(btnCharge) {
             const startCharge = (e) => { e.preventDefault(); input.charging = true; };
-            const endCharge = (e) => { 
-                e.preventDefault(); 
-                if(input.chargeVal >= 100) unleashUltimate();
-                input.charging = false; 
-                input.chargeVal = 0;
-                const overlay = document.getElementById('ex-charge-overlay');
-                if(overlay) overlay.style.display = 'none';
-            };
-            btnCharge.addEventListener('touchstart', startCharge);
-            btnCharge.addEventListener('touchend', endCharge);
-            btnCharge.addEventListener('mousedown', startCharge);
-            btnCharge.addEventListener('mouseup', endCharge);
+            const endCharge = (e) => { e.preventDefault(); if(input.chargeVal >= 100) unleashUltimate(); input.charging = false; input.chargeVal = 0; const o = document.getElementById('ex-charge-overlay'); if(o) o.style.display='none'; };
+            btnCharge.addEventListener('touchstart', startCharge); btnCharge.addEventListener('touchend', endCharge);
+            btnCharge.addEventListener('mousedown', startCharge); btnCharge.addEventListener('mouseup', endCharge);
         }
     }
 
-    // --- GAMEPLAY ---
+    // --- GAMEPLAY LOGIC ---
 
     function spawnEnemy() {
+        // Spawn far away from player
         const angle = Math.random() * Math.PI * 2;
-        const radius = Math.max(canvas.width, canvas.height) * 0.8; 
+        const dist = 800 + Math.random() * 400; // Outside immediate view
+        
         const gPower = window.GameState ? window.GameState.gokuPower : 100;
         const isStrong = Math.random() > 0.85;
         
@@ -195,24 +229,22 @@
             if(char && char.image) enemySrc = char.image;
         }
 
-        const eImg = new Image();
-        eImg.src = enemySrc;
+        const eImg = new Image(); eImg.src = enemySrc;
 
         enemies.push({
-            x: player.x + Math.cos(angle) * radius,
-            y: player.y + Math.sin(angle) * radius,
+            x: player.x + Math.cos(angle) * dist,
+            y: player.y + Math.sin(angle) * dist,
             size: isStrong ? 120 : 80, 
             hp: isStrong ? gPower * 20 : gPower * 4, 
             maxHp: isStrong ? gPower * 20 : gPower * 4,
             atk: (window.GameState ? window.GameState.gokuMaxHP : 100) * (isStrong ? 0.15 : 0.05),
             speed: isStrong ? 3 : 5,
-            img: eImg,
-            isStrong: isStrong
+            img: eImg, isStrong: isStrong,
+            state: 'chase' // AI State
         });
     }
 
     function spawnLoot(x, y, isStrong) {
-        // Drop 1-3 coins/xp orbs
         const count = isStrong ? 5 : 1;
         for(let i=0; i<count; i++) {
             loots.push({
@@ -220,8 +252,7 @@
                 y: y + (Math.random()-0.5)*40,
                 type: Math.random() > 0.5 ? 'coin' : 'xp',
                 val: isStrong ? 500 : 100,
-                vx: (Math.random()-0.5)*10,
-                vy: (Math.random()-0.5)*10
+                vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10
             });
         }
     }
@@ -229,7 +260,7 @@
     function shoot() {
         let vx = input.x; let vy = input.y;
         if (Math.abs(vx) < 0.1 && Math.abs(vy) < 0.1) {
-            let nearest = null; let minD = Infinity;
+            let nearest = null; let minD = 600; // Auto aim range
             enemies.forEach(e => {
                 let d = Math.hypot(e.x - player.x, e.y - player.y);
                 if (d < minD) { minD = d; nearest = e; }
@@ -245,8 +276,7 @@
 
         bullets.push({
             x: player.x, y: player.y,
-            vx: vx * 22, vy: vy * 22,
-            life: 50, 
+            vx: vx * 22, vy: vy * 22, life: 50, 
             damage: window.GameState ? window.GameState.gokuPower : 50
         });
     }
@@ -256,11 +286,12 @@
         let dy = input.y || 0;
         let len = Math.sqrt(dx*dx + dy*dy);
         if(len === 0) len = 1;
-        player.x += (dx/len) * 300;
-        player.y += (dy/len) * 300;
-        for(let i=0; i<6; i++) {
-            particles.push({x: player.x, y: player.y, vx:(Math.random()-0.5)*12, vy:(Math.random()-0.5)*12, life:15, color:'cyan'});
-        }
+        player.x += (dx/len) * 300; player.y += (dy/len) * 300;
+        // Keep in bounds
+        player.x = Math.max(0, Math.min(WORLD_WIDTH, player.x));
+        player.y = Math.max(0, Math.min(WORLD_HEIGHT, player.y));
+        
+        for(let i=0; i<6; i++) particles.push({x: player.x, y: player.y, vx:(Math.random()-0.5)*12, vy:(Math.random()-0.5)*12, life:15, color:'cyan'});
     }
 
     function unleashUltimate() {
@@ -271,12 +302,14 @@
         setTimeout(() => flash.remove(), 2500);
 
         enemies.forEach(e => {
-            e.hp = 0;
-            for(let i=0; i<10; i++) particles.push({x: e.x, y: e.y, vx:(Math.random()-0.5)*25, vy:(Math.random()-0.5)*25, life:30, color:'orange'});
+            if(Math.hypot(e.x - player.x, e.y - player.y) < 800) { // Screen wipe range
+                e.hp = 0;
+                for(let i=0; i<10; i++) particles.push({x: e.x, y: e.y, vx:(Math.random()-0.5)*25, vy:(Math.random()-0.5)*25, life:30, color:'orange'});
+            }
         });
     }
 
-    // --- LOOP ---
+    // --- GAME LOOP ---
     function loop(timestamp) {
         if(!isRunning) return;
         const dt = timestamp - lastTime;
@@ -284,117 +317,121 @@
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Update Player
+        // -- UPDATE PLAYER --
         if(input.charging) {
-            input.chargeVal += 1.2; 
-            if(input.chargeVal > 100) input.chargeVal = 100;
+            input.chargeVal += 1.2; if(input.chargeVal > 100) input.chargeVal = 100;
             const hud = document.getElementById('ex-charge-overlay');
-            if(hud) {
-                hud.style.display = 'block';
-                const fill = document.getElementById('ex-charge-fill');
-                if(fill) fill.style.width = input.chargeVal + '%';
-            }
-            player.x += (Math.random()-0.5)*6;
-            player.y += (Math.random()-0.5)*6;
+            if(hud) { hud.style.display = 'block'; document.getElementById('ex-charge-fill').style.width = input.chargeVal + '%'; }
+            player.x += (Math.random()-0.5)*6; player.y += (Math.random()-0.5)*6;
         } else {
-            player.x += input.x * player.speed;
-            player.y += input.y * player.speed;
-            if(input.x > 0) player.faceRight = true;
-            if(input.x < 0) player.faceRight = false;
+            let nextX = player.x + input.x * player.speed;
+            let nextY = player.y + input.y * player.speed;
+            
+            // Collision with Structures
+            let collided = false;
+            structures.forEach(s => {
+                if(nextX > s.x - s.w/2 && nextX < s.x + s.w/2 && nextY > s.y - s.h/2 && nextY < s.y + s.h/2) collided = true;
+            });
+
+            if(!collided) {
+                player.x = Math.max(0, Math.min(WORLD_WIDTH, nextX));
+                player.y = Math.max(0, Math.min(WORLD_HEIGHT, nextY));
+            }
+            
+            if(input.x > 0) player.faceRight = true; if(input.x < 0) player.faceRight = false;
         }
 
-        camera.x = player.x - canvas.width/2;
-        camera.y = player.y - canvas.height/2;
+        // Camera Follow (Clamped to world bounds)
+        camera.x = Math.max(0, Math.min(WORLD_WIDTH - canvas.width, player.x - canvas.width/2));
+        camera.y = Math.max(0, Math.min(WORLD_HEIGHT - canvas.height, player.y - canvas.height/2));
 
-        // Render BG
-        ctx.save();
-        ctx.translate(-camera.x % canvas.width, -camera.y % canvas.height);
-        if(bgImage.complete && bgImage.width > 0) {
-            for(let i=-1; i<=1; i++) {
-                for(let j=-1; j<=1; j++) {
-                    ctx.drawImage(bgImage, i*canvas.width, j*canvas.height, canvas.width, canvas.height);
-                }
-            }
-        } else {
-            ctx.fillStyle = '#2c3e50';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-        ctx.restore();
-
+        // -- RENDER WORLD --
         ctx.save();
         ctx.translate(-camera.x, -camera.y);
 
-        // Loot Logic (Magnet)
+        // 1. Draw Tiled Ground
+        if(bgImage.complete && bgImage.width > 0) {
+            const ptrn = ctx.createPattern(bgImage, 'repeat');
+            ctx.fillStyle = ptrn;
+            ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height); // Only draw visible area for perf
+        } else {
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+        }
+
+        // 2. Draw Structures
+        structures.forEach(s => {
+            ctx.fillStyle = s.color;
+            ctx.shadowBlur = 10; ctx.shadowColor = 'black';
+            ctx.fillRect(s.x - s.w/2, s.y - s.h/2, s.w, s.h);
+            ctx.shadowBlur = 0;
+            // Draw roof/detail
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(s.x - s.w/2 + 5, s.y - s.h/2 + 5, s.w - 10, s.h - 10);
+        });
+
+        // 3. NPCs (Wander Logic)
+        npcs.forEach(n => {
+            // Simple wandering
+            if(Math.random() < 0.02) {
+                n.tx = n.x + (Math.random()-0.5)*200;
+                n.ty = n.y + (Math.random()-0.5)*200;
+            }
+            const ang = Math.atan2(n.ty - n.y, n.tx - n.x);
+            const dist = Math.hypot(n.tx - n.x, n.ty - n.y);
+            if(dist > 5) {
+                n.x += Math.cos(ang) * 2;
+                n.y += Math.sin(ang) * 2;
+            }
+            // Draw
+            ctx.fillStyle = n.color;
+            ctx.beginPath(); ctx.arc(n.x, n.y, 15, 0, Math.PI*2); ctx.fill();
+            // Name tag
+            ctx.fillStyle = 'white'; ctx.font = '12px Arial'; ctx.fillText(n.name, n.x-20, n.y-25);
+        });
+
+        // 4. Loot
         for(let i = loots.length - 1; i >= 0; i--) {
             let l = loots[i];
-            // Slow down physics
-            l.x += l.vx; l.y += l.vy;
-            l.vx *= 0.9; l.vy *= 0.9;
-
-            // Magnet
+            l.x += l.vx; l.y += l.vy; l.vx *= 0.9; l.vy *= 0.9;
             const d = Math.hypot(player.x - l.x, player.y - l.y);
-            if(d < 200) { // Magnet Range
+            if(d < 200) { 
                 const ang = Math.atan2(player.y - l.y, player.x - l.x);
-                l.x += Math.cos(ang) * 15; // Fly to player
-                l.y += Math.sin(ang) * 15;
+                l.x += Math.cos(ang) * 15; l.y += Math.sin(ang) * 15;
             }
-
-            // Collect
             if(d < 40) {
-                if(window.player) {
-                    if(l.type === 'coin') window.player.coins += l.val;
-                    else window.player.xp += l.val;
-                }
-                loots.splice(i, 1);
-                continue;
+                if(window.player) { if(l.type === 'coin') window.player.coins += l.val; else window.player.xp += l.val; }
+                loots.splice(i, 1); continue;
             }
-
-            // Draw Loot
-            ctx.beginPath();
-            ctx.arc(l.x, l.y, 8, 0, Math.PI*2);
-            ctx.fillStyle = l.type === 'coin' ? 'gold' : 'cyan';
-            ctx.fill();
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+            ctx.beginPath(); ctx.arc(l.x, l.y, 8, 0, Math.PI*2);
+            ctx.fillStyle = l.type === 'coin' ? 'gold' : 'cyan'; ctx.fill();
+            ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
         }
 
-        // Bullets
-        ctx.fillStyle = '#00ffff';
-        ctx.shadowBlur = 10; ctx.shadowColor = '#00ffff';
-        for(let i = bullets.length - 1; i >= 0; i--) {
-            let b = bullets[i];
-            b.x += b.vx; b.y += b.vy; b.life--;
-            ctx.beginPath(); ctx.arc(b.x, b.y, 10, 0, Math.PI*2); ctx.fill();
-            if(b.life <= 0) bullets.splice(i, 1);
-        }
-        ctx.shadowBlur = 0;
-
-        // Player
-        ctx.save();
-        if(!player.faceRight) {
-            ctx.translate(player.x + player.size/2, player.y);
-            ctx.scale(-1, 1);
-            ctx.translate(-(player.x + player.size/2), -player.y);
-        }
-        if(input.charging) { ctx.shadowColor = 'white'; ctx.shadowBlur = 25; }
-        
-        try {
-            if(player.img.complete) {
-                ctx.drawImage(player.img, player.x - player.size/2, player.y - player.size/2, player.size, player.size);
-            } else {
-                ctx.fillStyle = 'orange'; ctx.fillRect(player.x - 30, player.y - 30, 60, 60);
-            }
-        } catch(e) {}
-        ctx.restore();
-
-        // Enemies
+        // 5. Enemies (AI & Render)
         for(let i = enemies.length - 1; i >= 0; i--) {
             let e = enemies[i];
+            
+            // AI: Chase Player
             let ang = Math.atan2(player.y - e.y, player.x - e.x);
-            e.x += Math.cos(ang) * e.speed;
-            e.y += Math.sin(ang) * e.speed;
+            
+            // Collision Avoidance (Structures)
+            let nextEX = e.x + Math.cos(ang) * e.speed;
+            let nextEY = e.y + Math.sin(ang) * e.speed;
+            let blocked = false;
+            structures.forEach(s => {
+                if(nextEX > s.x - s.w/2 - 20 && nextEX < s.x + s.w/2 + 20 && nextEY > s.y - s.h/2 - 20 && nextEY < s.y + s.h/2 + 20) blocked = true;
+            });
 
+            if(!blocked) {
+                e.x = nextEX; e.y = nextEY;
+            } else {
+                // Slide along wall
+                e.x += Math.cos(ang + 1.5) * e.speed * 0.5;
+                e.y += Math.sin(ang + 1.5) * e.speed * 0.5;
+            }
+
+            // Draw Sprite
             try {
                 if(e.img.complete && e.img.naturalWidth > 0) {
                     const aspect = e.img.naturalWidth / e.img.naturalHeight;
@@ -407,56 +444,96 @@
                 }
             } catch(err){}
 
+            // HP Bar
             ctx.fillStyle = 'red'; ctx.fillRect(e.x - 30, e.y - 50, 60, 6);
             ctx.fillStyle = 'lime'; ctx.fillRect(e.x - 30, e.y - 50, 60 * Math.max(0, e.hp/e.maxHp), 6);
 
+            // Hit logic
             for(let j = bullets.length - 1; j >= 0; j--) {
                 let b = bullets[j];
                 if(Math.hypot(b.x - e.x, b.y - e.y) < (e.size/2 + 10)) {
-                    e.hp -= b.damage;
-                    bullets.splice(j, 1);
+                    e.hp -= b.damage; bullets.splice(j, 1);
                     particles.push({x: e.x, y:e.y, vx:(Math.random()-0.5)*5, vy:(Math.random()-0.5)*5, life:10, color:'white'});
                 }
             }
 
+            // Player Damage
             if(Math.hypot(player.x - e.x, player.y - e.y) < (e.size/2 + 20)) {
                 if(player.invincible <= 0) {
                     let dmg = input.charging ? e.atk * 2 : e.atk;
-                    const maxDmg = player.maxHp * 0.2;
-                    if(dmg > maxDmg) dmg = maxDmg;
-                    player.hp -= dmg;
-                    player.invincible = 30; 
-                    updateHUD();
+                    const maxDmg = player.maxHp * 0.2; if(dmg > maxDmg) dmg = maxDmg;
+                    player.hp -= dmg; player.invincible = 30; updateHUD();
                 }
             }
 
             if(e.hp <= 0) {
-                // Drop Loot before removing
                 spawnLoot(e.x, e.y, e.isStrong);
                 enemies.splice(i, 1);
                 kills++;
+                currentQuest.progress++;
                 updateHUD();
             }
         }
 
-        // Particles
+        // 6. Bullets
+        ctx.fillStyle = '#00ffff'; ctx.shadowBlur = 10; ctx.shadowColor = '#00ffff';
+        for(let i = bullets.length - 1; i >= 0; i--) {
+            let b = bullets[i];
+            b.x += b.vx; b.y += b.vy; b.life--;
+            ctx.beginPath(); ctx.arc(b.x, b.y, 10, 0, Math.PI*2); ctx.fill();
+            if(b.life <= 0) bullets.splice(i, 1);
+        }
+        ctx.shadowBlur = 0;
+
+        // 7. Player
+        ctx.save();
+        if(!player.faceRight) {
+            ctx.translate(player.x + player.size/2, player.y); ctx.scale(-1, 1); ctx.translate(-(player.x + player.size/2), -player.y);
+        }
+        if(input.charging) { ctx.shadowColor = 'white'; ctx.shadowBlur = 25; }
+        
+        try {
+            if(player.img.complete) ctx.drawImage(player.img, player.x - player.size/2, player.y - player.size/2, player.size, player.size);
+            else { ctx.fillStyle = 'orange'; ctx.fillRect(player.x - 30, player.y - 30, 60, 60); }
+        } catch(e) {}
+        ctx.restore();
+
+        // 8. Particles
         for(let i = particles.length - 1; i >= 0; i--) {
-            let p = particles[i];
-            p.x += p.vx; p.y += p.vy; p.life--;
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = p.life/20;
+            let p = particles[i]; p.x += p.vx; p.y += p.vy; p.life--;
+            ctx.fillStyle = p.color; ctx.globalAlpha = p.life/20;
             ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
             if(p.life<=0) particles.splice(i, 1);
         }
         ctx.globalAlpha = 1;
 
-        ctx.restore();
+        ctx.restore(); // End Camera Transform
+
+        // --- UI OVERLAY RENDER (Minimap) ---
+        // Draw minimap in corner
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(canvas.width - 160, 10, 150, 150);
+        ctx.strokeStyle = 'white'; ctx.lineWidth = 2;
+        ctx.strokeRect(canvas.width - 160, 10, 150, 150);
+        
+        // Minimap dots
+        const mapScale = 150 / WORLD_WIDTH;
+        // Structures
+        ctx.fillStyle = 'gray';
+        structures.forEach(s => ctx.fillRect((canvas.width-160) + s.x*mapScale, 10 + s.y*mapScale, s.w*mapScale, s.h*mapScale));
+        // Player
+        ctx.fillStyle = 'lime';
+        ctx.beginPath(); ctx.arc((canvas.width-160) + player.x*mapScale, 10 + player.y*mapScale, 3, 0, Math.PI*2); ctx.fill();
+        // Enemies
+        ctx.fillStyle = 'red';
+        enemies.forEach(e => {
+            ctx.beginPath(); ctx.arc((canvas.width-160) + e.x*mapScale, 10 + e.y*mapScale, 2, 0, Math.PI*2); ctx.fill();
+        });
 
         if(player.invincible > 0) player.invincible--;
 
         if(player.hp <= 0) {
-            alert("GOKU DEFEATED!");
-            stopExplore();
+            alert("GOKU DEFEATED!"); stopExplore();
             if(typeof window.showTab === 'function') window.showTab('char');
         }
 
@@ -465,7 +542,16 @@
 
     function updateHUD() {
         const kc = document.getElementById('hud-kill-count');
-        if(kc) kc.innerText = kills;
+        // Update Quest Text instead of just kills
+        if(kc) {
+            if(currentQuest.progress >= currentQuest.target) {
+                kc.innerText = "QUEST COMPLETE!";
+                kc.style.color = "lime";
+            } else {
+                kc.innerText = `${currentQuest.desc}: ${currentQuest.progress}/${currentQuest.target}`;
+                kc.style.color = "gold";
+            }
+        }
         const hpBar = document.getElementById('hud-hp-bar');
         if(hpBar) {
             const pct = Math.max(0, (player.hp / player.maxHp) * 100);
