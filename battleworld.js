@@ -2,10 +2,10 @@
     // --- ASSETS & CONFIG ---
     const ASSETS = {
         // Updated to use your local files
-        GROUND_TILE: "IMG_0296.png", // Grass Tile
-        HOUSE: "IMG_0295.png",       // House
-        TREE: "IMG_0294.png",        // Tree
-        NPC: "IMG_0293.png",         // NPC/Villager
+        GROUND_TILE: "IMG_0287.png", // Grass Tile
+        HOUSE: "IMG_0289.png",       // House
+        TREE: "IMG_0290.png",        // Tree
+        NPC: "IMG_0292.png",         // NPC/Villager
         
         // Fallback for Enemies (still uses API, but falls back to this if needed)
         ENEMY_FALLBACK: "https://dragonball-api.com/transformations/frieza-final.png" 
