@@ -364,31 +364,117 @@
         }
     }
 
+    // --- NOTIFICATION HELPER (Replaces Alert) ---
+    function showSupplyToast(xp, coins, item) {
+        // Create element
+        const div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '20%';
+        div.style.left = '50%';
+        div.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        div.style.background = 'rgba(0, 0, 0, 0.95)';
+        div.style.border = '2px solid #00ff00';
+        div.style.borderRadius = '15px';
+        div.style.padding = '20px 40px';
+        div.style.color = 'white';
+        div.style.textAlign = 'center';
+        div.style.zIndex = '10000';
+        div.style.fontFamily = 'Impact, sans-serif'; // Or your game font
+        div.style.fontSize = '1.5rem';
+        div.style.boxShadow = '0 0 30px rgba(0, 255, 0, 0.3)';
+        div.style.opacity = '0';
+        div.style.transition = 'all 0.3s ease-out';
+        div.style.pointerEvents = 'none';
+
+        let html = `<div style="color:#00ff00; margin-bottom:10px; font-size:1.8rem;">SUPPLY DROP!</div>`;
+        html += `<div>✨ +${window.formatNumber(xp)} XP</div>`;
+        html += `<div>💰 +${window.formatNumber(coins)} Coins</div>`;
+        if (item) {
+            html += `<div style="color:cyan; margin-top:10px; border-top:1px solid #555; padding-top:5px;">🎁 ${item}</div>`;
+        }
+
+        div.innerHTML = html;
+        document.body.appendChild(div);
+
+        // Animate In
+        requestAnimationFrame(() => {
+            div.style.opacity = '1';
+            div.style.transform = 'translate(-50%, -50%) scale(1)';
+        });
+
+        // Animate Out
+        setTimeout(() => {
+            div.style.opacity = '0';
+            div.style.transform = 'translate(-50%, -60%) scale(0.8)';
+            setTimeout(() => div.remove(), 300);
+        }, 2500);
+    }
+
+    // --- UPDATED SUPPLY LOGIC ---
     function claimSupply() {
         const now = Date.now();
         if(!window.player.lastCapsule) window.player.lastCapsule = 0;
         const diff = now - window.player.lastCapsule;
+        
         if(diff < CONFIG.CAPSULE_COOLDOWN) {
-            alert(`Supply Capsule recharging... ${Math.ceil((CONFIG.CAPSULE_COOLDOWN - diff) / 1000)}s remaining.`);
+            // Optional: Show small toast saying "Wait X seconds"
             return;
         }
+        
         window.player.lastCapsule = now;
-        const base = 50 * (window.player.lvl || 1);
-        const xpGain = Math.floor(base * (0.8 + Math.random() * 0.4));
-        const coinGain = Math.floor(base * 0.5);
+        const lvl = window.player.lvl || 1;
+        const advLvl = window.player.advanceLevel || 0;
+
+        // --- NEW FORMULA: EXPONENTIAL SCALING ---
+        // Old: 50 * lvl (Too weak)
+        // New: Base + (Level * Multiplier) + (Level^2 * Curve)
+        
+        // XP Calc
+        let baseXp = 500 + (lvl * 250) + (Math.pow(lvl, 1.8) * 10);
+        
+        // Coin Calc
+        let baseCoins = 1000 + (lvl * 150) + (Math.pow(lvl, 1.7) * 5);
+
+        // Apply Advance Perks (Gold Boost Lvl 25 / XP Boost Lvl 30)
+        let xpMult = 1.0;
+        let coinMult = 1.0;
+
+        if (advLvl >= 25) coinMult += (0.10 + ((advLvl - 25) * 0.01)); // +10% base + 1% per lvl
+        if (advLvl >= 30) xpMult += (0.10 + ((advLvl - 30) * 0.01));  // +10% base + 1% per lvl
+
+        // Apply Soul Multiplier (Optional: maybe 10% effectiveness to keep it balanced)
+        const soulMult = 1 + (window.player.soulLevel * 0.1); 
+        
+        const xpGain = Math.floor(baseXp * xpMult * soulMult);
+        const coinGain = Math.floor(baseCoins * coinMult * soulMult);
+
+        // Apply Rewards
         window.player.xp += xpGain;
         window.player.coins += coinGain;
-        window.isDirty = true;
         
-        let msg = `SUPPLY DROP RECEIVED!\n\n+${window.formatNumber(xpGain)} XP\n+${window.formatNumber(coinGain)} Coins`;
-        if(Math.random() < 0.3) {
-            window.addToInventory({ n: "Capsule Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 700, rarity: 1 });
-            msg += `\n+1 Saiyan Gear`;
+        // Gear Drop Chance
+        let dropName = null;
+        if(Math.random() < 0.35) { // Increased to 35%
+            // Drop tier scales with World
+            const tier = Math.min(6, Math.max(1, Math.floor(window.player.lvl / 20))); 
+            
+            let val = 700 * tier;
+            let name = "Saiyan Gear";
+            if(tier >= 2) name = "Elite Gear";
+            if(tier >= 3) name = "Legendary Gear";
+            
+            window.addToInventory({ n: name, type: Math.random() > 0.5 ? 'w' : 'a', val: val, rarity: tier });
+            dropName = name;
         }
+
+        window.isDirty = true;
         checkLevelUp();
         syncUI();
         saveGame();
-        if(document.getElementById('levelup-modal').style.display === 'none') alert(msg);
+        
+        // Show In-Game Toast
+        showSupplyToast(xpGain, coinGain, dropName);
+        
         updateCapsuleBtn();
     }
 
@@ -396,14 +482,20 @@
         const btn = document.getElementById('btn-supply');
         if(!btn) return;
         const diff = Date.now() - (window.player.lastCapsule || 0);
+        
         if(diff >= CONFIG.CAPSULE_COOLDOWN) {
             btn.innerHTML = "<i>🎁</i> Supply Ready!";
-            btn.classList.add('btn-ready');
+            btn.classList.add('btn-ready'); // Ensure you have this class in CSS for a glow effect
             btn.style.color = "#fff";
+            btn.style.background = "linear-gradient(to bottom, #2ecc71, #27ae60)";
+            btn.style.border = "1px solid #2ecc71";
         } else {
-            btn.innerHTML = `<i>⏳</i> ${Math.ceil((CONFIG.CAPSULE_COOLDOWN - diff) / 1000)}s`;
+            const sec = Math.ceil((CONFIG.CAPSULE_COOLDOWN - diff) / 1000);
+            btn.innerHTML = `<i>⏳</i> ${sec}s`;
             btn.classList.remove('btn-ready');
             btn.style.color = "#777";
+            btn.style.background = "#222";
+            btn.style.border = "1px solid #444";
         }
     }
 
