@@ -1026,52 +1026,87 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
     transform: translate(-50%, -50%) scale(1);
 }
 
-/* --- EXPLORE MODE STYLES --- */
-#explore-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
+/* --- RPG HUD STYLES --- */
 #explore-hud {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none; /* Let touches pass to canvas/buttons */
+    pointer-events: none; user-select: none;
 }
 
-.hud-stat-bar {
-    position: absolute; top: 15px; left: 15px;
-    width: 150px; display: flex; flex-direction: column; gap: 2px;
+/* Status Panel */
+#rpg-status-panel {
+    position: absolute; top: 20px; left: 20px;
+    display: flex; align-items: center; gap: 10px;
+    width: 60%; max-width: 400px; /* Long bars */
 }
 
-.hud-bar-bg {
-    width: 100%; height: 10px; background: #333; border: 1px solid white;
-    border-radius: 5px; overflow: hidden;
+.rpg-avatar-frame {
+    width: 60px; height: 60px;
+    border: 3px solid white; border-radius: 50%;
+    background: #000; overflow: hidden;
+    box-shadow: 0 0 10px black; z-index: 2;
+}
+#rpg-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+
+.rpg-bars {
+    flex: 1; display: flex; flex-direction: column; gap: 5px;
 }
 
+.rpg-bar-bg {
+    width: 100%; height: 18px; /* Thicker bars */
+    background: rgba(0,0,0,0.7);
+    border: 1px solid #555; border-radius: 4px;
+    position: relative; overflow: hidden;
+}
+
+.rpg-fill { height: 100%; width: 100%; transition: width 0.2s; }
+.hp-fill { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+.xp-fill { background: linear-gradient(90deg, #2980b9, #3498db); }
+
+.rpg-text {
+    position: absolute; top: 0; left: 5px; width: 100%; height: 100%;
+    display: flex; align-items: center;
+    font-family: 'Orbitron'; font-size: 0.65rem; color: white;
+    text-shadow: 1px 1px 2px black; letter-spacing: 1px;
+}
+
+/* Loot Tracker */
+#rpg-loot-tracker {
+    position: absolute; top: 90px; left: 30px;
+    display: flex; gap: 15px;
+}
+.loot-item {
+    background: rgba(0,0,0,0.6); padding: 5px 10px;
+    border-radius: 15px; border: 1px solid #444;
+    color: #f1c40f; font-family: 'Bangers'; font-size: 1rem;
+    display: flex; align-items: center; gap: 5px;
+}
+
+/* Quest Box */
+#rpg-quest-box {
+    position: absolute; top: 20px; right: 20px;
+    text-align: right; font-family: 'Orbitron';
+}
+#quest-title { font-size: 0.7rem; color: #aaa; letter-spacing: 1px; }
+#quest-desc { font-size: 0.9rem; color: #f1c40f; text-shadow: 1px 1px black; }
+
+/* Joystick & Controls */
 #joy-zone {
-    position: absolute; bottom: 50px; left: 30px;
-    width: 120px; height: 120px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    pointer-events: auto;
+    position: absolute; top: 0; left: 0; width: 50%; height: 100%;
+    z-index: 10; pointer-events: auto; /* Zone covers half screen */
 }
-
 #joy-stick {
-    position: absolute; top: 50%; left: 50%;
-    width: 50px; height: 50px;
-    background: rgba(255, 215, 0, 0.8);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 0 10px gold;
+    position: absolute; width: 60px; height: 60px;
+    background: rgba(255, 255, 255, 0.3); border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 50%; transform: translate(-50%, -50%);
+    display: none; pointer-events: none; /* Visual only, follows touch */
+    box-shadow: 0 0 15px rgba(255,255,255,0.2);
 }
 
 .explore-controls {
     position: absolute; bottom: 40px; right: 20px;
     display: flex; gap: 15px; align-items: flex-end;
-    pointer-events: auto;
+    pointer-events: auto; z-index: 20;
 }
-
 .ex-btn {
     width: 70px; height: 70px; border-radius: 50%;
     border: 3px solid white; display: flex; align-items: center; justify-content: center;
