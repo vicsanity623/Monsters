@@ -477,6 +477,7 @@
     }
 
     function updateHUD() {
+        // Quest Text
         const kc = document.getElementById('hud-kill-count');
         if(kc) {
             if(activeQuest) {
@@ -487,9 +488,14 @@
                 kc.style.color = "white";
             }
         }
+        
+        // --- FIX: HP Bar Logic ---
         const hpBar = document.getElementById('hud-hp-bar');
         if(hpBar) {
-            const pct = Math.max(0, (player.hp / player.maxHp) * 100);
+            // Prevent division by zero
+            const max = player.maxHp > 0 ? player.maxHp : 100;
+            // Calculate percentage (0 to 100)
+            const pct = Math.max(0, Math.min(100, (player.hp / max) * 100));
             hpBar.style.width = pct + "%";
         }
     }
