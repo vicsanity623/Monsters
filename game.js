@@ -108,7 +108,7 @@
         return shortValue + suffix;
     };
 
-    // --- DETAILS MODAL LOGIC (COMPLETELY OVERHAULED) ---
+    // --- DETAILS MODAL LOGIC (UPDATED) ---
     window.openDetails = function() {
         const modal = document.getElementById('details-modal');
         if(!modal) return;
@@ -118,43 +118,43 @@
         const aMult = getAdvMult(); 
         const advLvl = p.advanceLevel || 0;
 
-        // --- 1. CORE STATS ---
-        const totalPower = window.GameState.gokuPower; // Already includes ALL multipliers
+        // Core Stats from GameState (includes ALL multipliers)
+        const totalPower = window.GameState.gokuPower; 
         const maxHp = window.GameState.gokuMaxHP;
         const defense = window.GameState.gokuDefense;
 
-        // --- 2. ADVANCE PERK CALCULATIONS ---
+        // --- PERK CALCULATIONS ---
         
-        // Crit: Base (1%) + Rank (0.5% per rank) + Advance (5% base at lvl 5 + 0.5% per lvl above 5)
+        // Crit Chance
         let critChance = 1 + (p.rank * 0.5); 
         if(advLvl >= 5) critChance += 5 + ((advLvl - 5) * 0.5);
 
-        // Evasion: Advance (5% base at lvl 15 + 0.2% per lvl above 15). Lvl 50 cap is handled in display logic usually, but here:
+        // Evasion
         let evasion = 0;
-        if(advLvl >= 50) evasion = 15; // Ultra Instinct Cap
+        if(advLvl >= 50) evasion = 15; 
         else if(advLvl >= 15) evasion = 5 + ((advLvl - 15) * 0.2);
 
-        // Life Steal: Lvl 10 (15% + 1% per lvl)
+        // Life Steal
         let lifeSteal = 0;
         if(advLvl >= 10) lifeSteal = 15 + ((advLvl - 10) * 1.0);
 
-        // Double Strike: Lvl 20 (5% + 0.5% per lvl)
+        // Double Strike
         let doubleStrike = 0;
         if(advLvl >= 20) doubleStrike = 5 + ((advLvl - 20) * 0.5);
 
-        // Gold/XP Boosts
+        // Boosts
         let goldBoost = 0;
         if(advLvl >= 25) goldBoost = 10 + (advLvl - 25);
         let xpBoost = 0;
         if(advLvl >= 30) xpBoost = 10 + (advLvl - 30);
 
-        // --- 3. DOM UPDATES ---
+        // --- RENDER DOM ---
         document.getElementById('det-power').innerText = window.formatNumber(totalPower);
         document.getElementById('det-hp').innerText = window.formatNumber(maxHp);
-        document.getElementById('det-atk').innerText = window.formatNumber(totalPower); // Attack is Power in this system
+        document.getElementById('det-atk').innerText = window.formatNumber(totalPower); 
         document.getElementById('det-def').innerText = window.formatNumber(defense);
         
-        // Multipliers Section
+        // Multiplier Breakdown
         document.getElementById('det-soul').innerHTML = `
             <div style="display:flex; justify-content:space-between; width:100%;">
                 <span>💎 Soul Boost:</span> <span style="color:#00ffff">x${sMult.toFixed(1)}</span>
@@ -167,9 +167,10 @@
         document.getElementById('det-crit').innerText = `${critChance.toFixed(1)}%`;
         document.getElementById('det-coins').innerText = window.formatNumber(p.coins);
 
-        // --- 4. INJECT EXTRA STATS (Perks) ---
-        // Find or create a container for extra stats to avoid duplicates
+        // --- INJECT EXTRA STATS SECTION ---
         let extraContainer = document.getElementById('det-extra-stats');
+        
+        // Create container if missing
         if(!extraContainer) {
             extraContainer = document.createElement('div');
             extraContainer.id = 'det-extra-stats';
@@ -181,6 +182,7 @@
             coinRow.parentNode.insertBefore(extraContainer, coinRow);
         }
 
+        // Build Extra Stats HTML
         let extraHtml = "";
         
         if(evasion > 0) extraHtml += `<div class="stat-row"><span>💨 Dodge Chance</span> <span style="color:#00d2ff">${evasion.toFixed(1)}%</span></div>`;
@@ -189,7 +191,6 @@
         if(goldBoost > 0) extraHtml += `<div class="stat-row"><span>💰 Gold Bonus</span> <span style="color:gold">+${goldBoost}%</span></div>`;
         if(xpBoost > 0) extraHtml += `<div class="stat-row"><span>🌟 XP Bonus</span> <span style="color:cyan">+${xpBoost}%</span></div>`;
         
-        // Specific Perks
         if(advLvl >= 35) extraHtml += `<div class="stat-row"><span>😡 Rage Mode</span> <span style="color:#ff0000">Active</span></div>`;
         if(advLvl >= 40) extraHtml += `<div class="stat-row"><span>⚡ Starter Ki</span> <span style="color:#ffff00">+20%</span></div>`;
         if(advLvl >= 45) extraHtml += `<div class="stat-row"><span>💀 Boss Slayer</span> <span style="color:#ff8c00">+20% Dmg</span></div>`;
@@ -227,9 +228,9 @@
             if(window.player.dragonShards === undefined) window.player.dragonShards = 0;
             if(window.player.advanceLevel === undefined) window.player.advanceLevel = 0;
 
+            // LOADER DELAY LOGIC
             const loader = document.getElementById('loader');
             if(loader) {
-                // Wait 3.5 seconds to let the beam charge up fully before fading out
                 setTimeout(() => {
                     loader.style.transition = "opacity 0.5s";
                     loader.style.opacity = "0";
@@ -302,7 +303,7 @@
         document.getElementById('ui-power').innerText = window.formatNumber(atk * 30 + window.GameState.gokuMaxHP);
     }
 
-    // --- UPDATED LEVEL UP LOGIC ---
+    // --- UPDATED LEVEL UP LOGIC (COMPOUNDING) ---
     function showLevelUp(oldLvl, newLvl, hpGain, atkGain, defGain) {
         if(window.battle.active) window.battle.cinematic = true;
         document.getElementById('lvl-up-old').innerText = oldLvl;
@@ -335,28 +336,20 @@
         let leveledUp = false;
         const oldLvl = window.player.lvl;
         
-        let totalHpGain = 0;
-        let totalAtkGain = 0;
-        let totalDefGain = 0;
+        // Capture stats BEFORE leveling
+        const startHP = window.GameState.gokuMaxHP;
+        const startATK = window.GameState.gokuPower;
+        const startDEF = window.GameState.gokuDefense;
 
         while(window.player.xp >= window.player.nextXp) {
             window.player.lvl++; 
             window.player.xp -= window.player.nextXp; 
             window.player.nextXp = Math.floor(window.player.nextXp * 1.3);
             
-            const levelMult = window.player.lvl;
-            
-            const hpGain = 250 + (levelMult * 500); 
-            const atkGain = 5 + (levelMult * 10);
-            const defGain = 2 + (levelMult * 5);
-
-            window.player.bHp += hpGain; 
-            window.player.bAtk += atkGain; 
-            window.player.bDef += defGain;
-            
-            totalHpGain += hpGain;
-            totalAtkGain += atkGain;
-            totalDefGain += defGain;
+            // --- NEW COMPOUNDING SCALING (5% per level + Flat) ---
+            window.player.bHp = Math.floor(window.player.bHp * 1.05) + 1000;
+            window.player.bAtk = Math.floor(window.player.bAtk * 1.05) + 20;
+            window.player.bDef = Math.floor(window.player.bDef * 1.05) + 10;
 
             window.player.hp = window.GameState.gokuMaxHP;
             
@@ -365,15 +358,24 @@
         }
 
         if(leveledUp) {
-            showLevelUp(oldLvl, window.player.lvl, totalHpGain, totalAtkGain, totalDefGain);
+            // Capture stats AFTER leveling
+            const endHP = window.GameState.gokuMaxHP;
+            const endATK = window.GameState.gokuPower;
+            const endDEF = window.GameState.gokuDefense;
+
+            // Calculate EFFECTIVE gains (including all multipliers)
+            const trueHpGain = endHP - startHP;
+            const trueAtkGain = endATK - startATK;
+            const trueDefGain = endDEF - startDEF;
+
+            showLevelUp(oldLvl, window.player.lvl, trueHpGain, trueAtkGain, trueDefGain);
             syncUI();
             saveGame();
         }
     }
 
-    // --- NOTIFICATION HELPER (Replaces Alert) ---
+    // --- NOTIFICATION HELPER ---
     function showSupplyToast(xp, coins, item) {
-        // Create element
         const div = document.createElement('div');
         div.style.position = 'fixed';
         div.style.top = '20%';
@@ -386,7 +388,7 @@
         div.style.color = 'white';
         div.style.textAlign = 'center';
         div.style.zIndex = '10000';
-        div.style.fontFamily = 'Impact, sans-serif'; // Or your game font
+        div.style.fontFamily = 'Impact, sans-serif'; 
         div.style.fontSize = '1.5rem';
         div.style.boxShadow = '0 0 30px rgba(0, 255, 0, 0.3)';
         div.style.opacity = '0';
@@ -403,13 +405,11 @@
         div.innerHTML = html;
         document.body.appendChild(div);
 
-        // Animate In
         requestAnimationFrame(() => {
             div.style.opacity = '1';
             div.style.transform = 'translate(-50%, -50%) scale(1)';
         });
 
-        // Animate Out
         setTimeout(() => {
             div.style.opacity = '0';
             div.style.transform = 'translate(-50%, -60%) scale(0.8)';
@@ -424,7 +424,6 @@
         const diff = now - window.player.lastCapsule;
         
         if(diff < CONFIG.CAPSULE_COOLDOWN) {
-            // Optional: Show small toast saying "Wait X seconds"
             return;
         }
         
@@ -432,39 +431,26 @@
         const lvl = window.player.lvl || 1;
         const advLvl = window.player.advanceLevel || 0;
 
-        // --- NEW FORMULA: EXPONENTIAL SCALING ---
-        // Old: 50 * lvl (Too weak)
-        // New: Base + (Level * Multiplier) + (Level^2 * Curve)
-        
-        // XP Calc
         let baseXp = 500 + (lvl * 250) + (Math.pow(lvl, 1.8) * 10);
-        
-        // Coin Calc
         let baseCoins = 1000 + (lvl * 150) + (Math.pow(lvl, 1.7) * 5);
 
-        // Apply Advance Perks (Gold Boost Lvl 25 / XP Boost Lvl 30)
         let xpMult = 1.0;
         let coinMult = 1.0;
 
-        if (advLvl >= 25) coinMult += (0.10 + ((advLvl - 25) * 0.01)); // +10% base + 1% per lvl
-        if (advLvl >= 30) xpMult += (0.10 + ((advLvl - 30) * 0.01));  // +10% base + 1% per lvl
+        if (advLvl >= 25) coinMult += (0.10 + ((advLvl - 25) * 0.01)); 
+        if (advLvl >= 30) xpMult += (0.10 + ((advLvl - 30) * 0.01)); 
 
-        // Apply Soul Multiplier (Optional: maybe 10% effectiveness to keep it balanced)
         const soulMult = 1 + (window.player.soulLevel * 0.1); 
         
         const xpGain = Math.floor(baseXp * xpMult * soulMult);
         const coinGain = Math.floor(baseCoins * coinMult * soulMult);
 
-        // Apply Rewards
         window.player.xp += xpGain;
         window.player.coins += coinGain;
         
-        // Gear Drop Chance
         let dropName = null;
-        if(Math.random() < 0.35) { // Increased to 35%
-            // Drop tier scales with World
+        if(Math.random() < 0.35) { 
             const tier = Math.min(6, Math.max(1, Math.floor(window.player.lvl / 20))); 
-            
             let val = 700 * tier;
             let name = "Saiyan Gear";
             if(tier >= 2) name = "Elite Gear";
@@ -479,9 +465,7 @@
         syncUI();
         saveGame();
         
-        // Show In-Game Toast
         showSupplyToast(xpGain, coinGain, dropName);
-        
         updateCapsuleBtn();
     }
 
@@ -492,7 +476,7 @@
         
         if(diff >= CONFIG.CAPSULE_COOLDOWN) {
             btn.innerHTML = "<i>🎁</i> Supply Ready!";
-            btn.classList.add('btn-ready'); // Ensure you have this class in CSS for a glow effect
+            btn.classList.add('btn-ready');
             btn.style.color = "#fff";
             btn.style.background = "linear-gradient(to bottom, #2ecc71, #27ae60)";
             btn.style.border = "1px solid #2ecc71";
@@ -546,25 +530,19 @@
     window.addEventListener('beforeunload', () => { window.isDirty = true; saveGame(); });
 
     function showTab(t) {
-        // 1. Hide all screens & reset nav buttons
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
         
-        // 2. Show target screen & active button
         const targetView = document.getElementById('view-' + t);
         const targetBtn = document.getElementById('tab-' + t);
         
         if(targetView) targetView.classList.add('active-screen');
         if(targetBtn) targetBtn.classList.add('active');
         
-        // 3. Logic for specific tabs
-        
-        // --- BATTLE TAB (STAGES) ---
         if(t === 'battle') {
-            if(window.HubBattle) window.HubBattle.stop(); // Stop Hub animation
-            if(typeof window.stopExplore === 'function') window.stopExplore(); // Stop Explore loop
+            if(window.HubBattle) window.HubBattle.stop(); 
+            if(typeof window.stopExplore === 'function') window.stopExplore(); 
             
-            // If battle isn't running, show prompt
             if(!window.battle.active) {
                 const prompt = document.getElementById('start-prompt');
                 const eImg = document.getElementById('e-img');
@@ -574,22 +552,19 @@
                 if(eName) eName.innerText = "";
             }
         } 
-        // --- EXPLORE TAB (NEW) ---
         else if (t === 'explore') {
-            if(window.HubBattle) window.HubBattle.stop(); // Stop Hub
-            if(typeof window.stopCombat === 'function') window.stopCombat(); // Stop Stages
-            document.getElementById('battle-menu').style.display = 'none'; // Hide win screen
+            if(window.HubBattle) window.HubBattle.stop(); 
+            if(typeof window.stopCombat === 'function') window.stopCombat(); 
+            document.getElementById('battle-menu').style.display = 'none'; 
             
-            // Start the physics engine for Explore Mode
             if(typeof window.initExplore === 'function') {
                 window.initExplore();
             }
         }
-        // --- HUB TAB (DEFAULT) ---
         else {
-            if(window.HubBattle) window.HubBattle.start(); // Start Hub animation
-            if(typeof window.stopCombat === 'function') window.stopCombat(); // Stop Stages
-            if(typeof window.stopExplore === 'function') window.stopExplore(); // Stop Explore
+            if(window.HubBattle) window.HubBattle.start(); 
+            if(typeof window.stopCombat === 'function') window.stopCombat(); 
+            if(typeof window.stopExplore === 'function') window.stopExplore(); 
             
             const bMenu = document.getElementById('battle-menu');
             if(bMenu) bMenu.style.display = 'none';
