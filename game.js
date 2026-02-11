@@ -228,7 +228,14 @@
             if(window.player.advanceLevel === undefined) window.player.advanceLevel = 0;
 
             const loader = document.getElementById('loader');
-            if(loader) loader.style.display = 'none';
+            if(loader) {
+                // Wait 3.5 seconds to let the beam charge up fully before fading out
+                setTimeout(() => {
+                    loader.style.transition = "opacity 0.5s";
+                    loader.style.opacity = "0";
+                    setTimeout(() => { loader.style.display = 'none'; }, 500);
+                }, 3500); 
+            }
             
             syncUI();
             
