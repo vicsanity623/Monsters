@@ -1,35 +1,31 @@
 (function() {
     // --- ASSETS ---
     const ASSETS = {
-        GROUND_TILE: "IMG_0287.png", // Grass Tile
-        HOUSE: "IMG_0299.png",       // House
-        TREE: "IMG_0300.png",        // Tree
-        NPC: "IMG_0292.png",         // NPC/Villager        
-        // Fallback Enemy if API fails
+        GROUND_TILE: "IMG_0287.png",
+        HOUSE: "IMG_0299.png",
+        TREE: "IMG_0300.png",
+        NPC: "IMG_0292.png",
         ENEMY_FALLBACK: "https://dragonball-api.com/transformations/frieza-final.png" 
     };
 
     const canvas = document.getElementById('explore-canvas');
     const ctx = canvas.getContext('2d');
 
-    // World
     const WORLD_WIDTH = 3000;
     const WORLD_HEIGHT = 3000;
 
-    // State
     let isRunning = false;
     let lastTime = 0;
     let camera = { x: 0, y: 0 };
     let bgImage = new Image(); 
     
-    // Asset Images
     let imgHouse = new Image();
     let imgTree = new Image();
     let imgNpc = new Image();
 
-    // Stats
+    // Stats & Quests
     let kills = 0;
-    let currentQuest = { target: 5, progress: 0, desc: "Defeat Invaders" };
+    let activeQuest = null; // { target: 5, progress: 0, desc: "...", reward: {...} }
 
     // Entities
     let player = { 
@@ -45,27 +41,21 @@
     let loots = [];
     let structures = []; 
 
-    // Inputs
     const input = { x: 0, y: 0, charging: false, chargeVal: 0 };
 
     // --- INIT ---
     function initExplore() {
         if(isRunning) return;
         
-        // 1. Force Sync Stats
         if(window.GameState) {
             player.maxHp = window.GameState.gokuMaxHP || 1000;
             player.hp = window.GameState.gokuMaxHP || 1000;
-        } else {
-            player.maxHp = 1000; player.hp = 1000;
         }
         
-        // 2. Load Sprite
         const hudSprite = document.getElementById('ui-sprite');
         if(hudSprite && hudSprite.src) player.img.src = hudSprite.src;
         else player.img.src = "IMG_0061.png"; 
 
-        // 3. Load Assets
         bgImage.src = ASSETS.GROUND_TILE;
         imgHouse.src = ASSETS.HOUSE;
         imgTree.src = ASSETS.TREE;
@@ -76,18 +66,16 @@
         setupControls();
         generateWorld();
 
-        // Reset
         enemies = []; bullets = []; particles = []; loots = [];
         player.x = WORLD_WIDTH/2; player.y = WORLD_HEIGHT/2;
         kills = 0;
+        activeQuest = null; // Reset quest
         
-        // FORCE HUD UPDATE NOW
         updateHUD();
 
         isRunning = true;
         requestAnimationFrame(loop);
 
-        // Spawn Loop (Groups)
         setInterval(() => {
             if(isRunning && enemies.length < 15) spawnEnemyGroup();
         }, 4000);
@@ -99,28 +87,19 @@
     // --- WORLD GENERATION ---
     function generateWorld() {
         structures = []; npcs = [];
-        // Town Center
         structures.push({ type: 'fountain', x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2, w: 150, h: 150, color: 'cyan' });
 
-        // Houses
         for(let i=0; i<8; i++) {
             const angle = (i / 8) * Math.PI * 2;
-            structures.push({
-                type: 'house',
-                x: WORLD_WIDTH/2 + Math.cos(angle) * 400,
-                y: WORLD_HEIGHT/2 + Math.sin(angle) * 400,
-                w: 200, h: 200, img: imgHouse
-            });
+            structures.push({ type: 'house', x: WORLD_WIDTH/2 + Math.cos(angle) * 400, y: WORLD_HEIGHT/2 + Math.sin(angle) * 400, w: 200, h: 200, img: imgHouse });
         }
-        // Trees
         for(let i=0; i<60; i++) {
             const x = Math.random() * WORLD_WIDTH;
             const y = Math.random() * WORLD_HEIGHT;
-            if(Math.hypot(x - WORLD_WIDTH/2, y - WORLD_HEIGHT/2) > 600) {
+            if(Math.hypot(x - WORLD_WIDTH/2, y - WORLD_HEIGHT/2) > 800) { // Further out
                 structures.push({ type: 'tree', x: x, y: y, w: 120, h: 120, img: imgTree });
             }
         }
-        // NPCs
         for(let i=0; i<6; i++) {
             npcs.push({
                 x: WORLD_WIDTH/2 + (Math.random()-0.5)*300,
@@ -131,29 +110,61 @@
         }
     }
 
-    // --- CONTROLS (FIXED JOYSTICK) ---
+    // --- NPC INTERACTION & QUESTS ---
+    function checkNpcInteraction(touchX, touchY) {
+        // Convert screen touch to world coordinates
+        const worldX = touchX + camera.x;
+        const worldY = touchY + camera.y;
+
+        for (let npc of npcs) {
+            if (Math.hypot(worldX - npc.x, worldY - npc.y) < 60) {
+                // Determine Quest Type
+                const types = [
+                    { desc: "Defeat 5 Invaders", target: 5, reward: { coins: 1000, xp: 500 } },
+                    { desc: "Defeat 10 Invaders", target: 10, reward: { coins: 2500, xp: 1200, item: true } },
+                    { desc: "Clear Area (15 Kills)", target: 15, reward: { coins: 5000, xp: 2500, shards: 1 } }
+                ];
+                const q = types[Math.floor(Math.random() * types.length)];
+
+                // Show Confirm Dialog (Simple JS Confirm for now, or replace with custom UI)
+                if (confirm(`NPC Quest: ${q.desc}\n\nAccept?`)) {
+                    activeQuest = { ...q, progress: 0 };
+                    alert("Quest Accepted! Check HUD.");
+                    updateHUD();
+                }
+                return true; // Handled
+            }
+        }
+        return false;
+    }
+
+    // --- CONTROLS ---
     function setupControls() {
         const joyZone = document.getElementById('joy-zone');
         const stick = document.getElementById('joy-stick');
         let startX, startY, activeId = null;
 
-        // Visual Reset
-        stick.style.display = 'none'; // Hide initially
+        stick.style.display = 'none'; 
         stick.style.position = 'absolute';
 
         const handleStart = (e) => {
+            // Check if tapping NPC first (Right side taps mainly, or specific taps)
+            const touch = e.changedTouches[0];
+            
+            // If touching right side (Action area), check for NPC tap if not hitting a button
+            if (touch.clientX > window.innerWidth / 2) {
+                // If we tapped an NPC, don't move joystick
+                if (checkNpcInteraction(touch.clientX, touch.clientY)) return;
+            }
+
             e.preventDefault();
             if(activeId !== null) return;
-            
-            // Only accept touches on LEFT side of screen
-            const touch = e.changedTouches[0];
-            if(touch.clientX > window.innerWidth / 2) return;
+            if(touch.clientX > window.innerWidth / 2) return; // Left side only for joystick
 
             activeId = touch.identifier;
             startX = touch.clientX;
             startY = touch.clientY;
 
-            // Show Stick at finger pos
             stick.style.display = 'block';
             stick.style.transition = 'none';
             stick.style.left = startX + 'px';
@@ -170,18 +181,9 @@
                     let dx = t.clientX - startX;
                     let dy = t.clientY - startY;
                     const dist = Math.sqrt(dx*dx + dy*dy);
-                    
-                    if(dist > maxDist) {
-                        dx = (dx/dist) * maxDist;
-                        dy = (dy/dist) * maxDist;
-                    }
-                    
-                    // Visual Stick Move
+                    if(dist > maxDist) { dx = (dx/dist) * maxDist; dy = (dy/dist) * maxDist; }
                     stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                    
-                    // Input Output
-                    input.x = dx / maxDist;
-                    input.y = dy / maxDist;
+                    input.x = dx / maxDist; input.y = dy / maxDist;
                     break;
                 }
             }
@@ -191,41 +193,39 @@
             e.preventDefault();
             for(let i=0; i<e.changedTouches.length; i++) {
                 if(e.changedTouches[i].identifier === activeId) {
-                    activeId = null;
-                    input.x = 0; input.y = 0;
-                    stick.style.display = 'none'; // Hide
-                    break;
+                    activeId = null; input.x = 0; input.y = 0; stick.style.display = 'none'; break;
                 }
             }
         };
 
-        joyZone.addEventListener('touchstart', handleStart, {passive: false});
-        joyZone.addEventListener('touchmove', handleMove, {passive: false});
-        joyZone.addEventListener('touchend', handleEnd);
+        // Attach listener to full canvas for NPC taps + Joystick
+        canvas.addEventListener('touchstart', handleStart, {passive: false});
+        canvas.addEventListener('touchmove', handleMove, {passive: false});
+        canvas.addEventListener('touchend', handleEnd);
 
-        // Buttons
+        // Map buttons
         document.getElementById('btn-ex-attack').onclick = () => { if(!input.charging) shoot(); };
         document.getElementById('btn-ex-dodge').onclick = () => { if(!input.charging) dodge(); };
-        
         const btnCharge = document.getElementById('btn-ex-charge');
         const startC = (e) => { e.preventDefault(); input.charging = true; };
         const endC = (e) => { e.preventDefault(); if(input.chargeVal>=100) unleashUltimate(); input.charging = false; input.chargeVal = 0; document.getElementById('ex-charge-overlay').style.display='none'; };
         btnCharge.addEventListener('touchstart', startC); btnCharge.addEventListener('touchend', endC);
     }
 
-    // --- SPAWN GROUPS & AI ---
+    // --- GAMEPLAY ---
     function spawnEnemyGroup() {
-        // Find a random spot far away
-        const cx = player.x + (Math.random()-0.5) * 2000;
-        const cy = player.y + (Math.random()-0.5) * 2000;
+        // Spawn FAR from player (min 1000px)
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 1000 + Math.random() * 500; 
         
-        // Clamp to world
-        const gx = Math.max(200, Math.min(WORLD_WIDTH-200, cx));
-        const gy = Math.max(200, Math.min(WORLD_HEIGHT-200, cy));
+        let cx = player.x + Math.cos(angle) * dist;
+        let cy = player.y + Math.sin(angle) * dist;
+        
+        // Clamp to world bounds
+        cx = Math.max(100, Math.min(WORLD_WIDTH-100, cx));
+        cy = Math.max(100, Math.min(WORLD_HEIGHT-100, cy));
 
         const gPower = window.GameState ? window.GameState.gokuPower : 100;
-        
-        // Fetch Image
         let enemySrc = ASSETS.ENEMY_FALLBACK;
         if(window.apiData && window.apiData.characters && window.apiData.characters.length > 0) {
             const rIdx = Math.floor(Math.random() * window.apiData.characters.length);
@@ -233,20 +233,13 @@
         }
         const eImg = new Image(); eImg.src = enemySrc;
 
-        // Spawn 3 enemies
         for(let i=0; i<3; i++) {
             enemies.push({
-                x: gx + (Math.random()-0.5)*100,
-                y: gy + (Math.random()-0.5)*100,
-                originX: gx, originY: gy, // Patrol center
-                patrolX: gx, patrolY: gy, // Current patrol target
-                state: 'patrol', // 'patrol' or 'chase'
-                waitTimer: 0,
-                size: 80,
-                hp: gPower * 5, maxHp: gPower * 5,
-                atk: player.maxHp * 0.05,
-                speed: 3,
-                img: eImg
+                x: cx + (Math.random()-0.5)*100, y: cy + (Math.random()-0.5)*100,
+                originX: cx, originY: cy, patrolX: cx, patrolY: cy,
+                state: 'patrol', waitTimer: 0,
+                size: 80, hp: gPower * 5, maxHp: gPower * 5,
+                atk: player.maxHp * 0.05, speed: 3, img: eImg
             });
         }
     }
@@ -262,8 +255,34 @@
         }
     }
 
+    function checkQuestProgress() {
+        if(!activeQuest) return;
+        
+        activeQuest.progress++;
+        if(activeQuest.progress >= activeQuest.target) {
+            // Quest Complete!
+            alert(`QUEST COMPLETE!\nReward:\n+${activeQuest.reward.coins} Coins\n+${activeQuest.reward.xp} XP`);
+            
+            if(window.player) {
+                window.player.coins += activeQuest.reward.coins;
+                window.player.xp += activeQuest.reward.xp;
+                
+                if(activeQuest.reward.shards) {
+                    window.player.dragonShards = (window.player.dragonShards || 0) + activeQuest.reward.shards;
+                    alert(`Bonus: +${activeQuest.reward.shards} Dragon Shard!`);
+                }
+                
+                if(activeQuest.reward.item && typeof window.addToInventory === 'function') {
+                    window.addToInventory({ n: "Quest Gear", type: 'a', val: 2000, rarity: 3 });
+                    alert("Bonus: +1 Legendary Armor!");
+                }
+            }
+            activeQuest = null; // Clear quest
+        }
+        updateHUD();
+    }
+
     function shoot() {
-        // Auto Aim
         let vx = input.x; let vy = input.y;
         if (Math.abs(vx) < 0.1 && Math.abs(vy) < 0.1) {
             let nearest = null; let minD = 600;
@@ -305,7 +324,7 @@
         const dt = timestamp - lastTime; lastTime = timestamp;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 1. Update Player
+        // Player
         if(input.charging) {
             input.chargeVal += 1.2; if(input.chargeVal>100) input.chargeVal=100;
             const h = document.getElementById('ex-charge-overlay');
@@ -314,7 +333,6 @@
         } else {
             let nx = player.x + input.x * player.speed;
             let ny = player.y + input.y * player.speed;
-            // Structure Collision
             let hit = false;
             structures.forEach(s => {
                 if(s.type!=='fountain' && nx>s.x-s.w/2 && nx<s.x+s.w/2 && ny>s.y-s.h/2 && ny<s.y+s.h/2) hit=true;
@@ -326,39 +344,32 @@
         camera.x = Math.max(0, Math.min(WORLD_WIDTH - canvas.width, player.x - canvas.width/2));
         camera.y = Math.max(0, Math.min(WORLD_HEIGHT - canvas.height, player.y - canvas.height/2));
 
-        // 2. Render BG
+        // Render BG
         ctx.save(); ctx.translate(-camera.x, -camera.y);
         if(bgImage.complete && bgImage.naturalWidth > 0) {
             const ptrn = ctx.createPattern(bgImage, 'repeat');
-            ctx.fillStyle = ptrn;
-            // Draw slightly larger than world to prevent edges
-            ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height); 
-        } else {
-            ctx.fillStyle = '#2c3e50'; ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-        }
+            ctx.fillStyle = ptrn; ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height); 
+        } else { ctx.fillStyle = '#2c3e50'; ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT); }
 
-        // 3. Structures
+        // Structures
         structures.forEach(s => {
             if(s.img && s.img.complete && s.img.naturalWidth > 0) {
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                ctx.beginPath(); ctx.ellipse(s.x, s.y+s.h/2-10, s.w/2, s.h/4, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(s.x, s.y+s.h/2-10, s.w/2, s.h/4, 0, 0, Math.PI*2); ctx.fill();
                 ctx.drawImage(s.img, s.x - s.w/2, s.y - s.h/2, s.w, s.h);
-            } else {
-                ctx.fillStyle = s.color; ctx.fillRect(s.x-s.w/2, s.y-s.h/2, s.w, s.h);
-            }
+            } else { ctx.fillStyle = s.color; ctx.fillRect(s.x-s.w/2, s.y-s.h/2, s.w, s.h); }
         });
 
-        // 4. NPCs
+        // NPCs
         npcs.forEach(n => {
             if(Math.random()<0.02) { n.tx = n.x + (Math.random()-0.5)*200; n.ty = n.y + (Math.random()-0.5)*200; }
             const ang = Math.atan2(n.ty-n.y, n.tx-n.x);
             if(Math.hypot(n.tx-n.x, n.ty-n.y)>5) { n.x += Math.cos(ang)*2; n.y += Math.sin(ang)*2; }
             if(n.img && n.img.complete && n.img.naturalWidth>0) ctx.drawImage(n.img, n.x-n.w/2, n.y-n.h/2, n.w, n.h);
             else { ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(n.x, n.y, 15, 0, Math.PI*2); ctx.fill(); }
-            ctx.fillStyle='white'; ctx.font='12px Arial'; ctx.fillText(n.name, n.x-20, n.y-35);
+            ctx.fillStyle='yellow'; ctx.font='bold 14px Arial'; ctx.fillText("!", n.x-2, n.y-40); // Quest Marker
         });
 
-        // 5. Loot
+        // Loot
         for(let i=loots.length-1; i>=0; i--) {
             let l = loots[i]; l.x+=l.vx; l.y+=l.vy; l.vx*=0.9; l.vy*=0.9;
             if(Math.hypot(player.x-l.x, player.y-l.y)<200) { l.x+=(player.x-l.x)*0.1; l.y+=(player.y-l.y)*0.1; }
@@ -366,36 +377,27 @@
             ctx.beginPath(); ctx.arc(l.x, l.y, 8, 0, Math.PI*2); ctx.fillStyle = l.type=='coin'?'gold':'cyan'; ctx.fill(); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
         }
 
-        // 6. Enemies (AI Logic)
+        // Enemies
         for(let i=enemies.length-1; i>=0; i--) {
             let e = enemies[i];
-            
-            // --- AI STATE MACHINE ---
             if(e.state === 'patrol') {
-                if(e.waitTimer > 0) {
-                    e.waitTimer--;
-                } else {
-                    // Move to patrol target
+                if(e.waitTimer > 0) e.waitTimer--;
+                else {
                     let dist = Math.hypot(e.patrolX - e.x, e.patrolY - e.y);
                     if(dist < 10) {
-                        // Pick new point near origin
-                        e.waitTimer = 60 + Math.random() * 60; // Wait 1-2 sec
+                        e.waitTimer = 60 + Math.random() * 60;
                         e.patrolX = e.originX + (Math.random()-0.5) * 300;
                         e.patrolY = e.originY + (Math.random()-0.5) * 300;
                     } else {
                         let ang = Math.atan2(e.patrolY - e.y, e.patrolX - e.x);
-                        e.x += Math.cos(ang) * 1.5; // Walk slow
-                        e.y += Math.sin(ang) * 1.5;
+                        e.x += Math.cos(ang) * 1.5; e.y += Math.sin(ang) * 1.5;
                     }
                 }
-            } 
-            else if(e.state === 'chase') {
+            } else if(e.state === 'chase') {
                 let ang = Math.atan2(player.y - e.y, player.x - e.x);
-                e.x += Math.cos(ang) * e.speed;
-                e.y += Math.sin(ang) * e.speed;
+                e.x += Math.cos(ang) * e.speed; e.y += Math.sin(ang) * e.speed;
             }
 
-            // Draw
             try {
                 if(e.img.complete && e.img.naturalWidth>0) {
                     const aspect = e.img.naturalWidth/e.img.naturalHeight;
@@ -407,39 +409,30 @@
                 }
             } catch(er){}
 
-            // HP Bar
             ctx.fillStyle='red'; ctx.fillRect(e.x-30, e.y-50, 60, 6);
             ctx.fillStyle='lime'; ctx.fillRect(e.x-30, e.y-50, 60*Math.max(0, e.hp/e.maxHp), 6);
 
-            // Hits
             for(let j=bullets.length-1; j>=0; j--) {
                 let b = bullets[j];
                 if(Math.hypot(b.x-e.x, b.y-e.y) < (e.size/2+10)) {
-                    e.hp -= b.damage;
-                    e.state = 'chase'; // AGGRO ON HIT
-                    bullets.splice(j, 1);
+                    e.hp -= b.damage; e.state = 'chase'; bullets.splice(j, 1);
                     particles.push({x:e.x, y:e.y, vx:(Math.random()-0.5)*5, vy:(Math.random()-0.5)*5, life:10, color:'white'});
                 }
             }
 
-            // Damage Player
             if(Math.hypot(player.x-e.x, player.y-e.y) < (e.size/2+20)) {
                 if(player.invincible <= 0) {
-                    player.hp -= (input.charging ? e.atk*2 : e.atk);
-                    player.invincible = 30; updateHUD();
+                    player.hp -= (input.charging ? e.atk*2 : e.atk); player.invincible = 30; updateHUD();
                 }
             }
 
             if(e.hp <= 0) {
-                spawnLoot(e.x, e.y, true);
-                enemies.splice(i, 1);
-                kills++;
-                currentQuest.progress++;
-                updateHUD();
+                spawnLoot(e.x, e.y, true); enemies.splice(i, 1);
+                kills++; checkQuestProgress(); updateHUD();
             }
         }
 
-        // 7. Bullets
+        // Bullets & Particles
         ctx.fillStyle='#00ffff'; ctx.shadowBlur=10; ctx.shadowColor='#00ffff';
         for(let i=bullets.length-1; i>=0; i--) {
             let b=bullets[i]; b.x+=b.vx; b.y+=b.vy; b.life--;
@@ -448,7 +441,6 @@
         }
         ctx.shadowBlur=0;
 
-        // 8. Player
         ctx.save();
         if(!player.faceRight) { ctx.translate(player.x+player.size/2, player.y); ctx.scale(-1,1); ctx.translate(-(player.x+player.size/2), -player.y); }
         if(input.charging) { ctx.shadowColor='white'; ctx.shadowBlur=25; }
@@ -456,7 +448,6 @@
         else { ctx.fillStyle='orange'; ctx.fillRect(player.x-30, player.y-30, 60, 60); }
         ctx.restore();
 
-        // 9. Particles
         for(let i=particles.length-1; i>=0; i--) {
             let p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.life--;
             ctx.fillStyle=p.color; ctx.globalAlpha=p.life/20;
@@ -473,6 +464,7 @@
         ctx.fillStyle='gray'; structures.forEach(s=>ctx.fillRect((canvas.width-160)+s.x*ms, 10+s.y*ms, s.w*ms, s.h*ms));
         ctx.fillStyle='lime'; ctx.beginPath(); ctx.arc((canvas.width-160)+player.x*ms, 10+player.y*ms, 3, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle='red'; enemies.forEach(e=>{ ctx.beginPath(); ctx.arc((canvas.width-160)+e.x*ms, 10+e.y*ms, 2, 0, Math.PI*2); ctx.fill(); });
+        ctx.fillStyle='yellow'; npcs.forEach(n=>{ ctx.beginPath(); ctx.arc((canvas.width-160)+n.x*ms, 10+n.y*ms, 2, 0, Math.PI*2); ctx.fill(); });
 
         if(player.invincible > 0) player.invincible--;
         if(player.hp <= 0) { alert("GOKU DEFEATED!"); stopExplore(); if(typeof window.showTab === 'function') window.showTab('char'); }
@@ -483,8 +475,13 @@
     function updateHUD() {
         const kc = document.getElementById('hud-kill-count');
         if(kc) {
-            if(currentQuest.progress >= currentQuest.target) { kc.innerText = "QUEST COMPLETE!"; kc.style.color = "lime"; }
-            else { kc.innerText = `${currentQuest.desc}: ${currentQuest.progress}/${currentQuest.target}`; kc.style.color = "gold"; }
+            if(activeQuest) {
+                kc.innerText = `Quest: ${activeQuest.progress}/${activeQuest.target} (${activeQuest.desc})`;
+                kc.style.color = "gold";
+            } else {
+                kc.innerText = `Kills: ${kills}`;
+                kc.style.color = "white";
+            }
         }
         const hpBar = document.getElementById('hud-hp-bar');
         if(hpBar) {
