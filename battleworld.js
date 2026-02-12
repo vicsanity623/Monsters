@@ -27,7 +27,7 @@
 
     // Entities
     let player = { x: WORLD_WIDTH / 2, y: WORLD_WIDTH / 2 + 200, size: 60, speed: 8, hp: 100, maxHp: 100, faceRight: true, invincible: 0, img: new Image() };
-    let enemies = [], npcs = [], bullets = [], particles = [], loots = [], structures = [];
+    let enemies = [], npcs = [], bullets = [], particles = [], loots = [], structures = [], floatingTexts = [];
     let zones = [];
 
     const input = { x: 0, y: 0, charging: false, chargeVal: 0 };
@@ -78,7 +78,7 @@
         // Generate World if empty
         if (structures.length === 0) generateWorld();
 
-        enemies = []; bullets = []; particles = []; loots = [];
+        enemies = []; bullets = []; particles = []; loots = []; floatingTexts = [];
         sessionLoot = { coins: 0, shards: 0 };
         kills = 0;
 
@@ -564,6 +564,16 @@
 
             if (e.hp <= 0) {
                 spawnLoot(e.x, e.y, true);
+
+                // SOUL LOGIC
+                if (window.SoulSystem) {
+                    window.SoulSystem.gainSoul();
+                    // Floating Text
+                    floatingTexts.push({
+                        x: e.x, y: e.y, text: "+1 SOUL", color: "#00ffff", life: 60, vy: -1
+                    });
+                }
+
                 enemies.splice(i, 1);
                 kills++;
                 checkQuestProgress();
@@ -603,6 +613,22 @@
             ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 1;
             if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        // 10. Floating Texts (Souls/Damage)
+        ctx.font = 'bold 20px "Bangers"';
+        ctx.textAlign = 'center';
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+            let f = floatingTexts[i];
+            f.y += f.vy;
+            f.life--;
+            ctx.fillStyle = f.color;
+            ctx.shadowColor = 'black'; ctx.shadowBlur = 4;
+            ctx.globalAlpha = Math.max(0, f.life / 20);
+            ctx.fillText(f.text, f.x, f.y);
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+            if (f.life <= 0) floatingTexts.splice(i, 1);
         }
 
         ctx.restore();
@@ -678,6 +704,28 @@
 
         document.getElementById('loot-coins').innerHTML = `💰 <span>${sessionLoot.coins}</span>`;
         document.getElementById('loot-shards').innerHTML = `💎 <span>${sessionLoot.shards}</span>`;
+
+        // SOUL METER UPDATE
+        if (window.SoulSystem) {
+            const sm = document.getElementById('rpg-soul-meter');
+            if (sm) sm.style.display = 'flex';
+
+            const souls = window.player.souls || 0;
+            const maxSouls = window.SoulSystem.getSoulsNeeded();
+            const pct = Math.min(100, Math.floor((souls / maxSouls) * 100));
+
+            document.getElementById('rpg-soul-fill').style.width = pct + "%";
+            document.getElementById('rpg-soul-text').innerText = `SOUL ${pct}%`;
+
+            if (pct >= 100) {
+                document.getElementById('rpg-soul-text').innerText = "SOUL FULL!";
+                document.getElementById('rpg-soul-text').style.color = "#00ffff";
+                document.getElementById('rpg-soul-text').style.textShadow = "0 0 5px cyan";
+            } else {
+                document.getElementById('rpg-soul-text').style.color = "white";
+                document.getElementById('rpg-soul-text').style.textShadow = "1px 1px 2px black";
+            }
+        }
 
         const q = document.getElementById('quest-desc');
         if (q && questLog.active) {

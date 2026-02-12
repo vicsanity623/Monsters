@@ -580,6 +580,14 @@
                 <div class="loot-item" id="loot-shards" style="color:#00ffff;">💎 <span>0</span></div>
             </div>
 
+            <!-- SOUL METER (New) -->
+            <div id="rpg-soul-meter" onclick="SoulSystem.openModal()" style="display:none;"> <!-- Hidden by default, shown if SoulSystem exists -->
+                <div class="rpg-bar-bg soul-bg">
+                    <div id="rpg-soul-fill" class="rpg-fill soul-fill"></div>
+                    <span id="rpg-soul-text" class="rpg-text">SOUL 0%</span>
+                </div>
+            </div>
+
             <!-- QUEST TRACKER (Top Right) -->
             <div id="rpg-quest-box">
                 <div id="quest-title">CURRENT QUEST</div>
