@@ -64,9 +64,9 @@
             const container = document.createElement('div');
             container.id = 'boss-ui-container';
             container.style.position = 'absolute';
-            container.style.top = '80px'; // Below stage selector
+            container.style.top = '75px'; // Below stage selector
             container.style.left = '0';
-            container.style.width = '75%';
+            container.style.width = '100%';
             container.style.zIndex = '50';
             container.style.pointerEvents = 'none'; // Click through
             container.style.fontFamily = "'Orbitron', sans-serif";
@@ -108,7 +108,7 @@
             // "HP" Label on Right
             const hpLabel = document.createElement('div');
             hpLabel.style.position = 'absolute';
-            hpLabel.style.right = '-25px';
+            hpLabel.style.right = '5px';
             hpLabel.style.top = '0';
             hpLabel.style.color = 'red';
             hpLabel.style.fontWeight = 'bold';
