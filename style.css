@@ -1993,13 +1993,14 @@ nav button.active {
 }
 
 /* --- RPG INTERACTION STYLES --- */
-#btn-interact {
+#btn-interact-explore {
     position: absolute;
     top: 55%;
     left: 20px;
     right: auto;
     bottom: auto;
     transform: translateY(-50%);
+    pointer-events: auto;
     background: linear-gradient(to bottom, #f39c12, #d35400);
     border: 3px solid #ffba00;
     border-radius: 50px;
@@ -2008,7 +2009,8 @@ nav button.active {
     font-size: 1.5rem;
     color: white;
     box-shadow: 0 0 15px #f1c40f;
-    z-index: 100;
+    z-index: 300;
+    /* Higher than joystick (10) and overlay (200) */
     display: none;
     /* Hidden by default */
     align-items: center;
@@ -2037,6 +2039,7 @@ nav button.active {
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
     z-index: 200;
+    pointer-events: auto;
     display: none;
     /* Hidden by default */
     align-items: flex-end;

@@ -59,8 +59,18 @@
         const avatarImg = document.getElementById('rpg-avatar-img');
         if (avatarImg) avatarImg.src = player.img.src;
 
-        bgImage.src = ASSETS.GROUND_TILE; imgHouse.src = ASSETS.HOUSE;
-        imgTree.src = ASSETS.TREE; imgNpc.src = ASSETS.NPC;
+        // Use Preloaded Assets if available to prevent gray boxes
+        if (window.RpgAssets && window.RpgAssets[ASSETS.GROUND_TILE]) bgImage = window.RpgAssets[ASSETS.GROUND_TILE];
+        else bgImage.src = ASSETS.GROUND_TILE;
+
+        if (window.RpgAssets && window.RpgAssets[ASSETS.HOUSE]) imgHouse = window.RpgAssets[ASSETS.HOUSE];
+        else imgHouse.src = ASSETS.HOUSE;
+
+        if (window.RpgAssets && window.RpgAssets[ASSETS.TREE]) imgTree = window.RpgAssets[ASSETS.TREE];
+        else imgTree.src = ASSETS.TREE;
+
+        if (window.RpgAssets && window.RpgAssets[ASSETS.NPC]) imgNpc = window.RpgAssets[ASSETS.NPC];
+        else imgNpc.src = ASSETS.NPC;
 
         resize(); window.addEventListener('resize', resize);
         setupControls();
@@ -76,6 +86,7 @@
         if (!questLog.active) assignRandomQuest();
 
         updateHUD();
+        checkInteractions(); // Force check immediately
 
         isRunning = true;
         requestAnimationFrame(loop);
@@ -127,12 +138,13 @@
             }
         });
 
-        // 4. Ruins (Rocks/Walls)
+        // 4. Ruins (Yellow Trees)
         zones.filter(z => z.type === 'RUINS').forEach(z => {
             for (let i = 0; i < 20; i++) {
                 let rx = z.x + (Math.random() - 0.5) * z.r;
                 let ry = z.y + (Math.random() - 0.5) * z.r;
-                structures.push({ type: 'rock', x: rx, y: ry, w: 80, h: 80, color: '#7f8c8d', solid: true });
+                // Use Tree Image but with a tint property
+                structures.push({ type: 'tree', x: rx, y: ry, w: 120, h: 120, img: imgTree, solid: true, tint: 'yellow' });
             }
         });
     }
@@ -194,11 +206,23 @@
         btnCharge.ontouchstart = startC; btnCharge.ontouchend = endC;
 
         // INTERACT BUTTON
-        const btnInteract = document.getElementById('btn-interact');
+        const btnInteract = document.getElementById('btn-interact-explore');
         if (btnInteract) {
-            btnInteract.onclick = (e) => { e.stopPropagation(); tryInteract(); };
-            btnInteract.onmousedown = (e) => { e.stopPropagation(); }; // Prevent joy-zone conflict
-            btnInteract.ontouchstart = (e) => { e.preventDefault(); e.stopPropagation(); tryInteract(); };
+            // Desktop Click
+            btnInteract.onclick = (e) => {
+                e.stopPropagation();
+                tryInteract();
+            };
+            // Desktop MouseDown (prevent joy-zone)
+            btnInteract.onmousedown = (e) => {
+                e.stopPropagation();
+            };
+            // Mobile Touch (prevent click emulation double-fire)
+            btnInteract.ontouchstart = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                tryInteract();
+            };
         }
     }
 
@@ -256,6 +280,12 @@
     }
 
     function tryInteract() {
+        // Priority: Claim Reward -> Talk to NPC
+        if (questLog.active && questLog.active.progress >= questLog.active.target) {
+            openQuestCompleteDialog();
+            return;
+        }
+
         // Find nearest NPC
         let nearest = null;
         let minD = 100;
@@ -267,9 +297,6 @@
 
         if (nearest) {
             openDialog(nearest);
-        } else if (questLog.active && questLog.active.progress >= questLog.active.target) {
-            // Remote Turn-in
-            openQuestCompleteDialog();
         }
     }
 
@@ -470,7 +497,15 @@
             if (s.y < camera.y - 200 || s.y > camera.y + canvas.height + 200) return;
 
             if (s.img && s.img.complete) {
-                ctx.drawImage(s.img, s.x - s.w / 2, s.y - s.h / 2, s.w, s.h);
+                if (s.tint === 'yellow') {
+                    ctx.save();
+                    // Golden/Yellow Filter
+                    ctx.filter = 'sepia(1) saturate(3) hue-rotate(45deg)';
+                    ctx.drawImage(s.img, s.x - s.w / 2, s.y - s.h / 2, s.w, s.h);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(s.img, s.x - s.w / 2, s.y - s.h / 2, s.w, s.h);
+                }
             } else {
                 ctx.fillStyle = s.color || 'brown';
                 ctx.fillRect(s.x - s.w / 2, s.y - s.h / 2, s.w, s.h);
@@ -609,14 +644,28 @@
     function checkInteractions() {
         // Show Interact Button if near NPC or Quest Done
         let near = false;
-        npcs.forEach(n => {
-            if (Math.hypot(n.x - player.x, n.y - player.y) < 80) near = true;
-        });
+        let actionText = "TALK";
 
-        if (questLog.active && questLog.active.progress >= questLog.active.target) near = true;
+        // Check Quest First (Priority)
+        if (questLog.active && questLog.active.progress >= questLog.active.target) {
+            near = true;
+            actionText = "CLAIM";
+        } else {
+            // Check NPCs
+            npcs.forEach(n => {
+                if (Math.hypot(n.x - player.x, n.y - player.y) < 80) near = true;
+            });
+        }
 
-        const btn = document.getElementById('btn-interact');
-        if (btn) btn.style.display = near ? 'flex' : 'none';
+        const btn = document.getElementById('btn-interact-explore');
+        if (btn) {
+            if (near) {
+                btn.style.display = 'flex';
+                btn.innerHTML = actionText;
+            } else {
+                btn.style.display = 'none';
+            }
+        }
     }
 
     function updateHUD() {

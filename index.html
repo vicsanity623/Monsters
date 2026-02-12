@@ -177,6 +177,8 @@
                 </div>
             </div>
 
+            <!-- INTERACT BUTTON (Text set by JS) -->
+            <div id="btn-interact"></div>
             <!-- AUTO MERGE BUTTON -->
             <button id="btn-auto-merge" onclick="toggleAutoMerge()" style="display:none;">
                 <span>⚡ AUTO MERGE</span>
@@ -585,7 +587,7 @@
             </div>
 
             <!-- INTERACTION BUTTON (Appears near objects) -->
-            <div id="btn-interact" class="interact-btn">
+            <div id="btn-interact-explore" class="interact-btn">
                 <span>👋</span> INTERACT
             </div>
 
@@ -622,7 +624,7 @@
         </div>
     </div>
     <script>
-        (function () {
+        window.GameLoader = (function () {
             // --- BEAM LOADER LOGIC ---
             const CONFIG = { duration: 4000, beamColor: '0, 255, 255', coreColor: '255, 255, 255', particleCount: 60 };
             const canvas = document.getElementById('beamCanvas');
@@ -631,8 +633,11 @@
             const loader = document.getElementById('loader');
 
             let width, height, centerY;
-            let startTime = null;
             let particles = [];
+            let manualMode = false;
+            let manualProgress = 0;
+            let reqId = null;
+            let startTime = null;
 
             function resize() {
                 width = window.innerWidth; height = window.innerHeight;
@@ -670,11 +675,21 @@
             }
 
             function animate(t) {
-                if (!loader || loader.style.display === 'none') return; // Stop loop if hidden
+                if (!loader || loader.style.display === 'none') {
+                    if (reqId) cancelAnimationFrame(reqId);
+                    reqId = null;
+                    return;
+                }
 
                 if (!startTime) startTime = t;
-                let progress = (t - startTime) / CONFIG.duration;
-                if (progress > 1) progress = 1;
+
+                let progress;
+                if (manualMode) {
+                    progress = manualProgress;
+                } else {
+                    progress = (t - startTime) / CONFIG.duration;
+                    if (progress > 1) progress = 1;
+                }
 
                 if (percentText) percentText.innerText = Math.floor(progress * 100) + "%";
 
@@ -707,17 +722,65 @@
                     emit(tipX, centerY);
                 }
 
-                if (progress < 1) requestAnimationFrame(animate);
-                else {
-                    // Keep looping to animate the waves even at 100% until game hides it
-                    requestAnimationFrame((timestamp) => {
-                        // Fake the time to keep progress at 1.0 but animation moving
-                        startTime = timestamp - CONFIG.duration;
-                        animate(timestamp);
-                    });
+                if (manualMode) {
+                    reqId = requestAnimationFrame(animate);
+                } else {
+                    if (progress < 1) reqId = requestAnimationFrame(animate);
+                    else {
+                        // Keep looping animation logic but reset time base to allow wave movement
+                        startTime = t - CONFIG.duration;
+                        reqId = requestAnimationFrame(animate);
+                    }
                 }
             }
+
+            // Start Initial Load
             requestAnimationFrame(animate);
+
+            return {
+                preload: function (assets, callback) {
+                    loader.style.display = 'block';
+                    loader.style.opacity = '1';
+                    manualMode = true;
+                    manualProgress = 0.05; // Start with a little bit
+                    startTime = null; // Reset for wave math
+
+                    if (!reqId) reqId = requestAnimationFrame(animate);
+
+                    let loaded = 0;
+                    const total = assets.length;
+
+                    if (total === 0) {
+                        manualProgress = 1;
+                        setTimeout(() => {
+                            if (callback) callback();
+                            loader.style.display = 'none';
+                        }, 500);
+                        return;
+                    }
+
+                    assets.forEach(src => {
+                        const img = new Image();
+                        img.onload = img.onerror = () => {
+                            loaded++;
+                            manualProgress = Math.max(manualProgress, loaded / total);
+                            if (loaded >= total) {
+                                setTimeout(() => {
+                                    if (callback) callback();
+                                    // Fade out
+                                    loader.style.transition = 'opacity 0.3s';
+                                    loader.style.opacity = '0';
+                                    setTimeout(() => {
+                                        loader.style.display = 'none';
+                                        loader.style.transition = '';
+                                    }, 300);
+                                }, 400); // Small delay to see 100%
+                            }
+                        };
+                        img.src = src;
+                    });
+                }
+            };
         })();
     </script>
 </body>
