@@ -7,10 +7,12 @@
         if (window.battle.pInterval) clearInterval(window.battle.pInterval);
         if (window.battle.eInterval) clearInterval(window.battle.eInterval);
         if (window.battle.autoTimerId) clearTimeout(window.battle.autoTimerId);
+        if (window.battle.stageTimerId) clearInterval(window.battle.stageTimerId); // Clear stage timer
         
         window.battle.pInterval = null;
         window.battle.eInterval = null;
         window.battle.autoTimerId = null;
+        window.battle.stageTimerId = null;
     }
 
     // --- DBZ VISUAL HELPERS ---
@@ -53,6 +55,103 @@
                 }, 80); 
             }, 100);
         });
+    }
+
+    // --- NEW: INJECT BOSS UI ---
+    function ensureBattleUI() {
+        const battleScreen = document.getElementById('view-battle');
+        if (!document.getElementById('boss-ui-container')) {
+            const container = document.createElement('div');
+            container.id = 'boss-ui-container';
+            container.style.position = 'absolute';
+            container.style.top = '140px'; // Below stage selector
+            container.style.left = '0';
+            container.style.width = '100%';
+            container.style.zIndex = '50';
+            container.style.pointerEvents = 'none'; // Click through
+            container.style.fontFamily = "'Orbitron', sans-serif";
+
+            // Boss HP Bar Container
+            const hpContainer = document.createElement('div');
+            hpContainer.style.width = '90%';
+            hpContainer.style.margin = '0 auto';
+            hpContainer.style.height = '25px';
+            hpContainer.style.background = '#333';
+            hpContainer.style.border = '2px solid white';
+            hpContainer.style.position = 'relative';
+
+            // Red Fill
+            const hpFill = document.createElement('div');
+            hpFill.id = 'boss-ui-hp-fill';
+            hpFill.style.width = '100%';
+            hpFill.style.height = '100%';
+            hpFill.style.background = '#ff0000';
+            hpFill.style.transition = 'width 0.2s';
+
+            // Text Overlay
+            const hpText = document.createElement('div');
+            hpText.id = 'boss-ui-hp-text';
+            hpText.style.position = 'absolute';
+            hpText.style.top = '0';
+            hpText.style.left = '0';
+            hpText.style.width = '100%';
+            hpText.style.height = '100%';
+            hpText.style.display = 'flex';
+            hpText.style.alignItems = 'center';
+            hpText.style.justifyContent = 'center';
+            hpText.style.color = 'white';
+            hpText.style.fontSize = '14px';
+            hpText.style.fontWeight = 'bold';
+            hpText.style.textShadow = '1px 1px 2px black';
+            hpText.innerText = "0/0";
+
+            // "HP" Label on Right
+            const hpLabel = document.createElement('div');
+            hpLabel.style.position = 'absolute';
+            hpLabel.style.right = '-25px';
+            hpLabel.style.top = '0';
+            hpLabel.style.color = 'red';
+            hpLabel.style.fontWeight = 'bold';
+            hpLabel.style.fontSize = '18px';
+            hpLabel.innerText = "HP";
+
+            // Timer Bar Container
+            const timeContainer = document.createElement('div');
+            timeContainer.style.width = '90%';
+            timeContainer.style.margin = '5px auto 0';
+            timeContainer.style.height = '8px';
+            timeContainer.style.background = 'rgba(255,255,255,0.2)';
+            
+            // White Fill
+            const timeFill = document.createElement('div');
+            timeFill.id = 'boss-ui-time-fill';
+            timeFill.style.width = '100%';
+            timeFill.style.height = '100%';
+            timeFill.style.background = 'white';
+            
+            // Timer Text Right
+            const timeText = document.createElement('div');
+            timeText.id = 'boss-ui-time-text';
+            timeText.style.position = 'absolute';
+            timeText.style.right = '5px'; // Relative to screen right
+            timeText.style.top = '35px'; // Below HP bar
+            timeText.style.color = 'white';
+            timeText.style.fontSize = '14px';
+            timeText.innerText = "60s";
+
+            // Assemble
+            hpContainer.appendChild(hpFill);
+            hpContainer.appendChild(hpText);
+            hpContainer.appendChild(hpLabel);
+            
+            timeContainer.appendChild(timeFill);
+
+            container.appendChild(hpContainer);
+            container.appendChild(timeContainer);
+            container.appendChild(timeText);
+
+            battleScreen.appendChild(container);
+        }
     }
 
     // --- STAGE SELECTION & MODAL LOGIC ---
@@ -169,6 +268,11 @@
             window.battle.zenkaiUsed = false;
         }
         if (window.GameState) window.GameState.inBattle = false;
+        
+        // Hide Boss UI
+        const bossUI = document.getElementById('boss-ui-container');
+        if(bossUI) bossUI.style.display = 'none';
+
         clearBattleTimers();
     }
 
@@ -214,6 +318,8 @@
 
     async function startBattle() {
         stopCombat(); 
+        ensureBattleUI(); // Inject New UI
+        
         window.battle.active = true;
         window.battle.cinematic = false;
         window.battle.zenkaiUsed = false; 
@@ -222,6 +328,32 @@
         document.getElementById('start-prompt').style.display = 'none';
         document.getElementById('battle-menu').style.display = 'none';
         
+        // Show Boss UI
+        const bossUI = document.getElementById('boss-ui-container');
+        if(bossUI) bossUI.style.display = 'block';
+
+        // --- BATTLE TIMER LOGIC ---
+        window.battle.timeLeft = 60; // 60 Seconds
+        const timeFill = document.getElementById('boss-ui-time-fill');
+        const timeText = document.getElementById('boss-ui-time-text');
+        if(timeFill) timeFill.style.width = '100%';
+        if(timeText) timeText.innerText = '60s';
+
+        window.battle.stageTimerId = setInterval(() => {
+            if(!window.battle.active) return;
+            window.battle.timeLeft--;
+            
+            // Update Bar & Text
+            if(timeFill) timeFill.style.width = (window.battle.timeLeft / 60 * 100) + '%';
+            if(timeText) timeText.innerText = window.battle.timeLeft + 's';
+
+            if(window.battle.timeLeft <= 0) {
+                // Time Over = Defeat
+                stopCombat();
+                handleDefeat();
+            }
+        }, 1000);
+
         // PERK: Starter Ki (Lvl 40)
         window.player.charge = (window.player.advanceLevel >= 40) ? 20 : 0;
 
@@ -653,7 +785,7 @@
         window.player.coins += coinGain;
             
         const log = document.getElementById('log');
-        if (log) log.innerHTML = `<div style="color:cyan">> WON! +${xpGain.toFixed(0)} XP</div>`;
+        if (log) log.innerHTML = `<div style="color:cyan">> WON! +${window.formatNumber ? window.formatNumber(xpGain) : xpGain} XP</div>`;
             
         let dropText = "NONE";
         let dropCount = 0;
@@ -719,8 +851,8 @@
         if (typeof window.syncUI === 'function') syncUI();
         if (window.Skills) Skills.autoBattleTick();
 
-        document.getElementById('r-xp').innerText = Math.floor(xpGain);
-        document.getElementById('r-coins').innerText = Math.floor(coinGain);
+        document.getElementById('r-xp').innerText = window.formatNumber ? window.formatNumber(xpGain) : xpGain;
+        document.getElementById('r-coins').innerText = window.formatNumber ? window.formatNumber(coinGain) : coinGain;
         document.getElementById('r-drops').innerHTML = dropText; 
         document.getElementById('r-lvl').innerText = window.player.lvl;
             
@@ -827,6 +959,22 @@
         if (btlPHp) btlPHp.style.width = Math.max(0, (window.player.hp / m * 100)) + "%";
         if (btlEHp && window.battle.enemy) btlEHp.style.width = Math.max(0, (window.battle.enemy.hp / window.battle.enemy.maxHp * 100)) + "%";
         if (btlPCharge) btlPCharge.style.width = window.player.charge + "%";
+        
+        // --- SYNC BOSS UI BAR ---
+        const bossBar = document.getElementById('boss-ui-hp-fill');
+        const bossText = document.getElementById('boss-ui-hp-text');
+        
+        if (bossBar && window.battle.enemy) {
+            const pct = Math.max(0, (window.battle.enemy.hp / window.battle.enemy.maxHp) * 100);
+            bossBar.style.width = pct + "%";
+            
+            if(bossText) {
+                // Formatting for cleaner look (e.g. 5M / 10M)
+                let hpStr = window.formatNumber ? window.formatNumber(window.battle.enemy.hp) : Math.floor(window.battle.enemy.hp);
+                let maxStr = window.formatNumber ? window.formatNumber(window.battle.enemy.maxHp) : Math.floor(window.battle.enemy.maxHp);
+                bossText.innerText = `${hpStr} / ${maxStr}`;
+            }
+        }
     }
 
     // --- EXPOSE NECESSARY FUNCTIONS ---
