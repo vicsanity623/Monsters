@@ -34,7 +34,8 @@
         soulLevel: 1,
         souls: 0,
         dragonShards: 0,
-        advanceLevel: 0
+        advanceLevel: 0,
+        sp: 0
     };
 
     window.battle = {
@@ -212,6 +213,7 @@
             if (!window.player.souls) window.player.souls = 0;
             if (window.player.dragonShards === undefined) window.player.dragonShards = 0;
             if (window.player.advanceLevel === undefined) window.player.advanceLevel = 0;
+            if (window.player.sp === undefined) window.player.sp = 0;
 
             const loader = document.getElementById('loader');
             if (loader) {
@@ -247,6 +249,8 @@
         let intervalId = null, timeoutId = null;
 
         const performAction = () => {
+            // Rebirth / Auto-Train logic disabled for SP System Overhaul
+            /*
             let didTrain = false;
             if (window.player.coins >= 100) { train('atk', true); didTrain = true; }
             if (window.player.coins >= 100) { train('def', true); didTrain = true; }
@@ -255,6 +259,8 @@
             else {
                 if (intervalId) { clearInterval(intervalId); intervalId = null; syncUI(); }
             }
+            */
+            if (intervalId) { clearInterval(intervalId); intervalId = null; }
         };
 
         const start = (e) => {
@@ -337,6 +343,7 @@
         }
 
         if (leveledUp) {
+            window.player.sp += (window.player.lvl - oldLvl) * 2; // +2 SP per level
             const endHP = window.GameState.gokuMaxHP;
             const endATK = window.GameState.gokuPower;
             const endDEF = window.GameState.gokuDefense;
@@ -446,6 +453,9 @@
     function tapTrain() {
         const gain = Math.ceil(window.player.lvl / 2);
         window.player.xp += gain;
+        // Removed coin gain from tapping to balance SP system focus? 
+        // Or keep it? The user didn't say to remove tap-for-coins, but "Training System" usually implies the stat boosting.
+        // I will keep tap-for-coins as it is "training" in the hub, not the "Training Modal".
         window.player.coins += 1;
         window.isDirty = true;
         popDamage(`+${gain} XP`, 'view-char', true);
@@ -733,7 +743,7 @@
             else if (newRarity === 8) { newVal = 500000; newName = "SSS3"; }
             else if (newRarity === 9) { newVal = 1250000; newName = "SSS4"; }
             else if (newRarity === 10) { newVal = 5000000; newName = "SSS5"; }
-            
+
             window.addToInventory({ n: newName, type: sItem.type, val: newVal, rarity: newRarity });
             window.player.selected = -1;
             window.isDirty = true;
@@ -815,21 +825,51 @@
         }
     }
 
-    function train(s, skipSync = false) {
-        if (window.player.coins >= 100) {
-            window.player.coins -= 100;
-            if (s === 'atk') window.player.bAtk += 20; else window.player.bDef += 10;
-            window.isDirty = true;
-            if (!skipSync) syncUI();
-        } else {
-            if (!skipSync) alert("Need 100 Coins to Train!");
+    // --- NEW TRAINING SYSTEM (SP) ---
+    function openTraining() {
+        const modal = document.getElementById('training-modal');
+        if (!modal) return;
+        updateTrainingUI();
+        modal.style.display = 'flex';
+    }
+
+    function closeTraining() {
+        document.getElementById('training-modal').style.display = 'none';
+    }
+
+    function spendSP(stat) {
+        if (window.player.sp < 1) {
+            alert("Not enough SP!");
+            return;
         }
+
+        window.player.sp--;
+
+        // 20% Compounding Boost
+        if (stat === 'hp') {
+            window.player.bHp = Math.floor(window.player.bHp * 1.20);
+        } else if (stat === 'atk') {
+            window.player.bAtk = Math.floor(window.player.bAtk * 1.20);
+        } else if (stat === 'def') {
+            window.player.bDef = Math.floor(window.player.bDef * 1.20);
+        }
+
+        window.isDirty = true;
+        updateTrainingUI();
+        syncUI();
+    }
+
+    function updateTrainingUI() {
+        document.getElementById('tr-sp-count').innerText = window.player.sp;
+        document.getElementById('tr-hp-val').innerText = window.formatNumber(window.player.bHp);
+        document.getElementById('tr-atk-val').innerText = window.formatNumber(window.player.bAtk);
+        document.getElementById('tr-def-val').innerText = window.formatNumber(window.player.bDef);
     }
 
     function doEquip() {
         if (window.player.selected === -1) return;
-        const stackItem = window.player.inv[window.player.selected]; 
-        
+        const stackItem = window.player.inv[window.player.selected];
+
         // Safety Check
         if (!stackItem) {
             window.player.selected = -1;
@@ -838,15 +878,15 @@
         }
 
         const itemToEquip = { n: stackItem.n, type: stackItem.type, val: stackItem.val, rarity: stackItem.rarity, qty: 1 };
-        const old = window.player.gear[stackItem.type]; 
-        
+        const old = window.player.gear[stackItem.type];
+
         window.player.gear[stackItem.type] = itemToEquip;
-        
+
         stackItem.qty--;
         if (stackItem.qty <= 0) window.player.inv.splice(window.player.selected, 1);
-        
+
         if (old) window.addToInventory(old);
-        
+
         window.player.selected = -1;
         window.isDirty = true;
         syncUI();
@@ -856,14 +896,14 @@
         const d = document.createElement('div');
         d.className = 'pop';
         if (typeof dmg === 'string') {
-            d.innerText = dmg; 
-            d.style.color = '#00ff00'; 
+            d.innerText = dmg;
+            d.style.color = '#00ff00';
             d.style.fontSize = '1.5rem';
         } else {
             d.innerText = "-" + window.formatNumber(dmg);
             if (isSpecial) { d.style.color = 'cyan'; d.style.fontSize = '3rem'; d.style.zIndex = 30; }
         }
-        const randomX = (Math.random() * 40) - 20; 
+        const randomX = (Math.random() * 40) - 20;
         const randomY = (Math.random() * 40) - 20;
         const container = document.getElementById(id);
         if (container) {
@@ -879,7 +919,9 @@
     window.showTab = showTab;
     window.claimSupply = claimSupply;
     window.tapTrain = tapTrain;
-    window.train = train;
+    window.openTraining = openTraining;
+    window.closeTraining = closeTraining;
+    window.spendSP = spendSP;
     window.doEquip = doEquip;
     window.mergeItems = mergeItems;
     window.closeLevelUp = closeLevelUp;

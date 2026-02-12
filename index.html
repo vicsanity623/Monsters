@@ -132,7 +132,8 @@
                 </div>
             </div>
 
-            <div class="side-btn" id="btn-rebirth">
+            <!-- REBIRTH BUTTON HIDDEN (Old Training System Removed) -->
+            <div class="side-btn" id="btn-rebirth" style="display:none;">
                 <i>♻️</i> Rebirth
             </div>
         </div>
@@ -165,9 +166,9 @@
                 <div class="stats-col">
                     <div class="stat-row"><span class="stat-icon">❤️</span> <span id="ui-hp-txt">500</span></div>
                     <div class="stat-row"><span class="stat-icon">⚔️</span> <span id="ui-atk">40</span> <small
-                            style="color:#27ae60; cursor:pointer;" onclick="train('atk')">[+]</small></div>
+                            style="color:#27ae60; cursor:pointer;" onclick="openTraining()">[+]</small></div>
                     <div class="stat-row"><span class="stat-icon">🛡️</span> <span id="ui-def">25</span> <small
-                            style="color:#27ae60; cursor:pointer;" onclick="train('def')">[+]</small></div>
+                            style="color:#27ae60; cursor:pointer;" onclick="openTraining()">[+]</small></div>
                 </div>
 
                 <div class="equip-slots">
@@ -204,7 +205,7 @@
             <div id="inv-grid" class="inv-scroll"></div>
 
             <div class="bot-nav">
-                <div class="nav-icon" onclick="train('atk')">
+                <div class="nav-icon" onclick="openTraining()">
                     <div class="nav-circle" style="color:#e74c3c;">💪</div>
                     Training
                 </div>
@@ -501,6 +502,65 @@
                 <button class="menu-btn" onclick="confirmStart()"
                     style="flex:1; font-size:1.2rem; padding:10px; background:linear-gradient(to bottom, #2ecc71, #27ae60); border-color:#2ecc71;">FIGHT!</button>
             </div>
+        </div>
+    </div>
+
+    <!-- NEW TRAINING MODAL -->
+    <div id="training-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:4000; flex-direction:column; align-items:center; justify-content:center;">
+        <style>
+            @keyframes pulseAura { 0% { opacity: 0.5; transform: scale(1); } 100% { opacity: 0.8; transform: scale(1.1); } }
+        </style>
+        <div class="tr-container" style="position:relative; width:90%; max-width:400px; background:#121212; border:2px solid #e74c3c; border-radius:15px; overflow:hidden; box-shadow:0 0 40px rgba(231,76,60,0.4);">
+            
+            <div class="tr-header" style="background:#e74c3c; padding:15px; text-align:center; font-family:'Bangers'; font-size:2rem; color:white; text-shadow:2px 2px black;">
+                TRAINING CHAMBER
+            </div>
+
+            <div class="tr-visual" style="position:relative; height:180px; background:radial-gradient(circle at center, #330000, black); display:flex; justify-content:center; align-items:flex-end; overflow:hidden;">
+                <!-- Aura -->
+                <div class="tr-aura" style="position:absolute; width:140px; height:140px; background:radial-gradient(circle, rgba(255,50,50,0.6), transparent 70%); border-radius:50%; animation: pulseAura 0.8s infinite alternate; bottom:20px;"></div>
+                
+                <img id="tr-goku-img" src="IMG_0061.png" style="height:150px; position:relative; z-index:2; filter:drop-shadow(0 0 10px red);">
+            </div>
+
+            <div class="tr-content" style="padding:20px; color:white; font-family:'Orbitron';">
+                <div style="text-align:center; margin-bottom:20px; font-size:1.2rem;">
+                    AVAILABLE SP: <span id="tr-sp-count" style="color:#00ff00; font-size:1.5rem; font-weight:bold;">0</span>
+                </div>
+
+                <!-- HP ROW -->
+                <div class="tr-stat-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:#222; padding:10px; border-radius:8px; border:1px solid #333;">
+                    <div>
+                        <div style="color:#ff3e3e; font-size:0.8rem;">MAX HP</div>
+                        <div id="tr-hp-val" style="font-size:1rem;">500</div>
+                    </div>
+                    <button onclick="spendSP('hp')" style="padding:8px 15px; background:#ff3e3e; border:none; border-radius:5px; color:white; font-weight:bold; cursor:pointer;">+20% (1 SP)</button>
+                </div>
+
+                <!-- ATK ROW -->
+                <div class="tr-stat-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:#222; padding:10px; border-radius:8px; border:1px solid #333;">
+                    <div>
+                        <div style="color:#3498db; font-size:0.8rem;">ATTACK</div>
+                        <div id="tr-atk-val" style="font-size:1rem;">40</div>
+                    </div>
+                    <button onclick="spendSP('atk')" style="padding:8px 15px; background:#3498db; border:none; border-radius:5px; color:white; font-weight:bold; cursor:pointer;">+20% (1 SP)</button>
+                </div>
+
+                <!-- DEF ROW -->
+                <div class="tr-stat-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:#222; padding:10px; border-radius:8px; border:1px solid #333;">
+                    <div>
+                        <div style="color:#2ecc71; font-size:0.8rem;">DEFENSE</div>
+                        <div id="tr-def-val" style="font-size:1rem;">25</div>
+                    </div>
+                    <button onclick="spendSP('def')" style="padding:8px 15px; background:#2ecc71; border:none; border-radius:5px; color:white; font-weight:bold; cursor:pointer;">+20% (1 SP)</button>
+                </div>
+
+            </div>
+
+            <div class="tr-footer" style="padding:15px; background:#111; border-top:1px solid #333;">
+                <button onclick="closeTraining()" style="width:100%; padding:15px; background:#555; border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer;">LEAVE CHAMBER</button>
+            </div>
+
         </div>
     </div>
 
