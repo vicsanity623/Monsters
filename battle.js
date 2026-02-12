@@ -64,9 +64,9 @@
             const container = document.createElement('div');
             container.id = 'boss-ui-container';
             container.style.position = 'absolute';
-            container.style.top = '120px'; // Below stage selector
+            container.style.top = '80px'; // Below stage selector
             container.style.left = '0';
-            container.style.width = '100%';
+            container.style.width = '75%';
             container.style.zIndex = '50';
             container.style.pointerEvents = 'none'; // Click through
             container.style.fontFamily = "'Orbitron', sans-serif";
