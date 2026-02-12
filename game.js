@@ -18,7 +18,7 @@
     };
 
     const RANKS = ["BASE", "S", "SS", "SS2", "SS3", "SSG", "SSB", "UI", "MUI", "SSS", "SSS10"];
-    const RARITY_NAMES = { 1: "B", 2: "R", 3: "L", 4: "S", 5: "SS", 6: "SSS" };
+    const RARITY_NAMES = { 1: "B", 2: "R", 3: "L", 4: "S", 5: "SS", 6: "SSS", 7: "SSS2", 8: "SSS3", 9: "SSS4", 10: "SSS5", };
 
     // --- STATE MANAGEMENT (GLOBAL) ---
 
@@ -667,6 +667,10 @@
             if (item.rarity === 4) rClass = 'item-s';
             if (item.rarity === 5) rClass = 'item-ss';
             if (item.rarity === 6) rClass = 'item-sss';
+            if (item.rarity === 7) rClass = 'item-sss2';
+            if (item.rarity === 8) rClass = 'item-sss3';
+            if (item.rarity === 9) rClass = 'item-sss4';
+            if (item.rarity === 10) rClass = 'item-sss5';
 
             d.className = `inv-item ${rClass} ${window.player.selected === i ? 'selected' : ''}`;
             let rName = RARITY_NAMES[item.rarity] || "B";
@@ -722,6 +726,10 @@
             if (item.rarity === 4) rColor = '#e74c3c';
             if (item.rarity === 5) rColor = '#f1c40f';
             if (item.rarity === 6) rColor = '#00ffff';
+            if (item.rarity === 7) rColor = '#00ffff';
+            if (item.rarity === 8) rColor = '#f1c40f';
+            if (item.rarity === 9) rColor = '#00ffff';
+            if (item.rarity === 10) rColor = '#f1c40f';
             el.style.borderColor = rColor;
 
             let badgeHtml = advLvl > 0 ? `<div class="adv-badge">+${advLvl}</div>` : '';
@@ -758,7 +766,11 @@
             else if (newRarity === 4) { newVal = 8500; newName = "God Gear"; }
             else if (newRarity === 5) { newVal = 20000; newName = "Angel Gear"; }
             else if (newRarity === 6) { newVal = 50000; newName = "Omni Gear"; }
-
+            else if (newRarity === 7) { newVal = 150000; newName = "SSS2"; }
+            else if (newRarity === 8) { newVal = 500000; newName = "SSS3"; }
+            else if (newRarity === 9) { newVal = 1250000; newName = "SSS4"; }
+            else if (newRarity === 10) { newVal = 5000000; newName = "SSS5"; }
+            
             window.addToInventory({ n: newName, type: sItem.type, val: newVal, rarity: newRarity });
             window.player.selected = -1;
             window.isDirty = true;
@@ -803,6 +815,10 @@
                 else if (newRarity === 4) { newVal = 8500; newName = "God Gear"; }
                 else if (newRarity === 5) { newVal = 20000; newName = "Angel Gear"; }
                 else if (newRarity === 6) { newVal = 50000; newName = "Omni Gear"; }
+                else if (newRarity === 7) { newVal = 150000; newName = "SSS2"; }
+                else if (newRarity === 8) { newVal = 500000; newName = "SSS3"; }
+                else if (newRarity === 9) { newVal = 1250000; newName = "SSS4"; }
+                else if (newRarity === 10) { newVal = 10000000; newName = "SSS5"; }
 
                 window.addToInventory({ n: newName, type: item.type, val: newVal, rarity: newRarity });
                 mergedSomething = true;
