@@ -585,6 +585,13 @@
         const xpPct = (window.player.xp / window.player.nextXp) * 100;
         document.getElementById('bar-xp').style.width = xpPct + "%";
 
+        const xpTextEl = document.getElementById('hub-xp-text');
+        if (xpTextEl) {
+            const curXp = window.formatNumber(window.player.xp);
+            const maxXp = window.formatNumber(window.player.nextXp);
+            xpTextEl.innerText = `${curXp} / ${maxXp}`;
+        }
+
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
         const fragment = document.createDocumentFragment();
