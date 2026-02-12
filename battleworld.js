@@ -11,7 +11,7 @@
 
     const canvas = document.getElementById('explore-canvas');
     const ctx = canvas.getContext('2d');
-    const WORLD_W = 3000, WORLD_H = 3000;
+    const WORLD_WIDTH = 3000, WORLD_HEIGHT = 3000;
 
     let isRunning = false, lastTime = 0, camera = {x:0, y:0};
     let bgImage = new Image(), imgHouse = new Image(), imgTree = new Image(), imgNpc = new Image();
@@ -23,7 +23,7 @@
     let activeQuest = null;
 
     // Entities
-    let player = { x: WORLD_W/2, y: WORLD_W/2, size: 60, speed: 7, hp: 100, maxHp: 100, faceRight: true, invincible: 0, img: new Image() };
+    let player = { x: WORLD_WIDTH/2, y: WORLD_WIDTH/2, size: 60, speed: 7, hp: 100, maxHp: 100, faceRight: true, invincible: 0, img: new Image() };
     let enemies = [], npcs = [], bullets = [], particles = [], loots = [], structures = [];
     
     const input = { x: 0, y: 0, charging: false, chargeVal: 0 };
@@ -134,7 +134,7 @@
         let cx = player.x + Math.cos(angle) * dist;
         let cy = player.y + Math.sin(angle) * dist;
         cx = Math.max(100, Math.min(WORLD_W-100, cx));
-        cy = Math.max(100, Math.min(WORLD_H-100, cy));
+        cy = Math.max(100, Math.min(WORLD_HEIGHT-100, cy));
 
         const gPower = window.GameState ? window.GameState.gokuPower : 100;
         
@@ -225,12 +225,12 @@
         } else {
             let nx=player.x+input.x*player.speed, ny=player.y+input.y*player.speed;
             let hit=false; structures.forEach(s=>{ if(s.type!=='fountain' && nx>s.x-s.w/2 && nx<s.x+s.w/2 && ny>s.y-s.h/2 && ny<s.y+s.h/2) hit=true; });
-            if(!hit) { player.x=Math.max(0,Math.min(WORLD_W,nx)); player.y=Math.max(0,Math.min(WORLD_H,ny)); }
+            if(!hit) { player.x=Math.max(0,Math.min(WORLD_W,nx)); player.y=Math.max(0,Math.min(WORLD_HEIGHT,ny)); }
             if(input.x>0) player.faceRight=true; if(input.x<0) player.faceRight=false;
         }
 
         camera.x = Math.max(0, Math.min(WORLD_W-canvas.width, player.x-canvas.width/2));
-        camera.y = Math.max(0, Math.min(WORLD_H-canvas.height, player.y-canvas.height/2));
+        camera.y = Math.max(0, Math.min(WORLD_HEIGHT-canvas.height, player.y-canvas.height/2));
 
         ctx.save(); ctx.translate(-camera.x, -camera.y);
 
@@ -238,7 +238,7 @@
         if(bgImage.complete && bgImage.naturalWidth > 0) { 
             const p=ctx.createPattern(bgImage,'repeat'); ctx.fillStyle=p; ctx.fillRect(camera.x,camera.y,canvas.width,canvas.height); 
         } else { 
-            ctx.fillStyle='#2c3e50'; ctx.fillRect(0,0,WORLD_W,WORLD_H); 
+            ctx.fillStyle='#2c3e50'; ctx.fillRect(0,0,WORLD_W,WORLD_HEIGHT); 
         }
 
         // 2. Structures
@@ -385,20 +385,20 @@
     // Generate World
     function generateWorld() {
         structures = []; npcs = [];
-        structures.push({ type: 'fountain', x: WORLD_W/2, y: WORLD_W/2, w:150, h:150, color:'cyan' });
+        structures.push({ type: 'fountain', x: WORLD_WIDTH/2, y: WORLD_WIDTH/2, w:150, h:150, color:'cyan' });
         // Houses
         for(let i=0;i<8;i++) {
             let a = i/8*Math.PI*2;
-            structures.push({ x:WORLD_W/2+Math.cos(a)*400, y:WORLD_W/2+Math.sin(a)*400, w:200, h:200, img:imgHouse });
+            structures.push({ x:WORLD_WIDTH/2+Math.cos(a)*400, y:WORLD_WIDTH/2+Math.sin(a)*400, w:200, h:200, img:imgHouse });
         }
         // Trees
         for(let i=0;i<60;i++) {
             let x=Math.random()*WORLD_W, y=Math.random()*WORLD_W;
-            if(Math.hypot(x-WORLD_W/2, y-WORLD_W/2)>600) structures.push({ x:x, y:y, w:120, h:120, img:imgTree });
+            if(Math.hypot(x-WORLD_WIDTH/2, y-WORLD_WIDTH/2)>600) structures.push({ x:x, y:y, w:120, h:120, img:imgTree });
         }
         // NPCs
         for(let i=0;i<5;i++) {
-            npcs.push({ x:WORLD_W/2+(Math.random()-0.5)*300, y:WORLD_W/2+(Math.random()-0.5)*300, w:60, h:60, img:imgNpc, name:"Villager" });
+            npcs.push({ x:WORLD_WIDTH/2+(Math.random()-0.5)*300, y:WORLD_WIDTH/2+(Math.random()-0.5)*300, w:60, h:60, img:imgNpc, name:"Villager" });
         }
     }
 
