@@ -57,7 +57,112 @@
         });
     }
 
-    // --- NEW: INJECT BOSS UI ---
+    // --- THANOS SNAP EFFECT (Particle Explosion) ---
+    function explodeSprite(element, direction) {
+        if (!element) return;
+
+        const rect = element.getBoundingClientRect();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set up canvas overlay
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        canvas.style.position = 'absolute';
+        canvas.style.left = element.offsetLeft + 'px';
+        canvas.style.top = element.offsetTop + 'px';
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.zIndex = '100';
+        
+        // Find parent container
+        const parent = element.offsetParent || document.body;
+        parent.appendChild(canvas);
+
+        // Draw image to canvas to get pixel data
+        // Note: This requires CORS-enabled images if external
+        try {
+            ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
+        } catch (e) {
+            // Fallback if image is tainted (CORS issue)
+            // Just fade out
+            element.style.transition = "opacity 1s, transform 1s";
+            element.style.opacity = "0";
+            element.style.transform = `translateX(${direction === 'left' ? -50 : 50}px)`;
+            canvas.remove();
+            return;
+        }
+        
+        // Hide original element
+        element.style.opacity = '0';
+
+        // Create Particles
+        const particles = [];
+        // Reduce resolution for performance (every 4th pixel)
+        const density = 4; 
+        
+        // Get pixel data may fail if tainted, wrap in try
+        try {
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+
+            for (let y = 0; y < canvas.height; y += density) {
+                for (let x = 0; x < canvas.width; x += density) {
+                    const i = (y * canvas.width + x) * 4;
+                    const r = data[i];
+                    const g = data[i+1];
+                    const b = data[i+2];
+                    const a = data[i+3];
+
+                    if (a > 128) { // Only solid pixels
+                        particles.push({
+                            x: x,
+                            y: y,
+                            color: `rgba(${r},${g},${b},${a/255})`,
+                            vx: (Math.random() - 0.5) * 2 + (direction === 'left' ? -2 : 2), // Drift direction
+                            vy: (Math.random() - 0.5) * 2 - 1, // Slight upward drift
+                            life: 1.0,
+                            decay: Math.random() * 0.02 + 0.01
+                        });
+                    }
+                }
+            }
+        } catch(e) {
+            // Fallback
+            canvas.remove();
+            return;
+        }
+
+        // Animate
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let alive = false;
+
+            for (let p of particles) {
+                if (p.life > 0) {
+                    alive = true;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= p.decay;
+                    
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life;
+                    ctx.fillRect(p.x, p.y, density, density); // Draw square particle
+                }
+            }
+            ctx.globalAlpha = 1;
+
+            if (alive) {
+                requestAnimationFrame(loop);
+            } else {
+                canvas.remove();
+            }
+        }
+        loop();
+    }
+
+    // --- BOSS UI ---
     function ensureBattleUI() {
         const battleScreen = document.getElementById('view-battle');
         if (!document.getElementById('boss-ui-container')) {
@@ -145,7 +250,7 @@
         }
     }
 
-    // --- STAGE SELECTION & MODAL LOGIC ---
+    // --- STAGE SELECTION ---
 
     function openStageDetails(stageNum) {
         window.battle.selectedStage = stageNum; 
@@ -325,8 +430,8 @@
         const pSprite = document.getElementById('btl-p-sprite');
         
         // Reset Visuals
-        if(eImg) { eImg.style.display = 'block'; eImg.classList.remove('dead-anim'); eImg.style.opacity = '1'; }
-        if(pSprite) { pSprite.classList.remove('dead-anim'); pSprite.style.opacity = '1'; }
+        if(eImg) { eImg.style.display = 'block'; eImg.style.opacity = '1'; eImg.style.transform = 'none'; }
+        if(pSprite) { pSprite.style.opacity = '1'; pSprite.style.transform = 'none'; }
 
         // --- BATTLE TIMER LOGIC ---
         window.battle.timeLeft = 60; 
@@ -423,6 +528,11 @@
 
             let charData = window.apiData.characters.find(c => c.name.includes(bossName));
             if(!charData) charData = window.apiData.characters[(window.battle.world * 5) % window.apiData.characters.length];
+            
+            // CORS PROXY (Crucial for Canvas Reading)
+            // Use local if possible or proxy external
+            let imgSrc = charData ? charData.image : "";
+            // Note: External images without CORS headers will fail the explosion effect (fade fallback used)
 
             window.battle.enemy = { 
                 name: "BOSS " + (charData ? charData.name : "Titan"),
@@ -430,8 +540,15 @@
                 maxHp: 2000 * scale, 
                 atk: 80 * scale,
                 def: (2000 * scale) * 0.35,
-                i: charData ? charData.image : ""
+                i: imgSrc
             };
+            
+            // Set image immediately
+            const eImg = document.getElementById('e-img');
+            if(eImg) { 
+                eImg.crossOrigin = "Anonymous"; // Try to request CORS
+                eImg.src = imgSrc; 
+            }
 
             const eName = document.getElementById('e-name');
             if(eName) {
@@ -453,6 +570,13 @@
                 def: eDEF,
                 i: dat.image 
             };
+            
+            const eImg = document.getElementById('e-img');
+            if(eImg) { 
+                eImg.crossOrigin = "Anonymous";
+                eImg.src = dat.image; 
+            }
+            
             const eName = document.getElementById('e-name');
             if(eName) {
                 eName.innerText = window.battle.enemy.name;
@@ -460,9 +584,6 @@
                 eName.style.textShadow = "1px 1px black";
             }
         }
-        
-        const eImg = document.getElementById('e-img');
-        if (eImg) eImg.src = window.battle.enemy.i;
     }
 
     async function transformBoss() {
@@ -523,15 +644,13 @@
             // --- VICTORY SEQUENCE ---
             stopCombat(); 
             const eImg = document.getElementById('e-img');
+            
+            // Try Explosion Effect, Fallback to Fade
             if (eImg) {
-                eImg.classList.add('dead-anim'); // Trigger Dust Effect
-                // Fade out to right
-                eImg.style.transition = "opacity 2s, transform 2s";
-                eImg.style.opacity = "0";
-                eImg.style.transform = "translateX(50px) scale(0.8)";
+                // Determine drift direction (Right for enemy)
+                explodeSprite(eImg, 'right');
             }
-            // Wait 2 seconds before showing menu
-            setTimeout(handleWin, 2000);
+            setTimeout(handleWin, 2500); // 2.5s delay
 
         } else if(window.player.hp <= 0) {
             if(window.player.advanceLevel >= 60 && !window.battle.zenkaiUsed) {
@@ -546,14 +665,10 @@
             stopCombat(); 
             const pSprite = document.getElementById('btl-p-sprite');
             if (pSprite) {
-                pSprite.classList.add('dead-anim');
-                // Fade out to left
-                pSprite.style.transition = "opacity 2s, transform 2s";
-                pSprite.style.opacity = "0";
-                pSprite.style.transform = "translateX(-50px) scale(0.8)";
+                // Determine drift direction (Left for player)
+                explodeSprite(pSprite, 'left');
             }
-            // Wait 2 seconds before showing menu
-            setTimeout(handleDefeat, 2000);
+            setTimeout(handleDefeat, 2500); // 2.5s delay
         }
     }
 
@@ -937,6 +1052,7 @@
         }
     }
 
+    // --- EXPOSE NECESSARY FUNCTIONS ---
     window.startBattle = startBattle;
     window.stopCombat = stopCombat;
     window.exitBattle = exitBattle;
