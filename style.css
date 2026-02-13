@@ -29,11 +29,23 @@ html {
     font-family: 'Orbitron', sans-serif;
     background: var(--bg-dark);
     color: white;
-    overflow: hidden;
+    
+    /* LAYOUT & SIZING */
     height: 100vh;
     width: 100vw;
     display: flex;
     flex-direction: column;
+    
+    /* SCROLL & ZOOM LOCK */
+    overflow: hidden;           /* Prevents scrolling */
+    position: fixed;            /* Anchors the viewport */
+    touch-action: none;         /* CRITICAL: Disables zoom gestures */
+    
+    /* IOS SPECIFIC LOCKS */
+    -webkit-user-select: none;  /* Prevents text selection */
+    user-select: none;
+    -webkit-touch-callout: none; /* Disables long-press menu */
+    -webkit-text-size-adjust: 100%; /* Prevents font resizing */
 }
 
 /* --- NAVIGATION --- */
