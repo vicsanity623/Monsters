@@ -43,6 +43,31 @@
         active: false, enemy: null,
         autoTimerId: null, pInterval: null, eInterval: null, cinematic: false
     };
+    
+    window.exportSave = function() {
+        const data = localStorage.getItem(CONFIG.SAVE_KEY);
+        if(data) {
+            navigator.clipboard.writeText(data).then(() => {
+                alert("Save copied to clipboard! Paste it in your Notes app.");
+            });
+        } else {
+            alert("No save data found.");
+        }
+    }
+    
+    window.importSave = function() {
+        const data = prompt("Paste your save string here:");
+        if(data) {
+            try {
+                JSON.parse(data); // Validate JSON
+                localStorage.setItem(CONFIG.SAVE_KEY, data);
+                alert("Save loaded! Reloading game...");
+                location.reload();
+            } catch(e) {
+                alert("Invalid save data.");
+            }
+        }
+    }
 
     let isAutoMerging = false;
 
