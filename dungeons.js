@@ -431,37 +431,23 @@
         applyDungeonShake(isCrit ? 10 : 5); 
 
         // --- DEATH LOGIC WITH EXPLOSION ---
-        if (activeBoss.hp <= 0) {
-            activeBoss.hp = 0;
-            updateDungeonUI();
-            
-            // 1. Stop Physics immediately
-            cancelAnimationFrame(physicsFrame);
-            if(battleTimer) clearInterval(battleTimer);
+        activeBoss.hp = 0;
+                cancelAnimationFrame(physicsFrame); // STOP LOOP INSTANTLY
+                clearInterval(battleTimer);         // STOP TIMER INSTANTLY
+                
+                explodeSprite(physics.boss.el, 'right');
+                setTimeout(() => endDungeon(true), 2000);
+                return; // EXIT FUNCTION
+            }
 
-            // 2. Explode Boss
-            explodeSprite(b.el);
+        } else if (window.player.hp = 0;
+                cancelAnimationFrame(physicsFrame); // STOP LOOP INSTANTLY
+                clearInterval(battleTimer);         // STOP TIMER INSTANTLY
 
-            // 3. Wait for explosion, then show Victory
-            setTimeout(() => {
-                endDungeon(true);
-            }, 1500);
-
-        } else if (window.player.hp <= 0) {
-            window.player.hp = 0;
-            updateDungeonUI();
-
-            // 1. Stop Physics
-            cancelAnimationFrame(physicsFrame);
-            if(battleTimer) clearInterval(battleTimer);
-
-            // 2. Explode Player
-            explodeSprite(p.el);
-
-            // 3. Wait for explosion, then show Defeat
-            setTimeout(() => {
-                endDungeon(false);
-            }, 1500);
+                explodeSprite(physics.player.el, 'left');
+                setTimeout(() => endDungeon(false), 2000);
+                return; // EXIT FUNCTION
+            }
 
         } else {
             updateDungeonUI();
@@ -568,6 +554,11 @@
 
     // --- END GAME LOGIC ---
     function endDungeon(isWin) {
+        // --- NEW FIX: Prevent Double Trigger ---
+        const modal = document.getElementById('dungeon-result-modal');
+        if (modal && modal.style.display === 'flex') return; // Already showing result
+        // ---------------------------------------
+
         // Capture data safely
         const bossData = activeBoss; 
         
