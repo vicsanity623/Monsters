@@ -3,7 +3,7 @@
  * Updated to match HUB style (Colors, Stacking, Rarity)
  */
 
-(function() {
+(function () {
 
     // --- CONFIG ---
     const CONFIG = {
@@ -11,16 +11,16 @@
         GRID_SIZE: 20 // Increased grid size for better view
     };
 
-    const RARITY_NAMES = {1:"B", 2:"R", 3:"L", 4:"S", 5:"SS", 6:"SSS", 7:"SSS2", 8:"SSS3", 9:"SSS4", 10:"SSS5"};
-    
+    const RARITY_NAMES = { 1: "B", 2: "R", 3: "L", 4: "S", 5: "SS", 6: "SSS", 7: "SSS2", 8: "SSS3", 9: "SSS4", 10: "SSS5" };
+
     // CSS Class Mapping for Rarities (Must match style.css)
     function getRarityClass(r) {
-        if(r === 1) return 'item-basic';
-        if(r === 2) return 'item-rare';
-        if(r === 3) return 'item-legendary';
-        if(r === 4) return 'item-s';
-        if(r === 5) return 'item-ss';
-        if(r >= 6) return 'item-sss';
+        if (r === 1) return 'item-basic';
+        if (r === 2) return 'item-rare';
+        if (r === 3) return 'item-legendary';
+        if (r === 4) return 'item-s';
+        if (r === 5) return 'item-ss';
+        if (r >= 6) return 'item-sss';
         return 'item-basic';
     }
 
@@ -33,7 +33,7 @@
     const GearSystem = {
         selectedIdx: -1,
 
-        init: function() {
+        init: function () {
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => this.bindEvents());
             } else {
@@ -41,19 +41,21 @@
             }
         },
 
-        bindEvents: function() {
+        bindEvents: function () {
             const closeBtn = document.getElementById('g-close-btn');
             const detailsBtn = document.getElementById('g-details-btn');
             const sellBtn = document.getElementById('g-sell-btn');
+            const sellAllBtn = document.getElementById('g-sell-all-btn');
             const modalClose = document.getElementById('g-modal-close');
             const list = document.getElementById('gear-list');
 
             if (closeBtn) closeBtn.onclick = () => this.close();
             if (detailsBtn) detailsBtn.onclick = () => this.details();
             if (sellBtn) sellBtn.onclick = () => this.sell();
+            if (sellAllBtn) sellAllBtn.onclick = () => this.sellAll();
             if (modalClose) modalClose.onclick = () => {
                 const m = document.getElementById('g-modal');
-                if(m) m.style.display = 'none';
+                if (m) m.style.display = 'none';
             };
 
             if (list) {
@@ -67,26 +69,26 @@
             }
         },
 
-        open: function() {
+        open: function () {
             this.selectedIdx = -1;
             const overlay = document.getElementById('gear-overlay');
-            if(overlay) overlay.style.display = 'flex';
+            if (overlay) overlay.style.display = 'flex';
             this.render();
         },
 
-        close: function() {
+        close: function () {
             const overlay = document.getElementById('gear-overlay');
             const modal = document.getElementById('g-modal');
-            if(overlay) overlay.style.display = 'none';
-            if(modal) modal.style.display = 'none';
-            
+            if (overlay) overlay.style.display = 'none';
+            if (modal) modal.style.display = 'none';
+
             // Sync Hub UI when closing to reflect sales
-            if(typeof window.syncUI === "function") window.syncUI();
+            if (typeof window.syncUI === "function") window.syncUI();
         },
 
-        render: function() {
+        render: function () {
             const list = document.getElementById('gear-list');
-            if(!list) return;
+            if (!list) return;
 
             list.innerHTML = '';
             const fragment = document.createDocumentFragment();
@@ -95,16 +97,16 @@
 
             inventory.forEach((item, i) => {
                 const slot = document.createElement('div');
-                
+
                 // Add Rarity Class for Color/Border
                 const rarityClass = getRarityClass(item.rarity);
                 const isSelected = this.selectedIdx === i ? 'selected' : '';
-                
+
                 slot.className = `g-slot has-item ${rarityClass} ${isSelected}`;
-                slot.dataset.index = i; 
-                
+                slot.dataset.index = i;
+
                 let emoji = item.type === 'w' ? '⚔️' : '🛡️';
-                let tierLetter = RARITY_NAMES[item.rarity] || "B"; 
+                let tierLetter = RARITY_NAMES[item.rarity] || "B";
                 let qtyHtml = item.qty > 1 ? `<div class="qty-badge">x${item.qty}</div>` : '';
 
                 slot.innerHTML = `
@@ -112,13 +114,13 @@
                     <div class="g-type-icon">${emoji}</div>
                     ${qtyHtml}
                 `;
-                
+
                 fragment.appendChild(slot);
             });
 
             // Fill empty slots
             const emptyCount = Math.max(0, CONFIG.GRID_SIZE - inventory.length);
-            for(let i = 0; i < emptyCount; i++) {
+            for (let i = 0; i < emptyCount; i++) {
                 const empty = document.createElement('div');
                 empty.className = 'g-slot empty';
                 empty.style.opacity = "0.2";
@@ -132,78 +134,113 @@
             // Update Buttons
             const hasItem = this.selectedIdx !== -1 && inventory[this.selectedIdx];
             const sellBtn = document.getElementById('g-sell-btn');
+            const sellAllBtn = document.getElementById('g-sell-all-btn');
             const detailsBtn = document.getElementById('g-details-btn');
-            
-            if(sellBtn) sellBtn.disabled = !hasItem;
-            if(detailsBtn) detailsBtn.disabled = !hasItem;
+
+            if (sellBtn) sellBtn.disabled = !hasItem;
+            if (sellAllBtn) sellAllBtn.disabled = !hasItem;
+            if (detailsBtn) detailsBtn.disabled = !hasItem;
 
             // Reset Info Box if no selection
-            if(!hasItem) {
+            if (!hasItem) {
                 const nameEl = document.getElementById('g-display-name');
                 const statsEl = document.getElementById('g-display-stats');
-                if(nameEl) nameEl.innerText = "SELECT AN ITEM";
-                if(statsEl) statsEl.innerText = "Tap inventory to manage";
+                if (nameEl) nameEl.innerText = "SELECT AN ITEM";
+                if (statsEl) statsEl.innerText = "Tap inventory to manage";
             }
         },
 
-        select: function(i) {
+        select: function (i) {
             if (typeof window.player === 'undefined' || !window.player.inv[i]) return;
 
             this.selectedIdx = i;
             const item = window.player.inv[i];
             const nameEl = document.getElementById('g-display-name');
             const statsEl = document.getElementById('g-display-stats');
-            
-            if(nameEl) nameEl.innerText = item.n;
-            if(statsEl) {
+
+            if (nameEl) nameEl.innerText = item.n;
+            if (statsEl) {
                 const valStr = window.formatNumber ? window.formatNumber(item.val) : item.val;
                 const sellStr = window.formatNumber ? window.formatNumber(getSellPrice(item)) : getSellPrice(item);
+
+                let bonusTxt = "";
+                if (item.qty > 1) {
+                    const totalSell = getSellPrice(item) * item.qty;
+                    const totalStr = window.formatNumber ? window.formatNumber(totalSell) : totalSell;
+                    bonusTxt = `<br><span style="color:#e67e22">Stack Sell Price: ${totalStr}</span>`;
+                }
+
                 statsEl.innerHTML = `
                     <span style="color:#00ffff">Power: +${valStr}</span><br>
-                    <span style="color:#f1c40f">Sell Price: ${sellStr}</span>
+                    <span style="color:#f1c40f">Sell Price: ${sellStr}</span>${bonusTxt}
                 `;
             }
-            
+
             this.render();
         },
 
-        sell: function() {
-            if(this.selectedIdx === -1 || typeof window.player === 'undefined') return;
-            
+        sell: function () {
+            if (this.selectedIdx === -1 || typeof window.player === 'undefined') return;
+
             const item = window.player.inv[this.selectedIdx];
-            if(!item) return;
+            if (!item) return;
 
             const price = getSellPrice(item);
-            
+
             // Add Gold
             window.player.coins += price;
-            
+
             // Decrease Quantity Logic
             item.qty--;
-            
+
             // If empty, remove from array
-            if(item.qty <= 0) {
+            if (item.qty <= 0) {
                 window.player.inv.splice(this.selectedIdx, 1);
                 this.selectedIdx = -1; // Reset selection
             }
-            
+
             const nameEl = document.getElementById('g-display-name');
             const statsEl = document.getElementById('g-display-stats');
 
-            if(nameEl) nameEl.innerText = "SOLD!";
-            if(statsEl) statsEl.innerText = `Earned ${window.formatNumber ? window.formatNumber(price) : price} coins`;
-            
+            if (nameEl) nameEl.innerText = "SOLD!";
+            if (statsEl) statsEl.innerText = `Earned ${window.formatNumber ? window.formatNumber(price) : price} coins`;
+
             window.isDirty = true;
             this.render();
         },
 
-        details: function() {
+        sellAll: function () {
+            if (this.selectedIdx === -1 || typeof window.player === 'undefined') return;
+
+            const item = window.player.inv[this.selectedIdx];
+            if (!item) return;
+
+            const totalPrice = getSellPrice(item) * item.qty;
+
+            // Add Gold
+            window.player.coins += totalPrice;
+
+            // Remove from array
+            window.player.inv.splice(this.selectedIdx, 1);
+            this.selectedIdx = -1; // Reset selection
+
+            const nameEl = document.getElementById('g-display-name');
+            const statsEl = document.getElementById('g-display-stats');
+
+            if (nameEl) nameEl.innerText = "STACK SOLD!";
+            if (statsEl) statsEl.innerText = `Earned ${window.formatNumber ? window.formatNumber(totalPrice) : totalPrice} coins`;
+
+            window.isDirty = true;
+            this.render();
+        },
+
+        details: function () {
             if (this.selectedIdx === -1 || typeof window.player === 'undefined') return;
 
             const item = window.player.inv[this.selectedIdx];
             const modal = document.getElementById('g-modal');
-            
-            if(modal && item) {
+
+            if (modal && item) {
                 const worldNum = (typeof window.battle !== 'undefined') ? window.battle.world : 1;
                 const valStr = window.formatNumber ? window.formatNumber(item.val) : item.val;
 
@@ -219,11 +256,11 @@
                         </div>
                     </div>
                 `;
-                
+
                 const sellP = getSellPrice(item);
                 const sellStr = window.formatNumber ? window.formatNumber(sellP) : sellP;
                 document.getElementById('gm-price').innerText = `Sell Value: 🪙 ${sellStr}`;
-                
+
                 modal.style.display = 'block';
             }
         }

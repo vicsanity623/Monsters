@@ -8,7 +8,7 @@
         BOSSES: {
             buu: {
                 name: "Majin Buu",
-                img: "majin_buu.png", 
+                img: "majin_buu.png",
                 baseHp: 100000000000, // 100B
                 rewards: { shards: 50, coins: 100000 },
                 color: "#ff79c6"
@@ -44,16 +44,16 @@
     let activeBoss = null;
     let battleTimer = null;
     let timeLeft = 90;
-    let exitTimer = null; 
+    let exitTimer = null;
 
     // Physics State
     let physicsFrame = null;
     const physics = {
         player: { x: 20, y: 50, vx: 0, vy: 0, el: null },
         boss: { x: 80, y: 50, vx: 0, vy: 0, el: null },
-        magnet: 0.15, 
-        friction: 0.94, 
-        bounce: 2.0,   
+        magnet: 0.15,
+        friction: 0.94,
+        bounce: 2.0,
         hitCooldown: 0
     };
 
@@ -128,7 +128,7 @@
         if (!element) return;
 
         const rect = element.getBoundingClientRect();
-        
+
         // Create a temporary canvas for the effect
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -165,7 +165,7 @@
         try {
             const imgData = ctx.getImageData(drawX, drawY, rect.width, rect.height);
             const data = imgData.data;
-            
+
             ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the image, we only want particles
 
             for (let y = 0; y < rect.height; y += density) {
@@ -194,7 +194,7 @@
         }
 
         // Hide the real element immediately
-        element.style.opacity = '0'; 
+        element.style.opacity = '0';
 
         // Animation Loop
         function loop() {
@@ -244,7 +244,7 @@
             card.style.borderColor = boss.color;
             card.innerHTML = `
                 <div class="d-card-img-box">
-                    <img src="${boss.img}" onerror="this.src='https://dragonball-api.com/transformations/frieza-final.png'">
+                    <img src="${boss.img}" onerror="this.src='freeza.png'">
                 </div>
                 <div class="d-card-info">
                     <div class="d-boss-name" style="color:${boss.color}">${boss.name}</div>
@@ -290,7 +290,7 @@
 
         // Calc HP
         const bossHp = bossConfig.baseHp * Math.pow(1.2, lvl - 1);
-        const bossAtk = (window.GameState.gokuMaxHP * 0.01) + (bossHp * 0.0001); 
+        const bossAtk = (window.GameState.gokuMaxHP * 0.01) + (bossHp * 0.0001);
 
         activeBoss = {
             key: bossKey,
@@ -313,10 +313,10 @@
         const bossImgEl = document.getElementById('db-boss-img');
         bossImgEl.src = activeBoss.img;
         bossImgEl.style.opacity = '1'; // Reset visibility from previous explosion
-        
+
         const spriteEl = document.getElementById('ui-sprite');
         const playerImgEl = document.getElementById('db-player-img');
-        playerImgEl.src = spriteEl ? spriteEl.src : "IMG_0061.png";
+        playerImgEl.src = "IMG_0061.png";
         playerImgEl.style.opacity = '1'; // Reset visibility
 
         // Reset Physics
@@ -351,8 +351,8 @@
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         // Random jitter movement for dynamic feel
-        if(Math.random() < 0.02) { 
-            p.vx += (Math.random() - 0.5) * 4; 
+        if (Math.random() < 0.02) {
+            p.vx += (Math.random() - 0.5) * 4;
             p.vy += (Math.random() - 0.5) * 4;
         }
 
@@ -367,7 +367,7 @@
         // Apply Velocity
         p.x += p.vx; p.y += p.vy;
         b.x += b.vx; b.y += b.vy;
-        
+
         // Friction
         p.vx *= physics.friction; p.vy *= physics.friction;
         b.vx *= physics.friction; b.vy *= physics.friction;
@@ -376,8 +376,8 @@
         [p, b].forEach(u => {
             if (u.x < 5) { u.x = 5; u.vx *= -0.8; }
             if (u.x > 95) { u.x = 95; u.vx *= -0.8; }
-            if (u.y < 15) { u.y = 15; u.vy *= -0.8; } 
-            if (u.y > 75) { u.y = 75; u.vy *= -0.8; } 
+            if (u.y < 15) { u.y = 15; u.vy *= -0.8; }
+            if (u.y > 75) { u.y = 75; u.vy *= -0.8; }
         });
 
         // Apply visual transform (Movement tilt/scale)
@@ -398,7 +398,7 @@
         if (physics.hitCooldown > 0) physics.hitCooldown--;
 
         // Continue loop if boss is still alive
-        if(activeBoss && activeBoss.hp > 0 && window.player.hp > 0) {
+        if (activeBoss && activeBoss.hp > 0 && window.player.hp > 0) {
             physicsFrame = requestAnimationFrame(physicsLoop);
         }
     }
@@ -416,8 +416,8 @@
 
         // Damage Calc
         const playerPower = window.GameState.gokuPower || 100;
-        const critChance = window.player.critChance || 0.05; 
-        const critDmgMult = window.player.critDamage || 1.5; 
+        const critChance = window.player.critChance || 0.05;
+        const critDmgMult = window.player.critDamage || 1.5;
 
         let dmg = playerPower * (0.9 + Math.random() * 0.2);
         let isCrit = false;
@@ -440,41 +440,41 @@
         createDungeonPop(bossDmg, 'db-player-img', 'white', false);
 
         createDungeonParticles(b.x, b.y, 'red');
-        if(isCrit) createDungeonParticles(b.x, b.y, 'gold'); 
-        
+        if (isCrit) createDungeonParticles(b.x, b.y, 'gold');
+
         applyDungeonFlash(p.el);
         applyDungeonFlash(b.el);
-        applyDungeonShake(isCrit ? 10 : 5); 
+        applyDungeonShake(isCrit ? 10 : 5);
 
         // --- DEATH CHECK ---
-        
+
         if (activeBoss.hp <= 0) {
             // WIN CONDITION
             activeBoss.hp = 0;
             updateDungeonUI(); // Show 0 HP
-            
+
             // Stop Loops
-            if(physicsFrame) cancelAnimationFrame(physicsFrame);
-            if(battleTimer) clearInterval(battleTimer);
-            
+            if (physicsFrame) cancelAnimationFrame(physicsFrame);
+            if (battleTimer) clearInterval(battleTimer);
+
             // Explode Boss
-            if(physics.boss.el) explodeSprite(physics.boss.el, 'right');
-            
+            if (physics.boss.el) explodeSprite(physics.boss.el, 'right');
+
             // Wait then show Win Screen
             setTimeout(() => endDungeon(true), 2000);
             return;
-        } 
+        }
         else if (window.player.hp <= 0) {
             // LOSE CONDITION
             window.player.hp = 0;
             updateDungeonUI(); // Show 0 HP
 
             // Stop Loops
-            if(physicsFrame) cancelAnimationFrame(physicsFrame);
-            if(battleTimer) clearInterval(battleTimer);
+            if (physicsFrame) cancelAnimationFrame(physicsFrame);
+            if (battleTimer) clearInterval(battleTimer);
 
             // Explode Player
-            if(physics.player.el) explodeSprite(physics.player.el, 'left');
+            if (physics.player.el) explodeSprite(physics.player.el, 'left');
 
             // Wait then show Lose Screen
             setTimeout(() => endDungeon(false), 2000);
@@ -488,7 +488,7 @@
     function applyDungeonFlash(el) {
         if (!el) return;
         el.style.filter = 'brightness(5) contrast(2)';
-        el.style.transform += ' scale(1.3)'; 
+        el.style.transform += ' scale(1.3)';
         setTimeout(() => {
             el.style.filter = '';
             el.style.transform = el.style.transform.replace(' scale(1.3)', '');
@@ -556,7 +556,7 @@
         el.style.position = 'absolute';
         el.style.color = color;
         el.style.fontWeight = '900';
-        el.style.fontSize = isCrit ? '2.5rem' : '1.5rem'; 
+        el.style.fontSize = isCrit ? '2.5rem' : '1.5rem';
         el.style.textShadow = isCrit ? '0 0 10px orange, 0 0 5px black' : '0 0 4px black';
         el.style.fontFamily = 'Bangers';
         el.style.zIndex = 50;
@@ -591,24 +591,22 @@
         // ---------------------------------------
 
         // Capture data safely
-        const bossData = activeBoss; 
-        
-        // Stop engine just in case it wasn't stopped
-        window.stopDungeon(); 
+        const bossData = activeBoss;
 
-        const modal = document.getElementById('dungeon-result-modal');
+        // Stop engine just in case it wasn't stopped
+        window.stopDungeon();
         const list = document.getElementById('db-rewards-list');
         const title = document.getElementById('db-result-title');
         const btn = document.getElementById('db-btn-continue');
 
-        if(!modal || !list || !btn) {
+        if (!modal || !list || !btn) {
             console.error("Missing Dungeon UI elements");
-            if(window.showTab) window.showTab('dungeon'); 
+            if (window.showTab) window.showTab('dungeon');
             return;
         }
 
-        list.innerHTML = ''; 
-        
+        list.innerHTML = '';
+
         if (isWin && bossData) {
             title.innerText = "VICTORY!";
             title.style.color = "#f1c40f";
@@ -634,8 +632,8 @@
                 rewardsHtml += `<div style="color:#9b59b6">👻 +${amt} Souls</div>`;
             }
             if (bossData.rewards.gearChance) {
-                const qty = Math.floor(Math.random() * 3) + 1; 
-                if(window.addToInventory) {
+                const qty = Math.floor(Math.random() * 3) + 1;
+                if (window.addToInventory) {
                     for (let i = 0; i < qty; i++) {
                         window.addToInventory({ n: "Dungeon Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 5000 * bossData.lvl, rarity: 3 });
                     }
@@ -652,18 +650,18 @@
 
         modal.style.display = 'flex';
 
-        if(exitTimer) clearInterval(exitTimer);
+        if (exitTimer) clearInterval(exitTimer);
 
         const doExit = () => {
-            if(exitTimer) clearInterval(exitTimer);
+            if (exitTimer) clearInterval(exitTimer);
             modal.style.display = 'none';
-            
+
             if (window.showTab) {
                 window.showTab('dungeon');
             } else {
                 document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
                 const dungeonScreen = document.getElementById('view-dungeon');
-                if(dungeonScreen) dungeonScreen.classList.add('active-screen');
+                if (dungeonScreen) dungeonScreen.classList.add('active-screen');
             }
             window.initDungeons();
         };
@@ -681,8 +679,8 @@
 
     window.stopDungeon = function () {
         activeBoss = null;
-        if(battleTimer) clearInterval(battleTimer);
-        if(physicsFrame) cancelAnimationFrame(physicsFrame);
+        if (battleTimer) clearInterval(battleTimer);
+        if (physicsFrame) cancelAnimationFrame(physicsFrame);
     };
 
 })();

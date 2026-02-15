@@ -97,7 +97,7 @@
             ctx.drawImage(element, drawX, drawY, rect.width, rect.height);
         } catch (e) {
             // Fallback if image tainted or missing
-            if(!reverse) {
+            if (!reverse) {
                 element.style.transition = "opacity 1.5s, transform 1.5s";
                 element.style.opacity = "0";
                 element.style.transform = `scale(0.5) translateY(-30px) rotate(${direction === 'left' ? -20 : 20}deg)`;
@@ -129,8 +129,8 @@
                         particles.push({
                             originX: drawX + x,
                             originY: drawY + y,
-                            x: reverse ? (drawX + x + (Math.random()-0.5)*100) : (drawX + x),
-                            y: reverse ? (drawY + y - 50 - Math.random()*50) : (drawY + y),
+                            x: reverse ? (drawX + x + (Math.random() - 0.5) * 100) : (drawX + x),
+                            y: reverse ? (drawY + y - 50 - Math.random() * 50) : (drawY + y),
                             color: `rgba(${r},${g},${b},${a / 255})`,
                             vx: reverse ? 0 : ((Math.random() - 0.5) * 4 + (direction === 'left' ? -4 : 4)),
                             vy: reverse ? 0 : ((Math.random() - 0.5) * 4 - 1),
@@ -145,7 +145,7 @@
             return;
         }
 
-        if(!reverse) element.style.opacity = '0'; // Hide real sprite immediately
+        if (!reverse) element.style.opacity = '0'; // Hide real sprite immediately
 
         // Animate Loop
         let frame = 0;
@@ -161,14 +161,14 @@
                     p.x += dx * 0.1; // Ease in
                     p.y += dy * 0.1;
                     p.life += 0.02;
-                    if(p.life > 1) p.life = 1;
-                    
+                    if (p.life > 1) p.life = 1;
+
                     // Draw
                     ctx.fillStyle = p.color;
                     ctx.globalAlpha = p.life;
                     ctx.fillRect(p.x, p.y, density, density);
-                    
-                    if(Math.abs(dx) > 1 || Math.abs(dy) > 1) active = true;
+
+                    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) active = true;
 
                 } else {
                     // Explode: Standard physics
@@ -177,22 +177,22 @@
                         p.x += p.vx;
                         p.y += p.vy;
                         p.life -= 0.015; // Decay
-                        
+
                         ctx.fillStyle = p.color;
                         ctx.globalAlpha = p.life;
                         ctx.fillRect(p.x, p.y, density, density);
                     }
                 }
             }
-            
+
             frame++;
             // Cutoff for reverse animation to ensure it finishes
-            if(reverse && frame > 60) active = false;
+            if (reverse && frame > 60) active = false;
 
             if (active) {
                 requestAnimationFrame(loop);
             } else {
-                if(reverse) element.style.opacity = '1'; // Show real sprite again
+                if (reverse) element.style.opacity = '1'; // Show real sprite again
                 canvas.remove();
             }
         }
@@ -204,21 +204,21 @@
         // 1. Pause Logic
         window.battle.cinematic = true; // Stops damage loops
         window.battle.zenkaiUsed = true;
-        
+
         const pBox = document.getElementById('p-box');
         const pSprite = document.getElementById('btl-p-sprite');
 
         // 2. Explode (Die)
-        if(window.popDamage) window.popDamage("FATAL DMG!", 'p-box', true);
+        if (window.popDamage) window.popDamage("FATAL DMG!", 'p-box', true);
         explodeSprite(pSprite, 'left', false); // Normal explosion
-        
+
         // 3. Wait 1.5s, then Reform
         setTimeout(() => {
-            if(!window.battle.active) return; // If exited
+            if (!window.battle.active) return; // If exited
 
-            if(window.popDamage) window.popDamage("ZENKAI BOOST!", 'p-box', true);
+            if (window.popDamage) window.popDamage("ZENKAI BOOST!", 'p-box', true);
             triggerShake('heavy');
-            
+
             // Reverse Explosion (Reform)
             explodeSprite(pSprite, 'left', true);
 
@@ -242,7 +242,7 @@
             const container = document.createElement('div');
             container.id = 'boss-ui-container';
             container.style.position = 'absolute';
-            container.style.top = '60px'; 
+            container.style.top = '60px';
             container.style.left = '0';
             container.style.width = '100%';
             container.style.zIndex = '50';
@@ -253,7 +253,7 @@
             stageInfo.id = 'boss-ui-stage-info';
             stageInfo.style.textAlign = 'center';
             stageInfo.style.marginBottom = '5px';
-            stageInfo.style.color = '#ff3e3e'; 
+            stageInfo.style.color = '#ff3e3e';
             stageInfo.style.fontSize = '1.2rem';
             stageInfo.style.fontWeight = 'bold';
             stageInfo.style.textShadow = '1px 1px 0 #000';
@@ -325,7 +325,7 @@
             hpContainer.appendChild(hpLabel);
             timeContainer.appendChild(timeFill);
 
-            container.appendChild(stageInfo); 
+            container.appendChild(stageInfo);
             container.appendChild(hpContainer);
             container.appendChild(timeContainer);
             container.appendChild(timeText);
@@ -599,7 +599,7 @@
         const scale = Math.pow(1.8, window.battle.stage) * Math.pow(25, window.battle.world - 1);
 
         const eHP = 250 * scale;
-        const eATK = 250 * scale;
+        const eATK = 30 * scale;
         const eDEF = eHP * 0.4;
 
         if (!window.apiData || !window.apiData.characters || window.apiData.characters.length === 0) {
@@ -623,7 +623,7 @@
                 name: "BOSS " + (charData ? charData.name : "Titan"),
                 hp: 2000 * scale,
                 maxHp: 2000 * scale,
-                atk: 1000 * scale,
+                atk: 80 * scale,
                 def: (2000 * scale) * 0.35,
                 i: imgSrc
             };
@@ -631,8 +631,7 @@
             const eImg = document.getElementById('e-img');
             if (eImg) {
                 eImg.crossOrigin = "anonymous";
-                const cacheBuster = `?t=${Date.now()}`;
-                eImg.src = imgSrc.includes('?') ? (imgSrc + "&" + Date.now()) : (imgSrc + cacheBuster);
+                eImg.src = imgSrc;
             }
 
             const eName = document.getElementById('e-name');
@@ -659,8 +658,7 @@
             const eImg = document.getElementById('e-img');
             if (eImg) {
                 eImg.crossOrigin = "anonymous";
-                const cacheBuster = `?t=${Date.now()}`;
-                eImg.src = dat.image.includes('?') ? (dat.image + "&" + Date.now()) : (dat.image + cacheBuster);
+                eImg.src = dat.image;
             }
 
             const eName = document.getElementById('e-name');

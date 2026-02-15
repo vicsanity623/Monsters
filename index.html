@@ -277,16 +277,7 @@
                 </div>
             </div>
 
-            <div style="margin-top:20px; display:flex; justify-content:center; gap:10px; padding-bottom:20px;">
-                <button onclick="exportSave()"
-                    style="background:#333; border:1px solid #555; color:#aaa; font-family:'Orbitron'; font-size:0.7rem; padding:8px 12px; border-radius:5px; cursor:pointer;">
-                    💾 SAVE TO CLIPBOARD
-                </button>
-                <button onclick="importSave()"
-                    style="background:#333; border:1px solid #555; color:#aaa; font-family:'Orbitron'; font-size:0.7rem; padding:8px 12px; border-radius:5px; cursor:pointer;">
-                    📥 LOAD FROM CLIPBOARD
-                </button>
-            </div>
+
         </div>
     </div>
 
@@ -352,7 +343,7 @@
                 </div>
                 <img id="e-img"
                     src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-                    style="display:none;" alt="Enemy" crossorigin="anonymous">
+                    style="display:none;" alt="Enemy">
                 <div id="e-name"
                     style="font-family:'Bangers'; font-size:1rem; margin-top:5px; color:red; text-shadow: 1px 1px black;">
                 </div>
@@ -491,6 +482,8 @@
             <div class="g-btn-row">
                 <button id="g-details-btn" class="g-btn g-btn-blue" disabled>DETAILS</button>
                 <button id="g-sell-btn" class="g-btn g-btn-green" disabled>SELL ITEM</button>
+                <button id="g-sell-all-btn" class="g-btn g-btn-green" style="background:#e67e22;" disabled>SELL
+                    STACK</button>
             </div>
         </div>
     </div>

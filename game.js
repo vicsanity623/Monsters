@@ -27,8 +27,8 @@
     window.apiData = { characters: [], planets: [] };
 
     window.player = {
-        lvl: 1, rank: 0, xp: 0, nextXp: 100, coins: 500,
-        bAtk: 40, bDef: 25, bHp: 500, hp: 500, charge: 0,
+        lvl: 5, rank: 0, xp: 0, nextXp: 285, coins: 500,
+        bAtk: 134, bDef: 71, bHp: 4917, hp: 4917, charge: 0,
         inv: [], gear: { w: null, a: null }, selected: -1,
         lastCapsule: 0,
         soulLevel: 1,
@@ -562,11 +562,12 @@
 
     const PRELOAD_ASSETS = [
         "IMG_0287.png", "IMG_0299.png", "IMG_0300.png", "IMG_0292.png",
-        "IMG_0061.png", "IMG_0081.png", "hb_b.png"
+        "IMG_0061.png", "IMG_0081.png", "hb_b.png",
+        "cell.png", "freeza.png", "majin_buu.png"
     ];
 
     function showTab(t) {
-        if ((t === 'explore' || t === 'battle') && window.GameLoader) {
+        if ((t === 'explore' || t === 'battle' || t === 'dungeon') && window.GameLoader) {
             window.GameLoader.preload(PRELOAD_ASSETS, () => {
                 _doSwitchTab(t);
             });
@@ -667,6 +668,11 @@
 
         const xpPct = (window.player.xp / window.player.nextXp) * 100;
         document.getElementById('bar-xp').style.width = xpPct + "%";
+
+        const xpText = document.getElementById('hub-xp-text');
+        if (xpText) {
+            xpText.innerText = `${window.formatNumber(window.player.xp)} / ${window.formatNumber(window.player.nextXp)}`;
+        }
 
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';

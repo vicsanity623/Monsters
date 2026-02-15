@@ -5,7 +5,7 @@
         HOUSE: "IMG_0299.png",
         TREE: "IMG_0300.png",
         NPC: "IMG_0292.png",
-        ENEMY_FALLBACK: "https://dragonball-api.com/characters/Freezer.webp"
+        ENEMY_FALLBACK: "freeza.png"
     };
 
     const canvas = document.getElementById('explore-canvas');
@@ -242,12 +242,8 @@
         const gPower = window.GameState ? window.GameState.gokuPower : 100;
         const eImg = new Image();
 
-        if (window.apiData && window.apiData.characters && window.apiData.characters.length > 0) {
-            const rIdx = Math.floor(Math.random() * window.apiData.characters.length);
-            eImg.src = window.apiData.characters[rIdx].image || ASSETS.ENEMY_FALLBACK;
-        } else {
-            eImg.src = ASSETS.ENEMY_FALLBACK;
-        }
+        const localEnemies = ["freeza.png", "cell.png", "majin_buu.png"];
+        eImg.src = localEnemies[Math.floor(Math.random() * localEnemies.length)];
 
         // Difficulty Multiplier
         let mult = 1.0;

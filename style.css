@@ -29,23 +29,29 @@ html {
     font-family: 'Orbitron', sans-serif;
     background: var(--bg-dark);
     color: white;
-    
+
     /* LAYOUT & SIZING */
     height: 100vh;
     width: 100vw;
     display: flex;
     flex-direction: column;
-    
+
     /* SCROLL & ZOOM LOCK */
-    overflow: hidden;           /* Prevents scrolling */
-    position: fixed;            /* Anchors the viewport */
-    touch-action: none;         /* CRITICAL: Disables zoom gestures */
-    
+    overflow: hidden;
+    /* Prevents scrolling */
+    position: fixed;
+    /* Anchors the viewport */
+    touch-action: none;
+    /* CRITICAL: Disables zoom gestures */
+
     /* IOS SPECIFIC LOCKS */
-    -webkit-user-select: none;  /* Prevents text selection */
+    -webkit-user-select: none;
+    /* Prevents text selection */
     user-select: none;
-    -webkit-touch-callout: none; /* Disables long-press menu */
-    -webkit-text-size-adjust: 100%; /* Prevents font resizing */
+    -webkit-touch-callout: none;
+    /* Disables long-press menu */
+    -webkit-text-size-adjust: 100%;
+    /* Prevents font resizing */
 }
 
 /* --- NAVIGATION --- */
@@ -68,7 +74,8 @@ nav button {
     border: none;
     color: #555;
     font-family: 'Bangers';
-    font-size: 1.2rem; /* Slightly smaller to fit 4 buttons */
+    font-size: 1.2rem;
+    /* Slightly smaller to fit 4 buttons */
     cursor: pointer;
     height: 60px;
     padding: 0 5px;
@@ -265,6 +272,7 @@ nav button.active {
     box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
     font-family: 'Roboto', sans-serif;
     min-height: 320px;
+    transform: translateY(15px);
 }
 
 .panel-header {
@@ -1883,7 +1891,8 @@ nav button.active {
 /* Soul Meter */
 #rpg-soul-meter {
     position: absolute;
-    top: 135px; /* Below Loot Tracker */
+    top: 135px;
+    /* Below Loot Tracker */
     left: 30px;
     width: 200px;
     height: 18px;
