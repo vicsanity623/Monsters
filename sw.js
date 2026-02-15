@@ -1,10 +1,11 @@
-const CACHE_NAME = 'goku-rpg-v4.93';
+const CACHE_NAME = 'goku-rpg-v5.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './game.js',
   './Ranks.js',
+  './dungeons.js',
   './hub.js',
   './soul.js',
   './strategy.js',
@@ -24,7 +25,10 @@ const ASSETS_TO_CACHE = [
   './IMG_0299.png',
   './IMG_0300.png',
   './IMG_0292.png',
-  './IMG_0222.png'
+  './IMG_0222.png',
+  './majin_buu.png',
+  './freeza.png',
+  './cell.png'
 ];
 
 // Install Event: Cache files
