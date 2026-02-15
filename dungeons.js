@@ -8,21 +8,21 @@
         BOSSES: {
             buu: { 
                 name: "Majin Buu", 
-                img: "majin_buu.PNG", // Use your local file or placeholder
+                img: "majin_buu.png", // Use your local file or placeholder
                 baseHp: 100000000000, // 100B
                 rewards: { shards: 50, coins: 100000 },
                 color: "#ff79c6"
             },
             frieza: { 
                 name: "Frieza", 
-                img: "freeza.PNG", 
+                img: "freeza.png", 
                 baseHp: 150000000000, // 150B
                 rewards: { souls: 50, coins: 200000 },
                 color: "#bd93f9"
             },
             cell: { 
                 name: "Cell", 
-                img: "cell.PNG", 
+                img: "cell.png", 
                 baseHp: 200000000000, // 200B
                 rewards: { gearChance: true, coins: 300000 },
                 color: "#50fa7b"
