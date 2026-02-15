@@ -560,7 +560,7 @@
 
     const PRELOAD_ASSETS = [
         "IMG_0287.png", "IMG_0299.png", "IMG_0300.png", "IMG_0292.png",
-        "IMG_0061.png", "IMG_0081.png", "hb_b.png", "majin_buu.png", "freeza.png", "cell.png"
+        "IMG_0061.png", "IMG_0081.png", "hb_b.png"
     ];
 
     function showTab(t) {
