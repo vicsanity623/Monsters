@@ -576,19 +576,28 @@
     }
 
     function _doSwitchTab(t) {
+        // 1. CLEAR / STOP EVERYTHING FIRST (Strict Halting)
+        if (window.HubBattle) window.HubBattle.stop();
+        if (typeof window.stopCombat === 'function') window.stopCombat();
+        if (typeof window.stopExplore === 'function') window.stopExplore();
+        if (typeof window.stopDungeon === 'function') window.stopDungeon();
+
+        const bMenu = document.getElementById('battle-menu');
+        if (bMenu) bMenu.style.display = 'none';
+
+        // 2. Clear Active States
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
 
+        // 3. Set Target
         const targetView = document.getElementById('view-' + t);
         const targetBtn = document.getElementById('tab-' + t);
 
         if (targetView) targetView.classList.add('active-screen');
         if (targetBtn) targetBtn.classList.add('active');
 
+        // 4. START TARGET ONLY
         if (t === 'battle') {
-            if (window.HubBattle) window.HubBattle.stop();
-            if (typeof window.stopExplore === 'function') window.stopExplore();
-
             if (!window.battle.active) {
                 const prompt = document.getElementById('start-prompt');
                 const eImg = document.getElementById('e-img');
@@ -599,21 +608,17 @@
             }
         }
         else if (t === 'explore') {
-            if (window.HubBattle) window.HubBattle.stop();
-            if (typeof window.stopCombat === 'function') window.stopCombat();
-            document.getElementById('battle-menu').style.display = 'none';
-
             if (typeof window.initExplore === 'function') {
                 window.initExplore();
             }
         }
-        else {
+        else if (t === 'char') { // Explicitly Hub
             if (window.HubBattle) window.HubBattle.start();
-            if (typeof window.stopCombat === 'function') window.stopCombat();
-            if (typeof window.stopExplore === 'function') window.stopExplore();
-
-            const bMenu = document.getElementById('battle-menu');
-            if (bMenu) bMenu.style.display = 'none';
+        }
+        else if (t === 'dungeon') {
+            if (typeof window.initDungeons === 'function') {
+                window.initDungeons();
+            }
         }
 
         syncUI();

@@ -41,10 +41,20 @@
     };
 
     // --- STATE ---
-    let activeBoss = null; // Current boss being fought
+    let activeBoss = null;
     let battleTimer = null;
-    let attackInterval = null;
     let timeLeft = 90;
+
+    // Physics State
+    let physicsFrame = null;
+    const physics = {
+        player: { x: 20, y: 50, vx: 0, vy: 0, el: null },
+        boss: { x: 80, y: 50, vx: 0, vy: 0, el: null },
+        magnet: 0.05,
+        friction: 0.92,
+        bounce: 1.5,
+        hitCooldown: 0
+    };
 
     // --- DAILY LOGIN LOGIC ---
 
@@ -230,51 +240,182 @@
         const spriteEl = document.getElementById('ui-sprite');
         document.getElementById('db-player-img').src = spriteEl ? spriteEl.src : "IMG_0061.png";
 
-        // Start Loop
+        // Reset Physics State
+        physics.player = { x: 20, y: 50, vx: 0, vy: 0, el: document.getElementById('db-player-img') };
+        physics.boss = { x: 80, y: 50, vx: 0, vy: 0, el: document.getElementById('db-boss-img') };
+        physics.hitCooldown = 0;
+
+        // Start Loops
         timeLeft = 90;
         updateDungeonUI();
 
         if (battleTimer) clearInterval(battleTimer);
-        if (attackInterval) clearInterval(attackInterval);
+        if (physicsFrame) cancelAnimationFrame(physicsFrame);
 
         // Timer Loop
         battleTimer = setInterval(() => {
             timeLeft--;
-            if (timeLeft <= 0) {
-                endDungeon(false); // Time out = Loss
-            }
+            if (timeLeft <= 0) endDungeon(false);
             updateDungeonUI();
         }, 1000);
 
-        // Attack Logic
-        const performAttack = () => {
-            // Player Hits Boss
-            const dmg = window.GameState.gokuPower;
-            // Apply Damage
-            activeBoss.hp -= dmg;
-            createDungeonPop(dmg, 'db-boss-img', 'red');
+        // Physics Battle Loop
+        physicsLoop();
+    };
 
-            if (activeBoss.hp <= 0) {
-                activeBoss.hp = 0;
-                endDungeon(true); // Win
-                return;
-            }
+    function physicsLoop() {
+        if (!activeBoss) return;
 
-            // Boss Hits Player (Tiny safe damage)
-            if (Math.random() > 0.5) { // 50% chance to attack each tick
-                window.player.hp -= activeBoss.atk;
-                createDungeonPop(activeBoss.atk, 'db-player-img', 'white');
-                if (window.player.hp <= 0) {
-                    window.player.hp = 0;
-                    endDungeon(false); // Loss
+        const p = physics.player;
+        const b = physics.boss;
+
+        // 1. Magnet Attraction (Pull toward each other)
+        const dx = b.x - p.x;
+        const dy = b.y - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 5) { // Attraction force
+            p.vx += (dx / dist) * physics.magnet;
+            p.vy += (dy / dist) * physics.magnet;
+            b.vx -= (dx / dist) * physics.magnet;
+            b.vy -= (dy / dist) * physics.magnet;
+        }
+
+        // 2. Apply Velocity & Friction
+        p.x += p.vx; p.y += p.vy;
+        b.x += b.vx; b.y += b.vy;
+        p.vx *= physics.friction; p.vy *= physics.friction;
+        b.vx *= physics.friction; b.vy *= physics.friction;
+
+        // 3. Keep in Bounds (Simple 0-100 range)
+        [p, b].forEach(u => {
+            if (u.x < 5) { u.x = 5; u.vx *= -0.5; }
+            if (u.x > 95) { u.x = 95; u.vx *= -0.5; }
+            if (u.y < 20) { u.y = 20; u.vy *= -0.5; }
+            if (u.y > 80) { u.y = 80; u.vy *= -0.5; }
+        });
+
+        // 4. Update Visuals
+        if (p.el) p.el.style.transform = `translate(${p.vx * 2}px, ${p.vy * 2}px) scaleX(1)`;
+        if (b.el) b.el.style.transform = `translate(${b.vx * 2}px, ${b.vy * 2}px) scaleX(-1)`;
+
+        const playerBox = document.querySelector('.db-player-box');
+        const bossBox = document.querySelector('.db-boss-box');
+        if (playerBox) playerBox.style.left = p.x + "%";
+        if (playerBox) playerBox.style.top = p.y + "%";
+        if (bossBox) bossBox.style.left = b.x + "%";
+        if (bossBox) bossBox.style.top = b.y + "%";
+
+        // 5. Collision Detection (Hit!)
+        if (dist < 15 && physics.hitCooldown <= 0) {
+            triggerHit(p, b);
+            physics.hitCooldown = 15; // Frames between hits
+        }
+        if (physics.hitCooldown > 0) physics.hitCooldown--;
+
+        physicsFrame = requestAnimationFrame(physicsLoop);
+    }
+
+    function triggerHit(p, b) {
+        // Bounce Force (Repel)
+        const dx = b.x - p.x;
+        const dy = b.y - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+        p.vx -= (dx / dist) * physics.bounce;
+        p.vy -= (dy / dist) * physics.bounce;
+        b.vx += (dx / dist) * physics.bounce;
+        b.vy += (dy / dist) * physics.bounce;
+
+        // Damage Logic
+        const pDmg = window.GameState.gokuPower;
+        const bDmg = activeBoss.atk;
+
+        activeBoss.hp -= pDmg;
+        window.player.hp -= bDmg;
+
+        createDungeonPop(pDmg, 'db-boss-img', 'red');
+        createDungeonPop(bDmg, 'db-player-img', 'white');
+
+        // Visual Effects
+        createDungeonParticles(b.x, b.y, 'red');
+        createDungeonParticles(p.x, p.y, 'white');
+
+        applyDungeonFlash(p.el);
+        applyDungeonFlash(b.el);
+        applyDungeonShake();
+
+        if (activeBoss.hp <= 0) {
+            activeBoss.hp = 0;
+            endDungeon(true);
+        } else if (window.player.hp <= 0) {
+            window.player.hp = 0;
+            endDungeon(false);
+        }
+        updateDungeonUI();
+    }
+
+    function applyDungeonFlash(el) {
+        if (!el) return;
+        el.style.filter = 'brightness(5) contrast(2)';
+        el.style.transform += ' scale(1.2)';
+        setTimeout(() => {
+            el.style.filter = '';
+            el.style.transform = el.style.transform.replace(' scale(1.2)', '');
+        }, 100);
+    }
+
+    function createDungeonParticles(x, y, color) {
+        const container = document.getElementById('db-fx-container');
+        if (!container) return;
+
+        for (let i = 0; i < 8; i++) {
+            const p = document.createElement('div');
+            p.style.position = 'absolute';
+            p.style.width = '6px';
+            p.style.height = '6px';
+            p.style.borderRadius = '50%';
+            p.style.background = color;
+            p.style.left = x + "%";
+            p.style.top = y + "%";
+            p.style.zIndex = 30;
+            p.style.boxShadow = `0 0 10px ${color}`;
+
+            container.appendChild(p);
+
+            const vx = (Math.random() - 0.5) * 10;
+            const vy = (Math.random() - 0.5) * 10;
+            let op = 1;
+            let px = x;
+            let py = y;
+
+            const anim = setInterval(() => {
+                px += vx * 0.2;
+                py += vy * 0.2;
+                op -= 0.05;
+                p.style.left = px + "%";
+                p.style.top = py + "%";
+                p.style.opacity = op;
+                if (op <= 0) {
+                    clearInterval(anim);
+                    p.remove();
                 }
-            }
-            updateDungeonUI();
-        };
+            }, 30);
+        }
+    }
 
-        // Attack Loop (Auto Battler style)
-        attackInterval = setInterval(performAttack, 500); // 2 hits per second
-        performAttack(); // Start immediately
+    function applyDungeonShake() {
+        const arena = document.querySelector('.db-battle-arena');
+        if (!arena) return;
+        arena.style.animation = 'none';
+        void arena.offsetWidth; // trigger reflow
+        arena.style.animation = 'db-shake 0.3s cubic-bezier(.36,.07,.19,.97) both';
+    }
+
+    window.stopDungeon = function () {
+        activeBoss = null;
+        clearInterval(battleTimer);
+        cancelAnimationFrame(physicsFrame);
     };
 
     function updateDungeonUI() {
@@ -340,8 +481,7 @@
     }
 
     function endDungeon(isWin) {
-        clearInterval(battleTimer);
-        clearInterval(attackInterval);
+        window.stopDungeon();
 
         const modal = document.getElementById('dungeon-result-modal');
         const title = document.getElementById('db-result-title');

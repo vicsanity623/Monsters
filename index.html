@@ -5,6 +5,31 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <style>
+        @keyframes db-shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+    </style>
     <title>Goku: Saiyan Ascension - RPG</title>
 
     <!-- PWA MANIFEST & SETTINGS -->
@@ -387,15 +412,21 @@
         </div>
 
         <!-- ARENA -->
-        <div id="dungeon-arena"
-            style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#000;">
-            <img id="db-player-img" src="IMG_0061.png"
-                style="position:absolute; left:10%; bottom:30%; width:100px; transform:scaleX(1);">
-            <img id="db-boss-img" src=""
-                style="position:absolute; right:10%; bottom:30%; width:150px; transform:scaleX(-1);">
+        <div id="dungeon-arena" class="db-battle-arena"
+            style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#000; overflow:hidden;">
+
+            <div class="db-player-box"
+                style="position:absolute; width:100px; height:100px; display:flex; align-items:center; justify-content:center; transform: translate(-50%, -50%);">
+                <img id="db-player-img" src="IMG_0061.png" style="width:100%; height:auto; transition: filter 0.1s;">
+            </div>
+
+            <div class="db-boss-box"
+                style="position:absolute; width:150px; height:150px; display:flex; align-items:center; justify-content:center; transform: translate(-50%, -50%);">
+                <img id="db-boss-img" src="" style="width:100%; height:auto; transition: filter 0.1s;">
+            </div>
 
             <!-- Visual Effects Container -->
-            <div id="db-fx-container" style="position:absolute; inset:0; pointer-events:none;"></div>
+            <div id="db-fx-container" style="position:absolute; inset:0; pointer-events:none; z-index:20;"></div>
         </div>
 
         <!-- BOTTOM HUD -->
@@ -737,21 +768,276 @@
         </div>
     </div>
 
+    <!-- TRAINING MODAL -->
+    <div id="training-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:4000; flex-direction:column; align-items:center; justify-content:center;">
+        <style>
+            @keyframes pulseAura {
+                0% {
+                    opacity: 0.5;
+                    transform: scale(1);
+                }
+
+                100% {
+                    opacity: 0.8;
+                    transform: scale(1.1);
+                }
+            }
+        </style>
+        <div class="tr-container"
+            style="position:relative; width:90%; max-width:400px; background:#121212; border:2px solid #e74c3c; border-radius:15px; overflow:hidden; box-shadow:0 0 40px rgba(231,76,60,0.4);">
+
+            <div class="tr-header"
+                style="background:#e74c3c; padding:15px; text-align:center; font-family:'Bangers'; font-size:2rem; color:white; text-shadow:2px 2px black;">
+                TRAINING CHAMBER
+            </div>
+
+            <div class="tr-visual"
+                style="position:relative; height:180px; background:radial-gradient(circle at center, #330000, black); display:flex; justify-content:center; align-items:flex-end; overflow:hidden;">
+                <!-- Aura -->
+                <div class="tr-aura"
+                    style="position:absolute; width:140px; height:140px; background:radial-gradient(circle, rgba(255,50,50,0.6), transparent 70%); border-radius:50%; animation: pulseAura 0.8s infinite alternate; bottom:20px;">
+                </div>
+
+                <img id="tr-goku-img" src="IMG_0061.png"
+                    style="height:150px; position:relative; z-index:2; filter:drop-shadow(0 0 10px red);">
+            </div>
+
+            <div class="tr-content" style="padding:20px; color:white; font-family:'Orbitron';">
+                <div style="text-align:center; margin-bottom:20px; font-size:1.2rem;">
+                    AVAILABLE SP: <span id="tr-sp-count"
+                        style="color:#00ff00; font-size:1.5rem; font-weight:bold;">0</span>
+                </div>
+
+                <!-- HP ROW -->
+                <div class="tr-stat-row"
+                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:#222; padding:10px; border-radius:8px; border:1px solid #333;">
+                    <div>
+                        <div style="color:#ff3e3e; font-size:0.8rem;">MAX HP <span id="tr-hp-spent"
+                                style="color:#aaa; margin-left:5px;">(+0)</span></div>
+                        <div id="tr-hp-val" style="font-size:1rem;">500</div>
+                    </div>
+                    <button onclick="spendSP('hp')"
+                        style="padding:8px 15px; background:#ff3e3e; border:none; border-radius:5px; color:white; font-weight:bold; cursor:pointer;">+20%
+                        (1 SP)</button>
+                </div>
+
+                <!-- ATK ROW -->
+                <div class="tr-stat-row"
+                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:#222; padding:10px; border-radius:8px; border:1px solid #333;">
+                    <div>
+                        <div style="color:#3498db; font-size:0.8rem;">ATTACK <span id="tr-atk-spent"
+                                style="color:#aaa; margin-left:5px;">(+0)</span></div>
+                        <div id="tr-atk-val" style="font-size:1rem;">40</div>
+                    </div>
+                    <button onclick="spendSP('atk')"
+                        style="padding:8px 15px; background:#3498db; border:none; border-radius:5px; color:white; font-weight:bold; cursor:pointer;">+20%
+                        (1 SP)</button>
+                </div>
+
+                <!-- DEF ROW -->
+                <div class="tr-stat-row"
+                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:#222; padding:10px; border-radius:8px; border:1px solid #333;">
+                    <div>
+                        <div style="color:#2ecc71; font-size:0.8rem;">DEFENSE <span id="tr-def-spent"
+                                style="color:#aaa; margin-left:5px;">(+0)</span></div>
+                        <div id="tr-def-val" style="font-size:1rem;">25</div>
+                    </div>
+                    <button onclick="spendSP('def')"
+                        style="padding:8px 15px; background:#2ecc71; border:none; border-radius:5px; color:white; font-weight:bold; cursor:pointer;">+20%
+                        (1 SP)</button>
+                </div>
+
+            </div>
+
+            <div class="tr-footer"
+                style="padding:15px; background:#111; border-top:1px solid #333; display:flex; flex-direction:column; gap:10px;">
+                <button onclick="resetSP()"
+                    style="width:100%; padding:10px; background:#e74c3c; border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.2rem; cursor:pointer; opacity:0.8;">RESET
+                    SP</button>
+                <button onclick="closeTraining()"
+                    style="width:100%; padding:15px; background:#555; border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer;">LEAVE
+                    CHAMBER</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- RANKS MODAL -->
+    <div id="ranks-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:5000; flex-direction:column; align-items:center; justify-content:center;">
+        <style>
+            .rank-row {
+                display: flex;
+                align-items: center;
+                background: #222;
+                margin-bottom: 10px;
+                padding: 10px;
+                border-radius: 10px;
+                width: 100%;
+                border: 1px solid #444;
+            }
+
+            .rank-player {
+                border-color: gold;
+                background: #332b00;
+            }
+
+            .rank-pos {
+                font-family: 'Bangers';
+                font-size: 1.5rem;
+                color: #888;
+                width: 30px;
+                text-align: center;
+            }
+
+            .rank-player .rank-pos {
+                color: gold;
+            }
+
+            .rank-avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                overflow: hidden;
+                margin: 0 10px;
+                border: 2px solid #555;
+            }
+
+            .rank-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .rank-info {
+                flex: 1;
+            }
+
+            .rank-name {
+                font-family: 'Bangers';
+                font-size: 1.1rem;
+                letter-spacing: 1px;
+            }
+
+            .rank-sub {
+                font-size: 0.7rem;
+                color: #aaa;
+                font-family: 'Orbitron';
+            }
+
+            .rank-stats {
+                text-align: right;
+                font-family: 'Orbitron';
+            }
+
+            .rank-power {
+                font-size: 0.9rem;
+                color: cyan;
+                font-weight: bold;
+            }
+
+            .rank-extra {
+                font-size: 0.6rem;
+                color: #777;
+            }
+        </style>
+
+        <div class="g-close" onclick="Ranks.closeModal()"
+            style="position:absolute; top:20px; right:20px; font-size:2rem; color:white;">✕</div>
+
+        <div
+            style="font-family:'Bangers'; color:#f1c40f; font-size:2.5rem; margin-bottom:20px; text-shadow:0 0 10px gold;">
+            🏆 LEADERBOARD
+        </div>
+
+        <div id="ranks-list" style="width:90%; max-width:500px; height:60vh; overflow-y:auto; padding:10px;">
+            <!-- INJECTED JS -->
+        </div>
+    </div>
+
+    <!-- SKILLS OVERLAY -->
+    <div id="skills-overlay"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:9999; color:#fff; flex-direction:column; overflow-y:auto;">
+        <div class="g-header" style="background:transparent; border:none; box-shadow:none;">
+            <h1 style="color:var(--dbz-orange);">🔥 SKILLS 🔥</h1>
+            <div class="g-close" onclick="Skills.closeSkillScreen()" style="color:#fff;">✕</div>
+        </div>
+        <div id="skills-list-container" style="padding:20px; max-width:800px; margin:0 auto; width:100%;">
+            <!-- Skill Cards Injected Here -->
+        </div>
+        <button class="g-btn g-btn-blue" style="margin:20px auto; width:80%; max-width:300px;"
+            onclick="Skills.closeSkillScreen()">CLOSE</button>
+    </div>
+
     <!-- NEW EXPLORE SCREEN -->
     <div id="view-explore" class="screen" style="position:relative; background:black; overflow:hidden;">
         <canvas id="explore-canvas"></canvas>
 
-        <!-- EXPLORE HUD -->
+        <!-- EXPLORE HUD (GENUINE RPG STYLE) -->
         <div id="explore-hud">
-            <div class="hud-stat-bar">
-                <div style="color:#ff3e3e; font-weight:bold;">HP</div>
-                <div class="hud-bar-bg">
-                    <div id="hud-hp-bar" style="width:100%; background:#ff3e3e;"></div>
+
+            <!-- NEW RPG STATUS PANEL (Top Left) -->
+            <div id="rpg-status-panel">
+                <!-- Avatar -->
+                <div class="rpg-avatar-frame">
+                    <img id="rpg-avatar-img" src="IMG_0061.png"> <!-- Matches your player sprite -->
+                </div>
+
+                <!-- Bars Container -->
+                <div class="rpg-bars">
+                    <!-- HP Bar -->
+                    <div class="rpg-bar-row">
+                        <div class="rpg-bar-bg hp-bg">
+                            <div id="rpg-hp-fill" class="rpg-fill hp-fill"></div>
+                            <span id="rpg-hp-text" class="rpg-text">HP 100/100</span>
+                        </div>
+                    </div>
+                    <!-- XP Bar -->
+                    <div class="rpg-bar-row">
+                        <div class="rpg-bar-bg xp-bg">
+                            <div id="rpg-xp-fill" class="rpg-fill xp-fill"></div>
+                            <span id="rpg-xp-text" class="rpg-text">XP 0%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div style="position:absolute; top:15px; right:15px; color:gold; font-family:'Bangers'; font-size:1.5rem;">
-                KILLS: <span id="hud-kill-count">0</span>
+            <!-- LOOT TRACKER (Under Bars) -->
+            <div id="rpg-loot-tracker">
+                <div class="loot-item" id="loot-coins">💰 <span>0</span></div>
+                <div class="loot-item" id="loot-shards" style="color:#00ffff;">💎 <span>0</span></div>
+            </div>
+
+            <!-- SOUL METER (New) -->
+            <div id="rpg-soul-meter" onclick="SoulSystem.openModal()" style="display:none;">
+                <!-- Hidden by default, shown if SoulSystem exists -->
+                <div class="rpg-bar-bg soul-bg">
+                    <div id="rpg-soul-fill" class="rpg-fill soul-fill"></div>
+                    <span id="rpg-soul-text" class="rpg-text">SOUL 0%</span>
+                </div>
+            </div>
+
+            <!-- QUEST TRACKER (Top Right) -->
+            <div id="rpg-quest-box">
+                <div id="quest-title">CURRENT QUEST</div>
+                <div id="quest-desc">Explore the world...</div>
+            </div>
+
+            <!-- INTERACTION BUTTON (Appears near objects) -->
+            <div id="btn-interact-explore" class="interact-btn">
+                <span>👋</span> INTERACT
+            </div>
+
+            <!-- INTERACTION DIALOG OVERLAY -->
+            <div id="explore-interaction-overlay">
+                <div class="rpg-dialog-box">
+                    <div class="rpg-dialog-name" id="dialog-name">Villager</div>
+                    <div class="rpg-dialog-text" id="dialog-text">Hello traveler!</div>
+                    <div class="rpg-dialog-choices" id="dialog-choices">
+                        <!-- Buttons injected by JS -->
+                    </div>
+                </div>
             </div>
 
             <!-- JOYSTICK -->
@@ -771,22 +1057,6 @@
                 <div class="charge-text">MAX POWER!</div>
                 <div class="charge-meter">
                     <div id="ex-charge-fill"></div>
-                </div>
-            </div>
-
-            <!-- INTERACTION BUTTON (Appears near objects) -->
-            <div id="btn-interact-explore" class="interact-btn">
-                <span>👋</span> INTERACT
-            </div>
-
-            <!-- INTERACTION DIALOG OVERLAY -->
-            <div id="explore-interaction-overlay">
-                <div class="rpg-dialog-box">
-                    <div class="rpg-dialog-name" id="dialog-name">Villager</div>
-                    <div class="rpg-dialog-text" id="dialog-text">Hello traveler!</div>
-                    <div class="rpg-dialog-choices" id="dialog-choices">
-                        <!-- Buttons injected by JS -->
-                    </div>
                 </div>
             </div>
         </div>
