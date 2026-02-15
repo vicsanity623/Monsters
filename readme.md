@@ -14,7 +14,7 @@ The goal was to build a lightweight, mobile-responsive game engine that runs ent
 ## 🎨 A Note on Assets & Theming
 
 **Current Theme: Dragon Ball Z**  
-Currently, the project utilizes placeholder assets, sprites, and naming conventions inspired by the *Dragon Ball* universe (Goku, Ki, Saiyans, etc.) to demonstrate the engine's capabilities.
+Currently, the project utilizes placeholders assets, sprites, and naming conventions inspired by the *Dragon Ball* universe (Goku, Ki, Saiyans, etc.) to demonstrate the engine's capabilities.
 
 **Modular Design**  
 The codebase is designed to be **theme-agnostic**. The core logic handles stats, collision, inventory, and progression independently of the visuals. This means the entire game can be "reskinned" for custom storylines (e.g., a Medieval Knight RPG, a Cyberpunk shooter, or a Fantasy Wizard game) simply by:
@@ -28,56 +28,50 @@ The codebase is designed to be **theme-agnostic**. The core logic handles stats,
 
 ### 1. The Hub (Idle Mechanics)
 *   **Resource Management:** Train stats (Attack, Defense) using Gold.
-*   **Gear System:** Inventory management, equipping items, and an "Auto-Merge" system to upgrade gear tiers.
-*   **Soul System:** A prestige mechanic to reset progress for permanent multipliers.
-*   **Offline Progression:** Calculates rewards earned while the player was away.
+*   **Gear System:** Inventory management, equipping items, and an **Auto-Merge** system to upgrade gear tiers.
+*   **Batch Selling:** Sell entire stacks of redundant gear at once with the "Sell Stack" feature.
+*   **Soul System:** A secondary progression system to gain permanent multipliers based on kill counts.
+*   **Offline Progression:** Automatic supply drops and rewards calculated for time spent away.
+*   **Real-time HUD:** XP bars and level text update instantly during idle combat.
 
-### 2. Battle Stages (Auto-Battler)
-*   **Stage Progression:** Climb through increasingly difficult levels.
-*   **Boss Fights:** Unique boss encounters (e.g., Frieza, Cell) with massive HP pools.
-*   **Combat Logic:** Turn-based auto-attacks with critical hits, evasion, and special beam attacks.
+### 2. Battle Stages (API-Driven Auto-Battler)
+*   **Stage Progression:** 20 stages per world across infinite worlds.
+*   **API Integration:** Dynamically fetches planet backgrounds and enemy character sprites from the *Dragon Ball API*.
+*   **Combat Logic:** Auto-attacks with critical hits, evasion, Zenkai boosts, and cinematic "Ultimate" beam attacks.
 
-### 3. Explore Mode (Open World RPG)
+### 3. Boss Rush / Dungeons (Local Content)
+*   **Dungeon Keys:** Earn keys through gameplay to enter high-stakes Boss Rush mode.
+*   **Visual Fidelity:** Custom particle explosion effects triggered on defeat.
+*   **Boss Mechanics:** Face iconic villains like Frieza, Cell, and Majin Buu with unique scaling.
+*   **Local Assets:** Uses preloaded local `.png` assets for maximum reliability and offline play.
+
+### 4. Explore Mode (Open World RPG)
 *   **Engine:** A custom 2D Canvas rendering engine (`battleworld.js`).
 *   **Open World:** A massive, tiled scrolling map with procedural generation (Trees, Houses, NPCs).
-*   **Action Combat:** Real-time movement using a virtual joystick, manual attacking, dodging, and charging mechanics.
-*   **Loot & AI:** Enemies spawn dynamically, chase the player using basic pathfinding, and drop loot (Coins/XP) that can be magnetically collected.
+*   **Action Combat:** Virtual joystick movement, manual attacking, dodging, and charging mechanics.
+*   **Loot Magnetism:** Loot drops from enemies automagically pull toward the player.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Customizations
 
-*   **HTML5:** Structure and Canvas rendering.
-*   **CSS3:** Responsive UI, Animations, and Flexbox layouts.
-*   **JavaScript (ES6+):** Core game logic.
-    *   No external libraries or frameworks.
-    *   State management via a global `GameState` object.
-    *   Modular architecture (`battle.js`, `gear.js`, `skills.js`, etc.).
+*   **HTML5 / CSS3 / JS:** 100% Vanilla implementation.
+*   **Modular Scripts:** 
+    *   `game.js`: Core state & Save/Load (Local Storage).
+    *   `dungeons.js`: Physics-based boss encounters.
+    *   `battle.js`: API-driven stage progression.
+    *   `gear.js`: Stackable inventory & selling logic.
+    *   `sw.js`: Service Worker for PWA/Offline support.
+*   **Quick Start:** New players begin at **Level 5** to jump straight into the action without menu bombardment.
+*   **Asset Management:** Robust preloading system for local sprites and cross-origin handling for API assets.
 
 ---
 
 ## 🚀 How to Run
 
-Because this project uses vanilla web technologies, no build step (npm/yarn) is required.
-
-1.  **Clone the repo:**
-    ```bash
-    git clone https://github.com/vicsanity623/Monsters.git
-    ```
-2.  **Open:** Simply double-click `index.html` in your browser.
-3.  **Host:** Works perfectly on GitHub Pages (Settings -> Pages -> Select Branch).
-
----
-
-## 📂 File Structure Overview
-
-*   `index.html`: The main entry point and UI container.
-*   `game.js`: Core initialization, save/load logic, and global state management.
-*   `hub.js`: Logic for the main idle screen.
-*   `battle.js`: Logic for the stage-based auto-battler.
-*   `battleworld.js`: The canvas-based open-world exploration engine.
-*   `gear.js` / `advance.js`: Inventory and equipment upgrade systems.
-*   `style.css`: All visual styling and UI animations.
+1.  **Clone the repo:** `git clone https://github.com/vicsanity623/Monsters.git`
+2.  **Run:** Open `index.html` in any modern browser. No build steps (Vite/Webpack) required.
+3.  **PWA:** Add to home screen for a full-screen mobile app experience.
 
 ---
 
