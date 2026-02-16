@@ -944,7 +944,8 @@
         const log = document.getElementById('log');
         if (log) log.innerHTML = `<div style="color:cyan">> WON! +${window.formatNumber ? window.formatNumber(xpGain) : xpGain} XP</div>`;
 
-        let dropText = "NONE";
+        // --- DROP LOGIC ---
+        let dropText = "";
         let dropCount = 0;
         const qty = Math.floor(Math.random() * 4);
 
@@ -980,11 +981,11 @@
             }
         }
         if (shardDrop > 0) window.player.dragonShards = (window.player.dragonShards || 0) + shardDrop;
-        
-        // --- NEW: DUNGEON KEY DROP (48% Chance) ---
+
+        // Key Drop Logic
         let keyDrop = 0;
-        if (Math.random() < 0.48) {
-            keyDrop = Math.floor(Math.random() * 9) + 1; // 1 to 9 keys
+        if (Math.random() < 0.51) {
+            keyDrop = Math.floor(Math.random() * 9) + 1;
             window.player.dungeonKeys = (window.player.dungeonKeys || 0) + keyDrop;
         }
 
@@ -994,8 +995,21 @@
             window.player.hp = Math.min(window.player.hp + healAmt, window.GameState.gokuMaxHP);
         }
 
+        // --- CONSTRUCT REWARD HTML ---
         let dropsHtml = "";
-        if (bossSouls > 0) dropsHtml += `<div style="color:#00ffff; font-weight:bold;">+${bossSouls} SOULS</div>`;
+        
+        if (bossSouls > 0) {
+            dropsHtml += `<div style="color:#00ffff; font-weight:bold;">+${bossSouls} SOULS</div>`;
+        }
+        
+        if (shardDrop > 0) {
+            dropsHtml += `<div style="color:#00d2ff; font-weight:bold;">💎 +${shardDrop} SHARD</div>`;
+        }
+
+        if (keyDrop > 0) {
+            dropsHtml += `<div style="color:gold; font-weight:bold;">🗝️ +${keyDrop} KEYS</div>`;
+        }
+        
         if (dropCount > 0) {
             let rColor = "#fff";
             if (dropRarity === 2) rColor = "#00d2ff";
