@@ -263,6 +263,8 @@ nav button.active {
 }
 
 .bottom-panel {
+    margin-bottom:0 !important;
+    padding-bottom:env(safe-area-inset-bottom);
     background: #eef2f5;
     border-top-left-radius: 25px;
     border-top-right-radius: 25px;
@@ -452,12 +454,16 @@ nav button.active {
     box-shadow: 1px 1px 3px black;
 }
 
-.bot-nav {
-    display: flex;
-    justify-content: space-around;
-    margin-top: 10px;
-    border-top: 1px solid #ccc;
-    padding-top: 10px;
+.bot-nav{
+    position:sticky;
+    bottom:0;
+    left:0;
+    right:0;
+    background:#111;
+    padding:8px 0 calc(env(safe-area-inset-bottom) + 8px);
+    display:flex;
+    justify-content:space-around;
+    z-index:10;
 }
 
 .nav-icon {
