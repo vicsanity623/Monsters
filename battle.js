@@ -498,6 +498,8 @@
         stopCombat();
         ensureBattleUI();
 
+        const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : null;
+
         window.battle.active = true;
         window.battle.cinematic = false;
         window.battle.zenkaiUsed = false; // Reset Zenkai Flag
@@ -541,7 +543,7 @@
             }
         }, 1000);
 
-        window.player.charge = (window.player.advanceLevel >= 40) ? 20 : 0;
+        window.player.charge = (adv && adv.startKi) ? adv.startKi : 0;
         const pBox = document.getElementById('p-box');
         const eBox = document.getElementById('e-box');
         if (pBox) pBox.style.transform = 'translate(0,0)';
@@ -737,7 +739,8 @@
 
         } else if (window.player.hp <= 0) {
             // --- ZENKAI CHECK (Revive) ---
-            if (window.player.advanceLevel >= 60 && !window.battle.zenkaiUsed) {
+            const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : null;
+            if (adv && adv.zenkai && !window.battle.zenkaiUsed) {
                 triggerZenkaiRevive(); // Call new function
                 return;
             }
@@ -754,11 +757,10 @@
     async function executeStrike(side) {
         if (!window.battle.active) return;
         const isP = (side === 'p');
-        if (!isP) {
-            let dodgeChance = 0;
-            if (window.player.advanceLevel >= 50) dodgeChance = 0.15;
-            else if (window.player.advanceLevel >= 15) dodgeChance = 0.05 + ((window.player.advanceLevel - 15) * 0.002);
+        const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : null;
 
+        if (!isP) {
+            let dodgeChance = adv ? (adv.evasion / 100) : 0;
             if (Math.random() < dodgeChance) {
                 if (window.popDamage) window.popDamage("MISS!", 'p-box');
                 const pSprite = document.getElementById('btl-p-sprite');
@@ -774,9 +776,7 @@
         let threshold = 0.8;
         if (isP) {
             let critChance = 0.1 + (window.player.rank * 0.05);
-            if (window.player.advanceLevel >= 5) {
-                critChance += 0.05 + (window.player.advanceLevel * 0.005);
-            }
+            if (adv) critChance += (adv.critChance / 100);
             threshold = 1.0 - critChance;
         }
 
@@ -786,12 +786,12 @@
         let atkVal = isP ? (window.GameState ? window.GameState.gokuPower : 10) : window.battle.enemy.atk;
 
         if (isP) {
-            if (window.player.advanceLevel >= 35 && (window.player.hp / window.GameState.gokuMaxHP) < 0.2) {
+            if (adv && adv.rageMode && (window.player.hp / window.GameState.gokuMaxHP) < 0.2) {
                 atkVal *= 2;
                 if (window.popDamage && Math.random() > 0.7) window.popDamage("RAGE!", 'p-box');
             }
-            if (window.player.advanceLevel >= 45 && window.battle.stage === 20) {
-                atkVal *= 1.2;
+            if (adv && adv.bossSlayer > 0 && window.battle.stage === 20) {
+                atkVal *= (1 + (adv.bossSlayer / 100));
             }
             const soulLvl = window.player.soulLevel || 1;
             const chargeBonus = Math.floor(soulLvl * 0.5);
@@ -839,8 +839,8 @@
 
         await performHit();
 
-        if (isP && window.player.advanceLevel >= 20) {
-            let doubleChance = 0.05 + ((window.player.advanceLevel - 20) * 0.005);
+        if (isP && adv && adv.doubleStrike > 0) {
+            let doubleChance = adv.doubleStrike / 100;
             if (Math.random() < doubleChance) {
                 setTimeout(() => {
                     if (window.popDamage) window.popDamage("DOUBLE!", 'p-box');
@@ -906,6 +906,7 @@
     }
 
     function handleWin() {
+        const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : null;
         const menu = document.getElementById('battle-menu');
         if (menu && menu.style.display === 'flex') return;
 
@@ -931,11 +932,11 @@
             window.player.souls = (window.player.souls || 0) + bossSouls;
         }
 
-        if (window.player.advanceLevel >= 25) {
-            coinGain *= (1 + (0.10 + ((window.player.advanceLevel - 25) * 0.01)));
+        if (adv && adv.goldMult > 0) {
+            coinGain *= (1 + (adv.goldMult / 100));
         }
-        if (window.player.advanceLevel >= 30) {
-            xpGain *= (1 + (0.10 + ((window.player.advanceLevel - 30) * 0.01)));
+        if (adv && adv.xpMult > 0) {
+            xpGain *= (1 + (adv.xpMult / 100));
         }
 
         window.player.xp += xpGain;
@@ -989,19 +990,19 @@
             window.player.dungeonKeys = (window.player.dungeonKeys || 0) + keyDrop;
         }
 
-        if (window.player.advanceLevel >= 10) {
-            const healMult = 0.15 + ((window.player.advanceLevel - 10) * 0.01);
+        if (adv && adv.lifeSteal > 0) {
+            const healMult = adv.lifeSteal / 100;
             const healAmt = window.GameState.gokuMaxHP * healMult;
             window.player.hp = Math.min(window.player.hp + healAmt, window.GameState.gokuMaxHP);
         }
 
         // --- CONSTRUCT REWARD HTML ---
         let dropsHtml = "";
-        
+
         if (bossSouls > 0) {
             dropsHtml += `<div style="color:#00ffff; font-weight:bold;">+${bossSouls} SOULS</div>`;
         }
-        
+
         if (shardDrop > 0) {
             dropsHtml += `<div style="color:#00d2ff; font-weight:bold;">💎 +${shardDrop} SHARD</div>`;
         }
@@ -1009,7 +1010,7 @@
         if (keyDrop > 0) {
             dropsHtml += `<div style="color:gold; font-weight:bold;">🗝️ +${keyDrop} KEYS</div>`;
         }
-        
+
         if (dropCount > 0) {
             let rColor = "#fff";
             if (dropRarity === 2) rColor = "#00d2ff";

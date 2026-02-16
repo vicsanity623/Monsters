@@ -100,12 +100,16 @@
 
         get gokuPower() {
             const rawAtk = window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0);
-            return Math.floor(rawAtk * getSoulMult() * getAdvMult());
+            const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, atkBoost: 0 };
+            const mult = 1 + adv.statMult + (adv.atkBoost / 100);
+            return Math.floor(rawAtk * getSoulMult() * mult);
         },
 
         get gokuDefense() {
             const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
-            return Math.floor(rawDef * getSoulMult() * getAdvMult());
+            const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, defBoost: 0 };
+            const mult = 1 + adv.statMult + (adv.defBoost / 100);
+            return Math.floor(rawDef * getSoulMult() * mult);
         },
 
         get gokuHP() { return window.player.hp; },
@@ -113,7 +117,9 @@
 
         get gokuMaxHP() {
             const rawHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
-            return Math.floor(rawHp * getSoulMult() * getAdvMult());
+            const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, hpBoost: 0 };
+            const mult = 1 + adv.statMult + (adv.hpBoost / 100);
+            return Math.floor(rawHp * getSoulMult() * mult);
         },
         inBattle: false
     };
@@ -149,30 +155,21 @@
 
         const p = window.player;
         const sMult = getSoulMult();
-        const aMult = getAdvMult();
         const advLvl = p.advanceLevel || 0;
+        const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(advLvl) : null;
 
         const totalPower = window.GameState.gokuPower;
         const maxHp = window.GameState.gokuMaxHP;
         const defense = window.GameState.gokuDefense;
 
         let critChance = 1 + (p.rank * 0.5);
-        if (advLvl >= 5) critChance += 5 + ((advLvl - 5) * 0.5);
+        if (adv) critChance += adv.critChance;
 
-        let evasion = 0;
-        if (advLvl >= 50) evasion = 15;
-        else if (advLvl >= 15) evasion = 5 + ((advLvl - 15) * 0.2);
-
-        let lifeSteal = 0;
-        if (advLvl >= 10) lifeSteal = 15 + ((advLvl - 10) * 1.0);
-
-        let doubleStrike = 0;
-        if (advLvl >= 20) doubleStrike = 5 + ((advLvl - 20) * 0.5);
-
-        let goldBoost = 0;
-        if (advLvl >= 25) goldBoost = 10 + (advLvl - 25);
-        let xpBoost = 0;
-        if (advLvl >= 30) xpBoost = 10 + (advLvl - 30);
+        let evasion = adv ? adv.evasion : 0;
+        let lifeSteal = adv ? adv.lifeSteal : 0;
+        let doubleStrike = adv ? adv.doubleStrike : 0;
+        let goldBoost = adv ? adv.goldMult : 0;
+        let xpBoost = adv ? adv.xpMult : 0;
 
         document.getElementById('det-power').innerText = window.formatNumber(totalPower);
         document.getElementById('det-hp').innerText = window.formatNumber(maxHp);
@@ -184,8 +181,11 @@
                 <span>💎 Soul Boost:</span> <span style="color:#00ffff">x${sMult.toFixed(1)}</span>
             </div>
             <div style="display:flex; justify-content:space-between; width:100%; margin-top:2px;">
-                <span>⚙️ Gear Adv:</span> <span style="color:#00ff00">+${Math.round((aMult - 1) * 100)}%</span>
+                <span>⚙️ Gear Adv:</span> <span style="color:#00ff00">+${Math.round(adv.statMult * 100)}%</span>
             </div>
+            ${adv.hpBoost > 0 ? `<div style="display:flex; justify-content:space-between; width:100%; margin-top:2px;"><span>❤️ HP Boost:</span> <span style="color:#ff3e3e">+${adv.hpBoost}%</span></div>` : ''}
+            ${adv.atkBoost > 0 ? `<div style="display:flex; justify-content:space-between; width:100%; margin-top:2px;"><span>⚔️ ATK Boost:</span> <span style="color:#f1c40f">+${adv.atkBoost}%</span></div>` : ''}
+            ${adv.defBoost > 0 ? `<div style="display:flex; justify-content:space-between; width:100%; margin-top:2px;"><span>🛡️ DEF Boost:</span> <span style="color:#2ecc71">+${adv.defBoost}%</span></div>` : ''}
         `;
 
         document.getElementById('det-crit').innerText = `${critChance.toFixed(1)}%`;
