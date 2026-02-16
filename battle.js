@@ -980,6 +980,13 @@
             }
         }
         if (shardDrop > 0) window.player.dragonShards = (window.player.dragonShards || 0) + shardDrop;
+        
+        // --- NEW: DUNGEON KEY DROP (48% Chance) ---
+        let keyDrop = 0;
+        if (Math.random() < 0.48) {
+            keyDrop = Math.floor(Math.random() * 9) + 1; // 1 to 9 keys
+            window.player.dungeonKeys = (window.player.dungeonKeys || 0) + keyDrop;
+        }
 
         if (window.player.advanceLevel >= 10) {
             const healMult = 0.15 + ((window.player.advanceLevel - 10) * 0.01);
