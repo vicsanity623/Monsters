@@ -1,114 +1,129 @@
-
 (function () {
     const RIVALS = [
-        { name: "Vegeta", baseMult: 0.95, color: "#3498db", rank: 0, lvl: 1, power: 500, world: 1, stage: 1, enemies: 0, souls: 0 },
-        { name: "Broly", baseMult: 1.05, color: "#2ecc71", rank: 0, lvl: 1, power: 600, world: 1, stage: 1, enemies: 0, souls: 0 },
-        { name: "Jiren", baseMult: 1.20, color: "#e74c3c", rank: 0, lvl: 1, power: 800, world: 1, stage: 1, enemies: 0, souls: 0 }
+        { name: "Vegeta", baseMult: 0.95, color: "#3498db" },
+        { name: "Broly", baseMult: 1.05, color: "#2ecc71" },
+        { name: "Jiren", baseMult: 1.20, color: "#e74c3c" }
     ];
-
-    let rankData = [];
 
     const Ranks = {
         init: function () {
-            // Load or Initialize
-            const saved = localStorage.getItem('dbz_ranks_data');
-            if (saved) {
-                rankData = JSON.parse(saved);
-            } else {
-                rankData = JSON.parse(JSON.stringify(RIVALS));
-            }
-            this.simulateProgression();
-        },
-
-        simulateProgression: function () {
-            const playerPower = window.GameState?.gokuPower || 1000;
-            const playerWorld = window.battle?.world || 1;
-            const playerStage = window.battle?.maxStage || 1;
-
-            rankData.forEach(rival => {
-                // Power Simulation: Rivals are roughly within range of player
-                // Variance: +/- 15% of their base multiplier target
-                const targetPower = playerPower * rival.baseMult;
-                const variance = (Math.random() * 0.3) - 0.15; // -0.15 to +0.15
-                rival.power = Math.floor(targetPower * (1 + variance));
-                if (rival.power < 100) rival.power = 100 + Math.floor(Math.random() * 50);
-
-                // World/Stage Simulation
-                if (playerWorld > 1) {
-                    rival.world = Math.max(1, playerWorld - Math.floor(Math.random() * 2));
-                } else {
-                    rival.world = 1;
-                }
-
-                rival.stage = Math.max(1, playerStage + Math.floor(Math.random() * 10) - 5);
-                if (rival.stage < 1) rival.stage = 1;
-
-                // Level Simulation
-                rival.lvl = window.player.lvl + Math.floor(Math.random() * 6) - 3;
-                if (rival.lvl < 1) rival.lvl = 1;
-
-                // Rank Simulation (Tier)
-                rival.rank = window.player.rank;
-                if (Math.random() < 0.2) rival.rank = Math.max(0, window.player.rank - 1); // Occasionally lower rank
-
-                // Kill/Soul Simulation (Just for flavor numbers)
-                rival.enemies = Math.floor(rival.power / 5) + Math.floor(Math.random() * 100);
-                rival.souls = Math.floor(rival.enemies / 10);
-            });
-
-            this.save();
-        },
-
-        save: function () {
-            localStorage.setItem('dbz_ranks_data', JSON.stringify(rankData));
+            // No init logic needed for static display, 
+            // but we keep this hook just in case.
         },
 
         openModal: function () {
-            // Sort by Power
-            const playerEntry = {
-                name: "Goku",
-                power: window.GameState.gokuPower,
-                lvl: window.player.lvl,
-                color: "#f1c40f",
-                isPlayer: true,
-                rank: window.player.rank,
-                world: window.battle.world,
-                stage: window.battle.maxStage,
-                enemies: "???", // We don't track total kills for player yet? 
-                souls: window.player.soulLevel // Use soul level for comparison
-            };
-
-            const all = [...rankData, playerEntry].sort((a, b) => b.power - a.power);
-
             const modal = document.getElementById('ranks-modal');
             if (!modal) return;
+            
+            // 1. GATHER DATA
+            const p = window.player;
+            const s = window.GameState;
+            
+            // Calculate Highest Damage (Approximate based on power + crit)
+            const highestDmg = Math.floor(s.gokuPower * (p.critDamage || 1.5) * 2); // Estimate max hit
+            
+            // Count Unlocked Skills
+            const skillsUnlocked = window.Skills ? window.Skills.getUnlockedCount() : 0;
+            const skillsTotal = 8; // Based on skills.js list
 
-            const listConfig = document.getElementById('ranks-list');
-            listConfig.innerHTML = "";
+            // Dungeon Progress
+            const dLvl = p.dungeonLevel || { buu: 1, frieza: 1, cell: 1 };
+            const avgDungeon = Math.floor((dLvl.buu + dLvl.frieza + dLvl.cell) / 3);
 
-            all.forEach((entry, idx) => {
-                const div = document.createElement('div');
-                div.className = 'rank-row';
-                if (entry.isPlayer) div.classList.add('rank-player');
+            // Gear Rarity Names
+            const wRarity = p.gear.w ? (window.RARITY_NAMES ? window.RARITY_NAMES[p.gear.w.rarity] : "B") : "None";
+            const aRarity = p.gear.a ? (window.RARITY_NAMES ? window.RARITY_NAMES[p.gear.a.rarity] : "B") : "None";
 
-                div.innerHTML = `
-                    <div class="rank-pos">${idx + 1}</div>
-                    <div class="rank-avatar" style="background:${entry.color}; display:flex; align-items:center; justify-content:center; color:white; font-family:'Bangers'; font-size:1.2rem; text-shadow:1px 1px black;">
-                        ${entry.name.substring(0, 2).toUpperCase()}
+            // 2. BUILD HTML STRUCTURE
+            const container = document.getElementById('ranks-list');
+            container.innerHTML = `
+                <!-- PROFILE HEADER -->
+                <div style="text-align:center; margin-bottom:20px; position:relative;">
+                    <div style="width:100px; height:100px; border-radius:50%; border:3px solid ${p.rank >= 1 ? 'gold' : 'white'}; margin:0 auto; overflow:hidden; background:#000; box-shadow:0 0 20px ${p.rank >= 1 ? 'gold' : '#333'};">
+                        <img src="${document.getElementById('ui-sprite').src}" style="width:100%; height:100%; object-fit:cover;">
                     </div>
-                    <div class="rank-info">
-                        <div class="rank-name" style="color:${entry.color}">${entry.name}</div>
-                        <div class="rank-sub">LV.${entry.lvl} | World ${entry.world}-${entry.stage}</div>
+                    <div style="font-family:'Bangers'; font-size:2rem; color:white; margin-top:10px;">GOKU <span style="font-size:1rem; color:#aaa;">LV.${p.lvl}</span></div>
+                    <div style="font-family:'Orbitron'; font-size:0.8rem; color:#f1c40f;">${window.RANKS ? window.RANKS[p.rank] : "Warrior"} Class</div>
+                </div>
+
+                <!-- MAIN STATS GRID -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
+                    <div class="stat-box" style="background:rgba(255,0,0,0.1); border:1px solid #ff3e3e;">
+                        <div style="color:#ff3e3e; font-size:0.7rem;">TOTAL POWER</div>
+                        <div style="font-size:1rem; color:white;">${window.formatNumber(s.gokuPower)}</div>
                     </div>
-                    <div class="rank-stats">
-                        <div class="rank-power">⚡ ${window.formatNumber(entry.power)}</div>
-                        <div class="rank-extra">Soul Lv.${entry.souls || entry.soulLevel || 0}</div>
+                    <div class="stat-box" style="background:rgba(0,255,0,0.1); border:1px solid #2ecc71;">
+                        <div style="color:#2ecc71; font-size:0.7rem;">MAX HP</div>
+                        <div style="font-size:1rem; color:white;">${window.formatNumber(s.gokuMaxHP)}</div>
                     </div>
-                `;
-                listConfig.appendChild(div);
-            });
+                    <div class="stat-box" style="background:rgba(0,200,255,0.1); border:1px solid #00d2ff;">
+                        <div style="color:#00d2ff; font-size:0.7rem;">HIGHEST HIT</div>
+                        <div style="font-size:1rem; color:white;">${window.formatNumber(highestDmg)}</div>
+                    </div>
+                    <div class="stat-box" style="background:rgba(255,215,0,0.1); border:1px solid gold;">
+                        <div style="color:gold; font-size:0.7rem;">SOULS</div>
+                        <div style="font-size:1rem; color:white;">${window.formatNumber(p.souls)}</div>
+                    </div>
+                </div>
+
+                <!-- DETAILED PROGRESS LIST -->
+                <div style="background:#222; border-radius:10px; padding:15px; font-family:'Orbitron'; font-size:0.8rem; color:#ccc; margin-bottom:20px;">
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid #444; padding:5px 0;">
+                        <span>🌍 Battle Stage</span> <span style="color:white">World ${window.battle.world} - ${window.battle.maxStage}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid #444; padding:5px 0;">
+                        <span>💀 Dungeon Avg Lvl</span> <span style="color:white">${avgDungeon}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid #444; padding:5px 0;">
+                        <span>⚔️ Explore Kills</span> <span style="color:white">${window.formatNumber(p.exploreKills || 0)}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid #444; padding:5px 0;">
+                        <span>✨ Skills Mastered</span> <span style="color:gold">${skillsUnlocked} / ${skillsTotal}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid #444; padding:5px 0;">
+                        <span>⬆️ Gear Advance</span> <span style="color:#00ff00">Lv.${p.advanceLevel}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:5px 0;">
+                        <span>🎒 Best Gear</span> <span style="color:#e74c3c">W:${wRarity} / A:${aRarity}</span>
+                    </div>
+                </div>
+
+                <!-- RIVAL LEADERBOARD (FOOTER) -->
+                <div style="border-top:2px solid #555; padding-top:15px;">
+                    <div style="font-family:'Bangers'; color:#777; text-align:center; margin-bottom:10px;">GALACTIC RANKINGS</div>
+                    ${this.renderRivals(s.gokuPower)}
+                </div>
+            `;
 
             modal.style.display = 'flex';
+        },
+
+        renderRivals: function (playerPower) {
+            let html = '';
+            // Sort rivals relative to player
+            const list = RIVALS.map(r => {
+                const pwr = Math.floor(playerPower * r.baseMult);
+                return { ...r, pwr: pwr };
+            });
+            
+            // Add Player to list for comparison
+            list.push({ name: "YOU", pwr: playerPower, color: "gold", isPlayer: true });
+            
+            // Sort high to low
+            list.sort((a, b) => b.pwr - a.pwr);
+
+            list.forEach((r, i) => {
+                const bg = r.isPlayer ? "background:rgba(255,215,0,0.1); border:1px solid gold;" : "background:transparent; border-bottom:1px solid #333;";
+                html += `
+                <div style="display:flex; justify-content:space-between; padding:8px; font-family:'Orbitron'; font-size:0.8rem; align-items:center; ${bg}">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <span style="color:#555; width:20px;">#${i + 1}</span>
+                        <span style="color:${r.color}; font-weight:bold;">${r.name}</span>
+                    </div>
+                    <div style="color:#aaa;">⚡ ${window.formatNumber(r.pwr)}</div>
+                </div>`;
+            });
+            return html;
         },
 
         closeModal: function () {
