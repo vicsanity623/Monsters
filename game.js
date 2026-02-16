@@ -1126,6 +1126,7 @@
         // Add levels
         for (let i = 0; i < lvlGained; i++) {
             window.player.lvl++;
+            window.player.sp = (window.player.sp || 0) + 2; // Award 2 SP per level gained
             window.player.nextXp = Math.floor(window.player.nextXp * 1.3);
             window.player.bHp = Math.floor(window.player.bHp * 1.05) + 1000;
             window.player.bAtk = Math.floor(window.player.bAtk * 1.05) + 20;
