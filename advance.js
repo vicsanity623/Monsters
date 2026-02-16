@@ -39,20 +39,25 @@
         getBonuses: function(lvl) {
             return {
                 statMult: (lvl * ADV_CONFIG.STAT_MULTIPLIER),
+                
+                // SCALABLE PERKS
+                hpBoost: lvl >= 3 ? 115 + ((lvl - 3) * 15) : 0,    // +115% base + 15% per lvl
+                defBoost: lvl >= 6 ? 120 + ((lvl - 6) * 15) : 0,   // +120% base + 15% per lvl
+                atkBoost: lvl >= 12 ? 125 + ((lvl - 12) * 15) : 0, // +125% base + 15% per lvl
+
                 critChance: lvl >= 5 ? 5 + ((lvl-5) * 0.5) : 0, 
                 lifeSteal: lvl >= 10 ? 15 + ((lvl-10) * 1.0) : 0,
                 evasion: lvl >= 50 ? 15 : (lvl >= 15 ? 5 + ((lvl-15) * 0.2) : 0), 
                 doubleStrike: lvl >= 20 ? 5 + ((lvl-20) * 0.5) : 0,
                 goldMult: lvl >= 25 ? 10 + ((lvl-25) * 1.0) : 0,
                 xpMult: lvl >= 30 ? 10 + ((lvl-30) * 1.0) : 0,
+                startKi: lvl >= 40 ? 20 + ((lvl-40) * 1.0) : 0, // Scalable Charge start
+                bossSlayer: lvl >= 45 ? 20 + ((lvl-45) * 1.0) : 0, // Scalable Boss Dmg
+
+                // BINARY PERKS (Active/Locked)
                 rageMode: lvl >= 35,
-                startKi: lvl >= 40 ? 20 : 0,
-                bossSlayer: lvl >= 45 ? 20 : 0,
                 zenkai: lvl >= 60,
-                // Visual Indicators
-                hpBoost: lvl >= 3,
-                defBoost: lvl >= 6, // NEW: Defense Boost
-                atkBoost: lvl >= 12
+                ultraInstinct: lvl >= 50 // Evasion boost visual flag
             };
         },
 
@@ -86,7 +91,6 @@
             const btn = document.getElementById('btn-do-advance');
             btn.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;"><span>ADVANCE</span><span style="font-size:0.8rem;color:#00d2ff;">💎 ${cost.shards}</span><span style="font-size:0.8rem;color:#f1c40f;">💰 ${window.formatNumber(cost.gold)}</span></div>`;
 
-            // Dynamic Speech
             const bubble = document.getElementById('bulma-speech');
             if(lvl < 3) bubble.innerText = "Level 3 gives a huge HP Boost!";
             else if(lvl < 5) bubble.innerText = "Level 5 unlocks Critical Hits!";
@@ -109,37 +113,37 @@
 
             let statsHtml = `<div class="adv-stat-row"><span>Stat Boost:</span> <span style="color:#00ff00">+${(bonuses.statMult*100).toFixed(0)}% ➤ +${(nextBonuses.statMult*100).toFixed(0)}%</span></div>`;
             
-            const addRow = (label, curr, next, unlockLvl) => {
+            const addRow = (label, curr, next, unlockLvl, suffix = "%") => {
                 if(lvl >= (unlockLvl-1) || next > 0) {
                     const color = lvl >= unlockLvl ? '#00ff00' : '#777';
-                    const valStr = (typeof curr === 'boolean') ? (curr ? "Active" : "Locked") : `${curr.toFixed(1)}% ➤ ${next.toFixed(1)}%`;
+                    const valStr = (curr > 0 ? `+${curr.toFixed(0)}${suffix}` : "Locked") + ` ➤ +${next.toFixed(0)}${suffix}`;
                     statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>${label}:</span> <span>${valStr}</span></div>`;
                 }
             };
             
-            // HP Boost (Lvl 3)
-            if(lvl >= 2 || bonuses.hpBoost) {
-                const color = lvl >= 3 ? '#ff3e3e' : '#777';
-                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>HP Boost:</span> <span>${lvl >= 3 ? "+115%" : "Locked"}</span></div>`;
-            }
-
-            addRow("Crit Chance", bonuses.critChance, nextBonuses.critChance, 5);
-
-            // NEW: Defense Boost (Lvl 6)
-            if(lvl >= 5 || bonuses.defBoost) {
-                const color = lvl >= 6 ? '#2ecc71' : '#777';
-                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>DEF Boost:</span> <span>${lvl >= 6 ? "+120%" : "Locked"}</span></div>`;
-            }
-
-            addRow("Life Steal", bonuses.lifeSteal, nextBonuses.lifeSteal, 10);
+            addRow("HP Boost", bonuses.hpBoost, nextBonuses.hpBoost, 3);
             
-            // Attack Boost (Lvl 12)
-            if(lvl >= 11 || bonuses.atkBoost) {
-                const color = lvl >= 12 ? '#3498db' : '#777';
-                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>ATK Boost:</span> <span>${lvl >= 12 ? "+125%" : "Locked"}</span></div>`;
+            // Crit (custom format)
+            if(lvl >= 4 || nextBonuses.critChance > 0) {
+                const color = lvl >= 5 ? '#00ff00' : '#777';
+                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>Crit Chance:</span> <span>${bonuses.critChance.toFixed(1)}% ➤ ${nextBonuses.critChance.toFixed(1)}%</span></div>`;
             }
 
-            addRow("Dodge Chance", bonuses.evasion, nextBonuses.evasion, 15);
+            addRow("DEF Boost", bonuses.defBoost, nextBonuses.defBoost, 6);
+            
+            if(lvl >= 9 || nextBonuses.lifeSteal > 0) {
+                const color = lvl >= 10 ? '#00ff00' : '#777';
+                const val = (bonuses.lifeSteal > 0 ? bonuses.lifeSteal.toFixed(0)+"%" : "Locked") + ` ➤ ${nextBonuses.lifeSteal.toFixed(0)}%`;
+                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>Life Steal:</span> <span>${val}</span></div>`;
+            }
+
+            addRow("ATK Boost", bonuses.atkBoost, nextBonuses.atkBoost, 12);
+            
+            if(lvl >= 14 || nextBonuses.evasion > 0) {
+                const color = lvl >= 15 ? '#00ff00' : '#777';
+                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>Dodge Chance:</span> <span>${bonuses.evasion.toFixed(1)}% ➤ ${nextBonuses.evasion.toFixed(1)}%</span></div>`;
+            }
+
             addRow("Double Strike", bonuses.doubleStrike, nextBonuses.doubleStrike, 20);
             addRow("Gold Boost", bonuses.goldMult, nextBonuses.goldMult, 25);
             addRow("XP Boost", bonuses.xpMult, nextBonuses.xpMult, 30);
@@ -148,14 +152,10 @@
                 const color = lvl >= 35 ? '#e74c3c' : '#777';
                 statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>Rage Mode (<20% HP):</span> <span>${lvl >= 35 ? "Active" : "Locked"}</span></div>`;
             }
-            if(lvl >= 39 || nextBonuses.startKi > 0) {
-                const color = lvl >= 40 ? '#f1c40f' : '#777';
-                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>Start Charge:</span> <span>${lvl >= 40 ? "+20%" : "Locked"}</span></div>`;
-            }
-            if(lvl >= 44 || nextBonuses.bossSlayer > 0) {
-                const color = lvl >= 45 ? '#e67e22' : '#777';
-                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>Boss Slayer:</span> <span>${lvl >= 45 ? "+20% Dmg" : "Locked"}</span></div>`;
-            }
+            
+            addRow("Start Charge", bonuses.startKi, nextBonuses.startKi, 40);
+            addRow("Boss Slayer", bonuses.bossSlayer, nextBonuses.bossSlayer, 45);
+
             if(lvl >= 49) {
                 const color = lvl >= 50 ? '#00ffff' : '#777';
                 statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>Ultra Instinct:</span> <span>${lvl >= 50 ? "Active" : "Locked"}</span></div>`;
