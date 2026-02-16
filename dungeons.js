@@ -361,8 +361,8 @@
         }
 
         // Random jitter movement for dynamic feel (only if not charging)
-        if (b.stun <= 0 && Math.random() < 0.02) { 
-            p.vx += (Math.random() - 0.5) * 4; 
+        if (b.stun <= 0 && Math.random() < 0.02) {
+            p.vx += (Math.random() - 0.5) * 4;
             p.vy += (Math.random() - 0.5) * 4;
         }
 
@@ -370,7 +370,7 @@
         if (dist > 5) {
             p.vx += (dx / dist) * currentMagnet;
             p.vy += (dy / dist) * currentMagnet;
-            
+
             // Only pull boss if NOT stunned
             if (!b.stun || b.stun <= 0) {
                 b.vx -= (dx / dist) * physics.magnet;
@@ -378,7 +378,7 @@
             } else {
                 b.stun--; // Decrease stun timer
                 // Boss stays still while stunned (Sticky Wall)
-                b.vx *= 0.5; 
+                b.vx *= 0.5;
                 b.vy *= 0.5;
             }
         }
@@ -386,7 +386,7 @@
         // Apply Velocity
         p.x += p.vx; p.y += p.vy;
         b.x += b.vx; b.y += b.vy;
-        
+
         // Friction
         p.vx *= physics.friction; p.vy *= physics.friction;
         b.vx *= physics.friction; b.vy *= physics.friction;
@@ -396,17 +396,17 @@
             let hitWall = false;
             if (u.x < 5) { u.x = 5; u.vx *= -0.8; hitWall = true; }
             if (u.x > 95) { u.x = 95; u.vx *= -0.8; hitWall = true; }
-            if (u.y < 15) { u.y = 15; u.vy *= -0.8; hitWall = true; } 
+            if (u.y < 15) { u.y = 15; u.vy *= -0.8; hitWall = true; }
             if (u.y > 75) { u.y = 75; u.vy *= -0.8; hitWall = true; }
-            
+
             // BOSS WALL STICK LOGIC
             if (u === b && hitWall && (Math.abs(u.vx) > 1 || Math.abs(u.vy) > 1)) {
-                 if (b.stun > 0) {
-                     b.vx = 0;
-                     b.vy = 0;
-                     // Screen shake on wall slam
-                     applyDungeonShake(5);
-                 }
+                if (b.stun > 0) {
+                    b.vx = 0;
+                    b.vy = 0;
+                    // Screen shake on wall slam
+                    applyDungeonShake(5);
+                }
             }
         });
 
@@ -426,11 +426,11 @@
         // Collision Check
         if (dist < 12 && physics.hitCooldown <= 0) {
             triggerHit(p, b);
-            physics.hitCooldown = 15; 
+            physics.hitCooldown = 15;
         }
         if (physics.hitCooldown > 0) physics.hitCooldown--;
 
-        if(activeBoss && activeBoss.hp > 0 && window.player.hp > 0) {
+        if (activeBoss && activeBoss.hp > 0 && window.player.hp > 0) {
             physicsFrame = requestAnimationFrame(physicsLoop);
         }
     }
@@ -439,7 +439,7 @@
         // Damage Calc (Moved up)
         const playerPower = window.GameState.gokuPower || 100;
         const critChance = (window.player.rank * 0.05) + 0.1;
-        const critDmgMult = 2.0; 
+        const critDmgMult = 2.0;
 
         let dmg = playerPower * (0.9 + Math.random() * 0.2);
         let isCrit = false;
@@ -456,17 +456,17 @@
 
         p.vx -= (dx / dist) * physics.bounce;
         p.vy -= (dy / dist) * physics.bounce;
-        
+
         // Massive blowback for Boss on Crit
         // Increased force to ensure they hit the wall
-        const force = isCrit ? (physics.bounce * 15) : physics.bounce; 
+        const force = isCrit ? (physics.bounce * 15) : physics.bounce;
         b.vx += (dx / dist) * force;
         b.vy += (dy / dist) * force;
-        
+
         if (isCrit) {
             // Apply Stun so they stick to wall
             // 45 Frames = approx 0.75 seconds of being stuck
-            b.stun = 45; 
+            b.stun = 45;
         }
 
         dmg = Math.floor(dmg);
@@ -655,32 +655,49 @@
 
             window.player.dungeonLevel[bossData.key]++;
 
-            const scaler = Math.pow(1.01, bossData.lvl - 1);
+            const scaler = Math.pow(1.15, bossData.lvl - 1);
             let rewardsHtml = '';
 
             if (bossData.rewards.coins) {
-                const amt = Math.floor(bossData.rewards.coins * scaler);
+                const amt = Math.floor(bossData.rewards.coins * scaler) + (bossData.lvl * 1000);
                 window.player.coins += amt;
                 rewardsHtml += `<div style="color:#f1c40f">💰 +${window.formatNumber(amt)} Coins</div>`;
             }
             if (bossData.rewards.shards) {
-                const amt = Math.floor(bossData.rewards.shards * scaler);
+                const amt = Math.ceil(bossData.rewards.shards * scaler) + Math.floor(bossData.lvl / 2);
                 window.player.dragonShards += amt;
                 rewardsHtml += `<div style="color:#3498db">💎 +${amt} Shards</div>`;
             }
             if (bossData.rewards.souls) {
-                const amt = Math.floor(bossData.rewards.souls * scaler);
+                const amt = Math.ceil(bossData.rewards.souls * scaler) + Math.floor(bossData.lvl / 5);
                 window.player.souls += amt;
                 rewardsHtml += `<div style="color:#9b59b6">👻 +${amt} Souls</div>`;
             }
             if (bossData.rewards.gearChance) {
-                const qty = Math.floor(Math.random() * 4) + 1;
+                const baseQty = Math.floor(Math.random() * 4) + 1;
+                const bonusQty = Math.floor(bossData.lvl / 10);
+                const qty = baseQty + bonusQty;
+
+                // Scale rarity: 3=Rare, 4=SR, 5=SS, 6=SSS
+                let rarity = 3;
+                if (bossData.lvl >= 20) rarity = 6;
+                else if (bossData.lvl >= 15) rarity = 5;
+                else if (bossData.lvl >= 8) rarity = 4;
+
+                const rarityNames = ["Common", "Uncommon", "Rare", "Super Rare", "SS Grade", "SSS Grade"];
+                const rName = rarityNames[rarity - 1] || "Rare";
+
                 if (window.addToInventory) {
                     for (let i = 0; i < qty; i++) {
-                        window.addToInventory({ n: "Dungeon Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 5000 * bossData.lvl, rarity: 3 });
+                        window.addToInventory({
+                            n: "Dungeon Gear",
+                            type: Math.random() > 0.5 ? 'w' : 'a',
+                            val: 5000 * Math.pow(1.2, bossData.lvl - 1),
+                            rarity: rarity
+                        });
                     }
                 }
-                rewardsHtml += `<div style="color:#e67e22">🎒 +${qty} Rare Gear</div>`;
+                rewardsHtml += `<div style="color:#e67e22">🎒 +${qty} ${rName} Gear</div>`;
             }
             list.innerHTML = rewardsHtml;
             window.saveGame();
