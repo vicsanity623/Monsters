@@ -321,7 +321,7 @@
 
         // Reset Physics
         physics.player = { x: 20, y: 50, vx: 0, vy: 0, el: playerImgEl };
-        physics.boss = { x: 80, y: 50, vx: 0, vy: 0, el: bossImgEl };
+        physics.boss = { x: 80, y: 50, vx: 0, vy: 0, el: bossImgEl, stun: 0 }; // Added stun: 0
         physics.hitCooldown = 0;
 
         timeLeft = 90;
@@ -340,6 +340,7 @@
     };
 
     // --- PHYSICS & COMBAT LOOP ---
+    // --- PHYSICS & COMBAT LOOP ---
     function physicsLoop() {
         if (!activeBoss) return;
 
@@ -350,47 +351,73 @@
         const dy = b.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Random jitter movement for dynamic feel
-        if (Math.random() < 0.02) {
-            p.vx += (Math.random() - 0.5) * 4;
+        // --- PLAYER CHARGE (Combo) ---
+        // If boss is stunned (stuck on wall), player rushes in fast
+        let currentMagnet = physics.magnet;
+        if (b.stun > 0) {
+            currentMagnet = 0.8; // Super fast dash speed
+            // Optional: Spawn trail particle
+            if (Math.random() > 0.5) createDungeonParticles(p.x, p.y, 'white');
+        }
+
+        // Random jitter movement for dynamic feel (only if not charging)
+        if (b.stun <= 0 && Math.random() < 0.02) { 
+            p.vx += (Math.random() - 0.5) * 4; 
             p.vy += (Math.random() - 0.5) * 4;
         }
 
-        // Magnetic attraction (they float towards each other)
+        // Magnetic attraction
         if (dist > 5) {
-            p.vx += (dx / dist) * physics.magnet;
-            p.vy += (dy / dist) * physics.magnet;
+            p.vx += (dx / dist) * currentMagnet;
+            p.vy += (dy / dist) * currentMagnet;
             
-            // Only pull boss if not stunned from a crit
+            // Only pull boss if NOT stunned
             if (!b.stun || b.stun <= 0) {
                 b.vx -= (dx / dist) * physics.magnet;
                 b.vy -= (dy / dist) * physics.magnet;
             } else {
                 b.stun--; // Decrease stun timer
+                // Boss stays still while stunned (Sticky Wall)
+                b.vx *= 0.5; 
+                b.vy *= 0.5;
             }
         }
 
         // Apply Velocity
         p.x += p.vx; p.y += p.vy;
         b.x += b.vx; b.y += b.vy;
-
+        
         // Friction
         p.vx *= physics.friction; p.vy *= physics.friction;
         b.vx *= physics.friction; b.vy *= physics.friction;
 
-        // Boundaries
+        // --- WALL COLLISIONS ---
         [p, b].forEach(u => {
-            if (u.x < 5) { u.x = 5; u.vx *= -0.8; }
-            if (u.x > 95) { u.x = 95; u.vx *= -0.8; }
-            if (u.y < 15) { u.y = 15; u.vy *= -0.8; }
-            if (u.y > 75) { u.y = 75; u.vy *= -0.8; }
+            let hitWall = false;
+            if (u.x < 5) { u.x = 5; u.vx *= -0.8; hitWall = true; }
+            if (u.x > 95) { u.x = 95; u.vx *= -0.8; hitWall = true; }
+            if (u.y < 15) { u.y = 15; u.vy *= -0.8; hitWall = true; } 
+            if (u.y > 75) { u.y = 75; u.vy *= -0.8; hitWall = true; }
+            
+            // BOSS WALL STICK LOGIC
+            if (u === b && hitWall && (Math.abs(u.vx) > 1 || Math.abs(u.vy) > 1)) {
+                 if (b.stun > 0) {
+                     b.vx = 0;
+                     b.vy = 0;
+                     // Screen shake on wall slam
+                     applyDungeonShake(5);
+                 }
+            }
         });
 
-        // Apply visual transform (Movement tilt/scale)
-        if (p.el) p.el.style.transform = `translate(${p.vx * 3}px, ${p.vy * 3}px) scaleX(1)`;
+        // Apply visual transform
+        if (p.el) {
+            let scale = b.stun > 0 ? "scale(1.2)" : "scale(1)"; // Pulse player when charging
+            p.el.style.transform = `translate(${p.vx * 3}px, ${p.vy * 3}px) scaleX(1) ${scale}`;
+        }
         if (b.el) b.el.style.transform = `translate(${b.vx * 3}px, ${b.vy * 3}px) scaleX(-1)`;
 
-        // Update container positions
+        // Update positions
         const playerBox = document.querySelector('.db-player-box');
         const bossBox = document.querySelector('.db-boss-box');
         if (playerBox) { playerBox.style.left = p.x + "%"; playerBox.style.top = p.y + "%"; }
@@ -399,12 +426,11 @@
         // Collision Check
         if (dist < 12 && physics.hitCooldown <= 0) {
             triggerHit(p, b);
-            physics.hitCooldown = 5; // Delay between hits
+            physics.hitCooldown = 15; 
         }
         if (physics.hitCooldown > 0) physics.hitCooldown--;
 
-        // Continue loop if boss is still alive
-        if (activeBoss && activeBoss.hp > 0 && window.player.hp > 0) {
+        if(activeBoss && activeBoss.hp > 0 && window.player.hp > 0) {
             physicsFrame = requestAnimationFrame(physicsLoop);
         }
     }
@@ -412,9 +438,7 @@
     function triggerHit(p, b) {
         // Damage Calc (Moved up)
         const playerPower = window.GameState.gokuPower || 100;
-        // Use global player stats if available, else defaults
-        // Note: You might want to pull crit from window.player directly if stored there
-        const critChance = (window.player.rank * 0.05) + 0.1; // Example crit logic matching battle.js
+        const critChance = (window.player.rank * 0.05) + 0.1;
         const critDmgMult = 2.0; 
 
         let dmg = playerPower * (0.9 + Math.random() * 0.2);
@@ -425,24 +449,24 @@
             dmg *= critDmgMult;
         }
 
-        // Bounce back physics
+        // Bounce physics
         const dx = b.x - p.x;
         const dy = b.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
-        // --- NEW IMPACT LOGIC ---
-        // Normal bounce for player
         p.vx -= (dx / dist) * physics.bounce;
         p.vy -= (dy / dist) * physics.bounce;
         
         // Massive blowback for Boss on Crit
-        const force = isCrit ? (physics.bounce * 8) : physics.bounce;
+        // Increased force to ensure they hit the wall
+        const force = isCrit ? (physics.bounce * 15) : physics.bounce; 
         b.vx += (dx / dist) * force;
         b.vy += (dy / dist) * force;
         
         if (isCrit) {
-            // Apply Stun to prevent magnet pull immediately
-            physics.boss.stun = 20; // 20 frames of no magnet
+            // Apply Stun so they stick to wall
+            // 45 Frames = approx 0.75 seconds of being stuck
+            b.stun = 45; 
         }
 
         dmg = Math.floor(dmg);
