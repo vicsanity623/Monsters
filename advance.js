@@ -41,14 +41,17 @@
                 statMult: (lvl * ADV_CONFIG.STAT_MULTIPLIER),
                 critChance: lvl >= 5 ? 5 + ((lvl-5) * 0.5) : 0, 
                 lifeSteal: lvl >= 10 ? 15 + ((lvl-10) * 1.0) : 0,
-                evasion: lvl >= 50 ? 15 : (lvl >= 15 ? 5 + ((lvl-15) * 0.2) : 0), // Jump at 50
+                evasion: lvl >= 50 ? 15 : (lvl >= 15 ? 5 + ((lvl-15) * 0.2) : 0), 
                 doubleStrike: lvl >= 20 ? 5 + ((lvl-20) * 0.5) : 0,
                 goldMult: lvl >= 25 ? 10 + ((lvl-25) * 1.0) : 0,
                 xpMult: lvl >= 30 ? 10 + ((lvl-30) * 1.0) : 0,
                 rageMode: lvl >= 35,
                 startKi: lvl >= 40 ? 20 : 0,
                 bossSlayer: lvl >= 45 ? 20 : 0,
-                zenkai: lvl >= 60
+                zenkai: lvl >= 60,
+                // New Visual Indicators for Lvl 3 and 12 logic
+                hpBoost: lvl >= 3,
+                atkBoost: lvl >= 12
             };
         },
 
@@ -84,8 +87,10 @@
 
             // Dynamic Speech
             const bubble = document.getElementById('bulma-speech');
-            if(lvl < 5) bubble.innerText = "Level 5 unlocks Critical Hits!";
-            else if (lvl < 10) bubble.innerText = "Level 10 unlocks Life Steal!";
+            if(lvl < 3) bubble.innerText = "Level 3 gives a huge HP Boost!";
+            else if(lvl < 5) bubble.innerText = "Level 5 unlocks Critical Hits!";
+            else if(lvl < 10) bubble.innerText = "Level 10 unlocks Life Steal!";
+            else if(lvl < 12) bubble.innerText = "Level 12 gives a huge Attack Boost!";
             else if (lvl < 15) bubble.innerText = "Level 15 unlocks Evasion!";
             else if (lvl < 20) bubble.innerText = "Level 20 unlocks Double Strike!";
             else if (lvl < 25) bubble.innerText = "Level 25 boosts Gold gain!";
@@ -110,9 +115,22 @@
                     statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>${label}:</span> <span>${valStr}</span></div>`;
                 }
             };
+            
+            // NEW: HP Boost (Lvl 3)
+            if(lvl >= 2 || bonuses.hpBoost) {
+                const color = lvl >= 3 ? '#ff3e3e' : '#777';
+                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>HP Boost:</span> <span>${lvl >= 3 ? "+115%" : "Locked"}</span></div>`;
+            }
 
             addRow("Crit Chance", bonuses.critChance, nextBonuses.critChance, 5);
             addRow("Life Steal", bonuses.lifeSteal, nextBonuses.lifeSteal, 10);
+            
+            // NEW: Attack Boost (Lvl 12)
+            if(lvl >= 11 || bonuses.atkBoost) {
+                const color = lvl >= 12 ? '#3498db' : '#777';
+                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>ATK Boost:</span> <span>${lvl >= 12 ? "+125%" : "Locked"}</span></div>`;
+            }
+
             addRow("Dodge Chance", bonuses.evasion, nextBonuses.evasion, 15);
             addRow("Double Strike", bonuses.doubleStrike, nextBonuses.doubleStrike, 20);
             addRow("Gold Boost", bonuses.goldMult, nextBonuses.goldMult, 25);
