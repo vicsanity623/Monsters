@@ -491,7 +491,7 @@
         
         // Option B: Percentage of current requirement (The "Never Insignificant" Fix)
         // Guaranteed to give at least 5% to 8% of the bar per drop
-        let scaledXp = Math.floor(window.player.nextXp * 0.08); 
+        let scaledXp = Math.floor(window.player.nextXp * 0.04); 
         
         let baseXp = Math.max(flatXp, scaledXp);
 
@@ -543,7 +543,7 @@
         // 2. XP CALCULATION
         // Base: True Level * 2
         // Scaling: 0.2% of your current XP bar (Takes ~500 taps to level up regardless of level)
-        let xpVal = Math.max(trueLvl * 2, Math.floor(window.player.nextXp * 0.002));
+        let xpVal = Math.max(trueLvl * 2, Math.floor(window.player.nextXp * 0.0013));
 
         window.player.xp += xpVal;
         
