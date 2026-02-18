@@ -1,6 +1,6 @@
 (function() {
     const ADV_CONFIG = {
-        BASE_COST_GOLD: 2000,
+        BASE_COST_GOLD: 100000,
         BASE_COST_SHARDS: 1,
         
         // --- NEW CONFIG FOR BALANCING ---
