@@ -2,7 +2,14 @@
     const ADV_CONFIG = {
         BASE_COST_GOLD: 2000,
         BASE_COST_SHARDS: 1,
-        GOLD_SCALING: 500, 
+        
+        // --- NEW CONFIG FOR BALANCING ---
+        // We switch from +500 Gold (Linear) to x1.15 Gold (Exponential)
+        // Level 1 = 2,000 Gold
+        // Level 50 = 2.1 Million Gold
+        // Level 100 = 2.3 Billion Gold
+        GOLD_EXPONENT: 1.15, 
+        
         SHARD_SCALING: 0.2, 
         STAT_MULTIPLIER: 0.1, 
     };
@@ -28,52 +35,77 @@
         },
         close: function() { document.getElementById('advance-modal').style.display = 'none'; },
 
+        // --- UPDATED COST FORMULA ---
         getCost: function() {
             const lvl = window.player.advanceLevel || 0;
             return {
-                gold: ADV_CONFIG.BASE_COST_GOLD + (lvl * ADV_CONFIG.GOLD_SCALING),
+                // Exponential Gold Cost
+                gold: Math.floor(ADV_CONFIG.BASE_COST_GOLD * Math.pow(ADV_CONFIG.GOLD_EXPONENT, lvl)),
+                
+                // Linear Shard Cost (Shards are rare, so linear is fine, just steeper)
                 shards: Math.floor(ADV_CONFIG.BASE_COST_SHARDS + (lvl * ADV_CONFIG.SHARD_SCALING))
             };
         },
 
         getBonuses: function(lvl) {
+            // Helper to cap values so they don't break the game
+            const cap = (val, max) => Math.min(val, max);
+
             return {
                 statMult: (lvl * ADV_CONFIG.STAT_MULTIPLIER),
                 
                 // SCALABLE PERKS
-                hpBoost: lvl >= 3 ? 115 + ((lvl - 3) * 15) : 0,    // +115% base + 15% per lvl
-                defBoost: lvl >= 6 ? 120 + ((lvl - 6) * 15) : 0,   // +120% base + 15% per lvl
-                atkBoost: lvl >= 12 ? 125 + ((lvl - 12) * 15) : 0, // +125% base + 15% per lvl
+                hpBoost: lvl >= 3 ? 115 + ((lvl - 3) * 15) : 0,    
+                defBoost: lvl >= 6 ? 120 + ((lvl - 6) * 15) : 0,   
+                atkBoost: lvl >= 12 ? 125 + ((lvl - 12) * 15) : 0, 
 
-                critChance: lvl >= 5 ? 5 + ((lvl-5) * 0.5) : 0, 
-                lifeSteal: lvl >= 10 ? 15 + ((lvl-10) * 1.0) : 0,
+                // Cap Crit at 100%
+                critChance: lvl >= 5 ? cap(5 + ((lvl-5) * 0.5), 100) : 0, 
+                
+                // Life Steal is fine to go high, but let's cap it at 100% for balance
+                lifeSteal: lvl >= 10 ? cap(15 + ((lvl-10) * 1.0), 100) : 0,
+                
+                // Evasion Hard Cap at 60% (Game becomes unplayable if enemy can't hit you)
                 evasion: lvl >= 50 ? 15 : (lvl >= 15 ? 5 + ((lvl-15) * 0.2) : 0), 
+                
                 doubleStrike: lvl >= 20 ? 5 + ((lvl-20) * 0.5) : 0,
                 goldMult: lvl >= 25 ? 10 + ((lvl-25) * 1.0) : 0,
                 xpMult: lvl >= 30 ? 10 + ((lvl-30) * 1.0) : 0,
-                startKi: lvl >= 40 ? 20 + ((lvl-40) * 1.0) : 0, // Scalable Charge start
-                bossSlayer: lvl >= 45 ? 20 + ((lvl-45) * 1.0) : 0, // Scalable Boss Dmg
+                startKi: lvl >= 40 ? 20 + ((lvl-40) * 1.0) : 0, 
+                bossSlayer: lvl >= 45 ? 20 + ((lvl-45) * 1.0) : 0, 
 
-                // BINARY PERKS (Active/Locked)
+                // BINARY PERKS
                 rageMode: lvl >= 35,
                 zenkai: lvl >= 60,
-                ultraInstinct: lvl >= 50 // Evasion boost visual flag
+                ultraInstinct: lvl >= 50 
             };
         },
 
         upgrade: function() {
             const cost = this.getCost();
-            if (window.player.coins < cost.gold) { showToast(`Need <span style="color:#f1c40f">${window.formatNumber(cost.gold - window.player.coins)}</span> more Gold!`, true); return; }
-            if ((window.player.dragonShards || 0) < cost.shards) { showToast(`Need <span style="color:#00d2ff">${cost.shards - (window.player.dragonShards || 0)}</span> more Shards!`, true); return; }
+            // Safety check for undefined
+            const currentShards = window.player.dragonShards || 0;
+
+            if (window.player.coins < cost.gold) { 
+                showToast(`Need <span style="color:#f1c40f">${window.formatNumber(cost.gold - window.player.coins)}</span> more Gold!`, true); 
+                return; 
+            }
+            if (currentShards < cost.shards) { 
+                showToast(`Need <span style="color:#00d2ff">${cost.shards - currentShards}</span> more Shards!`, true); 
+                return; 
+            }
 
             window.player.coins -= cost.gold;
-            window.player.dragonShards -= cost.shards;
+            window.player.dragonShards = currentShards - cost.shards;
             window.player.advanceLevel = (window.player.advanceLevel || 0) + 1;
             
             showToast("GEAR UPGRADED!", false);
-            if(window.popDamage) window.popDamage("SUCCESS!", 'adv-visual-container', true);
+            
+            // Visual pop effect
+            if(window.popDamage) window.popDamage("SUCCESS!", 'advance-modal', true);
+            
             window.isDirty = true;
-            window.syncUI(); 
+            if(typeof window.syncUI === 'function') window.syncUI(); 
             this.render(); 
         },
 
@@ -89,24 +121,32 @@
             document.getElementById('adv-gold-count').innerText = window.formatNumber(p.coins);
 
             const btn = document.getElementById('btn-do-advance');
-            btn.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;"><span>ADVANCE</span><span style="font-size:0.8rem;color:#00d2ff;">💎 ${cost.shards}</span><span style="font-size:0.8rem;color:#f1c40f;">💰 ${window.formatNumber(cost.gold)}</span></div>`;
+            if(btn) {
+                btn.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                    <span>ADVANCE</span>
+                    <span style="font-size:0.8rem;color:#00d2ff;">💎 ${cost.shards}</span>
+                    <span style="font-size:0.8rem;color:#f1c40f;">💰 ${window.formatNumber(cost.gold)}</span>
+                </div>`;
+            }
 
             const bubble = document.getElementById('bulma-speech');
-            if(lvl < 3) bubble.innerText = "Level 3 gives a huge HP Boost!";
-            else if(lvl < 5) bubble.innerText = "Level 5 unlocks Critical Hits!";
-            else if(lvl < 6) bubble.innerText = "Level 6 gives a huge Defense Boost!";
-            else if(lvl < 10) bubble.innerText = "Level 10 unlocks Life Steal!";
-            else if(lvl < 12) bubble.innerText = "Level 12 gives a huge Attack Boost!";
-            else if (lvl < 15) bubble.innerText = "Level 15 unlocks Evasion!";
-            else if (lvl < 20) bubble.innerText = "Level 20 unlocks Double Strike!";
-            else if (lvl < 25) bubble.innerText = "Level 25 boosts Gold gain!";
-            else if (lvl < 30) bubble.innerText = "Level 30 boosts XP gain!";
-            else if (lvl < 35) bubble.innerText = "Level 35 unlocks Rage Mode!";
-            else if (lvl < 40) bubble.innerText = "Level 40 gives Starter Ki!";
-            else if (lvl < 45) bubble.innerText = "Level 45 unlocks Boss Slayer!";
-            else if (lvl < 50) bubble.innerText = "Level 50 unlocks ULTRA INSTINCT!";
-            else if (lvl < 60) bubble.innerText = "Level 60 unlocks ZENKAI (Revive)!";
-            else bubble.innerText = "You have surpassed the Gods!";
+            if(bubble) {
+                if(lvl < 3) bubble.innerText = "Level 3 gives a huge HP Boost!";
+                else if(lvl < 5) bubble.innerText = "Level 5 unlocks Critical Hits!";
+                else if(lvl < 6) bubble.innerText = "Level 6 gives a huge Defense Boost!";
+                else if(lvl < 10) bubble.innerText = "Level 10 unlocks Life Steal!";
+                else if(lvl < 12) bubble.innerText = "Level 12 gives a huge Attack Boost!";
+                else if (lvl < 15) bubble.innerText = "Level 15 unlocks Evasion!";
+                else if (lvl < 20) bubble.innerText = "Level 20 unlocks Double Strike!";
+                else if (lvl < 25) bubble.innerText = "Level 25 boosts Gold gain!";
+                else if (lvl < 30) bubble.innerText = "Level 30 boosts XP gain!";
+                else if (lvl < 35) bubble.innerText = "Level 35 unlocks Rage Mode!";
+                else if (lvl < 40) bubble.innerText = "Level 40 gives Starter Ki!";
+                else if (lvl < 45) bubble.innerText = "Level 45 unlocks Boss Slayer!";
+                else if (lvl < 50) bubble.innerText = "Level 50 unlocks ULTRA INSTINCT!";
+                else if (lvl < 60) bubble.innerText = "Level 60 unlocks ZENKAI (Revive)!";
+                else bubble.innerText = "You have surpassed the Gods!";
+            }
 
             this.renderSlot('w', 'adv-slot-w', lvl);
             this.renderSlot('a', 'adv-slot-a', lvl);
@@ -114,6 +154,7 @@
             let statsHtml = `<div class="adv-stat-row"><span>Stat Boost:</span> <span style="color:#00ff00">+${(bonuses.statMult*100).toFixed(0)}% ➤ +${(nextBonuses.statMult*100).toFixed(0)}%</span></div>`;
             
             const addRow = (label, curr, next, unlockLvl, suffix = "%") => {
+                // Show if unlocked OR if next level unlocks it
                 if(lvl >= (unlockLvl-1) || next > 0) {
                     const color = lvl >= unlockLvl ? '#00ff00' : '#777';
                     const valStr = (curr > 0 ? `+${curr.toFixed(0)}${suffix}` : "Locked") + ` ➤ +${next.toFixed(0)}${suffix}`;
@@ -123,7 +164,6 @@
             
             addRow("HP Boost", bonuses.hpBoost, nextBonuses.hpBoost, 3);
             
-            // Crit (custom format)
             if(lvl >= 4 || nextBonuses.critChance > 0) {
                 const color = lvl >= 5 ? '#00ff00' : '#777';
                 statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>Crit Chance:</span> <span>${bonuses.critChance.toFixed(1)}% ➤ ${nextBonuses.critChance.toFixed(1)}%</span></div>`;
