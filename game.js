@@ -8,7 +8,7 @@
         SAVE_KEY: 'dbz_gacha_save',
         CACHE_KEY: 'dbz_api_cache',
         SAVE_INTERVAL: 30000,
-        CAPSULE_COOLDOWN: 60000
+        CAPSULE_COOLDOWN: 300000
     };
 
     const ASSETS = {
@@ -533,10 +533,10 @@
             
             // Dynamic naming based on tier/rarity
             let name = "Saiyan Gear";
-            if (tier >= 2) name = "Elite Gear";
+            if (tier >= 2) name = "Rare Gear";
             if (tier >= 3) name = "Legendary Gear";
-            if (tier >= 4) name = "God Gear";
-            if (tier >= 6) name = "Omni Gear";
+            if (tier >= 4) name = "S Gear";
+            if (tier >= 6) name = "SS Gear";
             
             window.addToInventory({ n: name, type: Math.random() > 0.5 ? 'w' : 'a', val: val, rarity: tier });
             dropName = name;
@@ -864,11 +864,11 @@
             const newRarity = sItem.rarity + 1;
             let newVal = Math.floor(sItem.val * 2);
             let newName = "Saiyan Gear";
-            if (newRarity === 2) { newVal = 1500; newName = "Elite Gear"; }
+            if (newRarity === 2) { newVal = 1500; newName = "Rare Gear"; }
             else if (newRarity === 3) { newVal = 3500; newName = "Legendary Gear"; }
-            else if (newRarity === 4) { newVal = 8500; newName = "God Gear"; }
-            else if (newRarity === 5) { newVal = 20000; newName = "Angel Gear"; }
-            else if (newRarity === 6) { newVal = 50000; newName = "Omni Gear"; }
+            else if (newRarity === 4) { newVal = 8500; newName = "S Gear"; }
+            else if (newRarity === 5) { newVal = 20000; newName = "SS Gear"; }
+            else if (newRarity === 6) { newVal = 50000; newName = "SSS Gear"; }
             else if (newRarity === 7) { newVal = 150000; newName = "SSS2"; }
             else if (newRarity === 8) { newVal = 500000; newName = "SSS3"; }
             else if (newRarity === 9) { newVal = 1250000; newName = "SSS4"; }
@@ -913,11 +913,11 @@
                 const newRarity = item.rarity + 1;
                 let newVal = Math.floor(item.val * 2);
                 let newName = "Saiyan Gear";
-                if (newRarity === 2) { newVal = 1500; newName = "Elite Gear"; }
+                if (newRarity === 2) { newVal = 1500; newName = "Rare Gear"; }
                 else if (newRarity === 3) { newVal = 3500; newName = "Legendary Gear"; }
-                else if (newRarity === 4) { newVal = 8500; newName = "God Gear"; }
-                else if (newRarity === 5) { newVal = 20000; newName = "Angel Gear"; }
-                else if (newRarity === 6) { newVal = 50000; newName = "Omni Gear"; }
+                else if (newRarity === 4) { newVal = 8500; newName = "S Gear"; }
+                else if (newRarity === 5) { newVal = 20000; newName = "SS Gear"; }
+                else if (newRarity === 6) { newVal = 50000; newName = "SSS Gear"; }
                 else if (newRarity === 7) { newVal = 150000; newName = "SSS2"; }
                 else if (newRarity === 8) { newVal = 500000; newName = "SSS3"; }
                 else if (newRarity === 9) { newVal = 1250000; newName = "SSS4"; }
