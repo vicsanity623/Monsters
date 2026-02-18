@@ -939,11 +939,11 @@
         let baseVal = 700;
         let baseName = "Saiyan Gear";
 
-        if (dropRarity === 2) { baseVal = 1500; baseName = "Elite Gear"; }
+        if (dropRarity === 2) { baseVal = 1500; baseName = "Rare Gear"; }
         else if (dropRarity === 3) { baseVal = 3500; baseName = "Legendary Gear"; }
-        else if (dropRarity === 4) { baseVal = 8500; baseName = "God Gear"; }
-        else if (dropRarity === 5) { baseVal = 20000; baseName = "Angel Gear"; }
-        else if (dropRarity === 6) { baseVal = 50000; baseName = "Omni Gear"; }
+        else if (dropRarity === 4) { baseVal = 8500; baseName = "S Gear"; }
+        else if (dropRarity === 5) { baseVal = 20000; baseName = "SS Gear"; }
+        else if (dropRarity === 6) { baseVal = 50000; baseName = "SSS Gear"; }
 
         for (let i = 0; i < qty; i++) {
             if (typeof window.addToInventory === 'function') {
