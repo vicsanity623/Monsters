@@ -98,16 +98,13 @@
             // --- NEW SP MULTIPLIER ---
             // 20% Additive Boost per point spent
             const spCount = (window.player.spSpent && window.player.spSpent.atk) || 0;
-            const spMult = 1 + (spCount * 0.20);
+            const spMult = 1 + (spCount * 0.05);
             // -------------------------
 
             const gearMult = 1 + adv.statMult;
-            const weaponVal = (window.player.gear.w?.val || 0) * gearMult * soulMult;
-
-            // Note: We multiply the Final Result by spMult, making it very valuable
+            const weaponVal = window.player.gear.w?.val || 0;
             const rawAtk = window.player.bAtk + (window.player.rank * 400) + weaponVal;
             const mult = 1 + adv.statMult + (adv.atkBoost / 100);
-
             return Math.floor(rawAtk * soulMult * mult * spMult);
         },
 
@@ -121,7 +118,7 @@
             // -------------------------
 
             const gearMult = 1 + adv.statMult;
-            const armorVal = (window.player.gear.a?.val || 0) * gearMult * soulMult;
+            const armorVal = (window.player.gear.a?.val || 0)
 
             const rawDef = window.player.bDef + (window.player.rank * 150) + armorVal;
             const mult = 1 + adv.statMult + (adv.defBoost / 100);
@@ -142,7 +139,7 @@
             // -------------------------
 
             const gearMult = 1 + adv.statMult;
-            const armorVal = (window.player.gear.a?.val || 0) * gearMult * soulMult;
+            const armorVal = (window.player.gear.a?.val || 0)
 
             const rawHp = window.player.bHp + (window.player.rank * 2500) + armorVal;
             const mult = 1 + adv.statMult + (adv.hpBoost / 100);
@@ -1439,7 +1436,7 @@
 
         // Reset XP to 0. Since you got "Free Levels", you start the new level fresh.
         // This prevents logic bugs where you might have enough XP to double-level.
-        window.player.xp = 0;
+        //window.player.xp = 0;
 
         // Full Heal
         window.player.hp = window.GameState.gokuMaxHP;
