@@ -917,8 +917,8 @@
 
         // --- CRITICAL FIX: FORCE NUMBER TYPE ---
         // Prevents string concatenation bugs (e.g., "100" + 50 = "10050")
-        window.player.xp = Number(window.player.xp) + Number(xpGain);
-        window.player.coins = Number(window.player.coins) + Number(coinGain);
+        window.player.xp = (Number(window.player.xp) || 0) + Number(xpGain);
+        window.player.coins = (Number(window.player.coins) || 0) + Number(coinGain);
         
         // --- FORCE SAVE IMMEDIATELY ---
         window.isDirty = true;
