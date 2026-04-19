@@ -358,6 +358,7 @@
             });
         });
     }
+    Skills.getRawData = function () { return skills; };
 
     window.Skills = Skills;
 
