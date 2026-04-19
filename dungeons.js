@@ -26,6 +26,7 @@
     let exitTimer = null;
     let physicsFrame = null;
     let skillInterval = null;
+    let skillStates = { doubleHit: 0, focus: 0, kameBlast: 0 }; // Tracks skill flashes
 
     const physics = {
         player: { x: 20, y: 50, vx: 0, vy: 0, el: null },
@@ -77,7 +78,6 @@
         if (reward.shards) window.player.dragonShards += reward.shards;
         if (reward.souls) window.player.souls += reward.souls;
         if (reward.gear && window.addToInventory) {
-            // Fix Daily Gear to also use standard values
             let val = 3500; // Default Legendary
             if (reward.gear.rarity === 4) val = 8500;
             if (reward.gear.rarity === 6) val = 50000;
@@ -128,6 +128,74 @@
         loop();
     }
 
+    // --- SKILL UI INJECTION ---
+    function ensureSkillUI() {
+        let container = document.getElementById('db-skills-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'db-skills-container';
+            container.style.position = 'absolute';
+            container.style.right = '15px';
+            container.style.top = '25%';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '15px';
+            container.style.zIndex = '100';
+
+            const skillsList = [
+                { id: 'doubleHit', name: 'DOUBLE<br>HIT', color: '#ff9900' },
+                { id: 'focus', name: 'FOCUS<br>HEAL', color: '#2ecc71' },
+                { id: 'kameBlast', name: 'KAME<br>BLAST', color: '#00d2ff' }
+            ];
+
+            skillsList.forEach(s => {
+                const el = document.createElement('div');
+                el.id = `skill-ui-${s.id}`;
+                el.style.width = '55px';
+                el.style.height = '55px';
+                el.style.borderRadius = '50%';
+                el.style.border = '2px solid #555';
+                el.style.background = 'rgba(0,0,0,0.8)';
+                el.style.position = 'relative';
+                el.style.overflow = 'hidden';
+                el.style.display = 'none'; // Hidden until unlocked
+                el.style.boxShadow = '0 0 5px black';
+                el.style.transition = 'box-shadow 0.3s, transform 0.1s, border-color 0.3s';
+
+                const text = document.createElement('div');
+                text.innerHTML = s.name;
+                text.style.position = 'absolute';
+                text.style.width = '100%';
+                text.style.top = '50%';
+                text.style.transform = 'translateY(-50%)';
+                text.style.textAlign = 'center';
+                text.style.fontSize = '0.6rem';
+                text.style.fontFamily = 'Bangers, sans-serif';
+                text.style.letterSpacing = '1px';
+                text.style.color = 'white';
+                text.style.textShadow = '1px 1px 2px black';
+                text.style.zIndex = '2';
+
+                const overlay = document.createElement('div');
+                overlay.id = `skill-cd-${s.id}`;
+                overlay.style.position = 'absolute';
+                overlay.style.bottom = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.background = 'rgba(255, 0, 0, 0.6)';
+                overlay.style.zIndex = '1';
+
+                el.appendChild(overlay);
+                el.appendChild(text);
+                container.appendChild(el);
+            });
+
+            const battleView = document.getElementById('view-dungeon-battle');
+            if (battleView) battleView.appendChild(container);
+        }
+    }
+
     // --- DUNGEON SYSTEM ---
     window.initDungeons = function () {
         const list = document.getElementById('dungeon-list');
@@ -164,6 +232,8 @@
 
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.getElementById('view-dungeon-battle').classList.add('active-screen');
+
+        ensureSkillUI(); // Build the skill buttons when battle starts
 
         const bossConfig = DUNGEON_CONFIG.BOSSES[bossKey];
         const lvl = window.player.dungeonLevel[bossKey];
@@ -205,7 +275,6 @@
         skillInterval = setInterval(() => {
             if (!activeBoss) return;
 
-            // FIX: Catch deaths caused by external DoTs, Pets, or outside scripts
             if (activeBoss.hp <= 0) {
                 activeBoss.hp = 0; 
                 updateDungeonUI();
@@ -222,7 +291,6 @@
                 window.Skills.autoBattleTick(dungeonBattleAdapter);
                 updateDungeonUI();
 
-                // Check if boss died directly from a skill tick
                 if (activeBoss.hp <= 0) {
                     activeBoss.hp = 0; 
                     updateDungeonUI();
@@ -276,6 +344,52 @@
 
         if (dist < 12 && physics.hitCooldown <= 0) { triggerHit(p, b); physics.hitCooldown = 15; }
         if (physics.hitCooldown > 0) physics.hitCooldown--;
+
+        // --- SKILL UI COOLDOWN TICK (60FPS Smooth) ---
+        if (window.Skills && typeof window.Skills.getRawData === 'function') {
+            const sData = window.Skills.getRawData();
+            ['doubleHit', 'focus', 'kameBlast'].forEach(id => {
+                const skill = sData[id];
+                const uiEl = document.getElementById(`skill-ui-${id}`);
+                const cdEl = document.getElementById(`skill-cd-${id}`);
+                
+                if (skill && uiEl && cdEl) {
+                    if (skill.unlocked) {
+                        uiEl.style.display = 'block';
+
+                        // Check if skill was just fired (Trigger Glow Flash)
+                        if (skill.lastUsed > (skillStates[id] || 0)) {
+                            skillStates[id] = skill.lastUsed;
+                            uiEl.style.boxShadow = '0 0 20px 10px white';
+                            uiEl.style.transform = 'scale(1.3)';
+                            setTimeout(() => {
+                                if (uiEl) {
+                                    uiEl.style.boxShadow = '0 0 5px black';
+                                    uiEl.style.transform = 'scale(1)';
+                                }
+                            }, 300);
+                        }
+
+                        // Calculate Cooldown Overlay
+                        const timePassed = Date.now() - skill.lastUsed;
+                        if (timePassed < skill.cooldown) {
+                            const pct = 100 - ((timePassed / skill.cooldown) * 100);
+                            cdEl.style.height = pct + '%';
+                            uiEl.style.borderColor = '#555'; // Gray border while cooling down
+                        } else {
+                            cdEl.style.height = '0%';
+                            // Color code the border when Ready
+                            if (id === 'doubleHit') uiEl.style.borderColor = '#ff9900';
+                            if (id === 'focus') uiEl.style.borderColor = '#2ecc71';
+                            if (id === 'kameBlast') uiEl.style.borderColor = '#00d2ff';
+                        }
+                    } else {
+                        uiEl.style.display = 'none';
+                    }
+                }
+            });
+        }
+        // ----------------------------------------------
 
         if (activeBoss && activeBoss.hp > 0 && window.player.hp > 0) { physicsFrame = requestAnimationFrame(physicsLoop); }
     }
@@ -380,44 +494,24 @@
             if (bossData.rewards.shards) { const amt = Math.ceil(bossData.rewards.shards * scaler) + Math.floor(bossData.lvl / 2); window.player.dragonShards += amt; rewardsHtml += `<div style="color:#3498db">💎 +${amt} Shards</div>`; }
             if (bossData.rewards.souls) { const amt = Math.ceil(bossData.rewards.souls * scaler) + Math.floor(bossData.lvl / 5); window.player.souls += amt; rewardsHtml += `<div style="color:#9b59b6">👻 +${amt} Souls</div>`; }
 
-            // --- FIXED GEAR LOGIC TO MATCH MERGE SYSTEM ---
             if (bossData.rewards.gearChance) {
                 const baseQty = Math.floor(Math.random() * 4) + 1;
                 const bonusQty = Math.floor(bossData.lvl / 10);
                 const qty = baseQty + bonusQty;
-
-                // Determine Rarity
                 let rarity = 3;
                 if (bossData.lvl >= 50) rarity = 6;
                 else if (bossData.lvl >= 30) rarity = 5;
                 else if (bossData.lvl >= 15) rarity = 4;
-
-                // HARD-SET Values based on Rarity (to ensure merging works)
-                let val = 3500; // Legendary (Rarity 3)
-                let rName = "Legendary Gear";
-
+                let val = 3500; let rName = "Legendary Gear";
                 if (rarity === 4) { val = 8500; rName = "S Gear"; }
                 if (rarity === 5) { val = 20000; rName = "SS Gear"; }
                 if (rarity === 6) { val = 50000; rName = "SSS Gear"; }
-
                 if (window.addToInventory) {
-                    try {
-                        for (let i = 0; i < qty; i++) {
-                            window.addToInventory({
-                                n: rName,
-                                type: Math.random() > 0.5 ? 'w' : 'a',
-                                val: val,
-                                rarity: rarity
-                            });
-                        }
-                    } catch(err) {
-                        console.error("Inventory error during dungeon reward:", err);
-                    }
+                    try { for (let i = 0; i < qty; i++) { window.addToInventory({ n: rName, type: Math.random() > 0.5 ? 'w' : 'a', val: val, rarity: rarity }); } } 
+                    catch(err) { console.error(err); }
                 }
                 rewardsHtml += `<div style="color:#e67e22">🎒 +${qty} ${rName}</div>`;
             }
-            // ----------------------------------------------
-
             list.innerHTML = rewardsHtml; window.saveGame();
         } else { title.innerText = "DEFEATED"; title.style.color = "#e74c3c"; list.innerHTML = "<div style='color:#ccc'>You were overwhelmed!</div>"; }
 
@@ -435,6 +529,10 @@
         if (battleTimer) clearInterval(battleTimer);
         if (physicsFrame) cancelAnimationFrame(physicsFrame);
         if (skillInterval) clearInterval(skillInterval);
+        
+        // Hide Skill UI when exiting
+        const skillUI = document.getElementById('db-skills-container');
+        if (skillUI) skillUI.style.display = 'none';
     };
 
 })();
