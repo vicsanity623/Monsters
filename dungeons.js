@@ -194,6 +194,7 @@
             const battleView = document.getElementById('view-dungeon-battle');
             if (battleView) battleView.appendChild(container);
         }
+            if (container) container.style.display = 'flex';
     }
 
     // --- DUNGEON SYSTEM ---
