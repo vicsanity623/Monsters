@@ -331,7 +331,7 @@
         const worldMult = Math.pow(3.5, window.battle.world - 1);
         
         const baseXp = (200 + (stageNum * 50));
-        const xp = Math.floor(baseXp * worldMult * soulMult);
+        const xp = Math.floor(baseXp * worldMult * soulMult * 100);
         
         const baseCoins = (300 + (stageNum * 50));
         const coins = Math.floor(baseCoins * worldMult * soulMult);
@@ -895,7 +895,7 @@
         const worldMult = Math.pow(3.5, window.battle.world - 1);
 
         // Base Calculations
-        let xpGain = Math.floor((200 + (window.battle.stage * 50)) * worldMult * soulMult);
+        let xpGain = Math.floor((200 + (window.battle.stage * 50)) * worldMult * soulMult * 100);
         let coinGain = Math.floor((300 + (window.battle.stage * 50)) * worldMult * soulMult);
         
         // Boss Bonus (5x)
