@@ -365,16 +365,25 @@
         let intervalId = null, timeoutId = null;
 
         const performAction = () => {
-            // Gold Sink: small stats for gold
-            const cost = 100 + (window.player.lvl * 10);
+            const trueLvl = window.player.lvl || 1;
+            
+            // 1. Scale the gold cost based on level so it doesn't become too cheap at endgame
+            const cost = 100 + (trueLvl * 150);
+            
             if (window.player.coins >= cost) {
                 window.player.coins -= cost;
 
+                // 2. ENDGAME SCALING: Gain more stats the higher your level is!
+                // If you are Level 685, you will gain +69 Base Stats per tick instead of +1.
+                // At 20 ticks per second, that is a massive increase!
+                const statBoost = 1 + Math.floor(trueLvl / 10);
+                const hpBoost = statBoost * 5;
+
                 // Randomly gain HP, ATK, or DEF
                 const rand = Math.random();
-                if (rand < 0.33) window.player.bAtk += 1;
-                else if (rand < 0.66) window.player.bDef += 1;
-                else window.player.bHp += 5;
+                if (rand < 0.33) window.player.bAtk += statBoost;
+                else if (rand < 0.66) window.player.bDef += statBoost;
+                else window.player.bHp += hpBoost;
 
                 window.isDirty = true;
                 updateStatsOnly();
@@ -403,6 +412,16 @@
         btn.addEventListener('touchstart', start, { passive: false });
         btn.addEventListener('touchend', end);
         btn.addEventListener('touchcancel', end);
+    }
+
+    function updateStatsOnly() {
+        const atk = window.GameState.gokuPower;
+        const def = window.GameState.gokuDefense;
+
+        document.getElementById('ui-atk').innerText = window.formatNumber(atk);
+        document.getElementById('ui-def').innerText = window.formatNumber(def);
+        document.getElementById('ui-coins').innerText = window.formatNumber(window.player.coins);
+        document.getElementById('ui-power').innerText = window.formatNumber(atk * 30 + window.GameState.gokuMaxHP);
     }
 
     function updateStatsOnly() {
