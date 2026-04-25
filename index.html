@@ -201,6 +201,13 @@
     <div id="view-universe" class="screen">
         <canvas id="uni-canvas"></canvas>
         <div class="uni-ui">
+            <!-- NEW: Player HP Bar -->
+            <div style="width:200px; margin-bottom:10px;">
+                <div style="font-size:0.8rem; color:white; text-shadow:1px 1px black; letter-spacing:1px;">HULL INTEGRITY</div>
+                <div class="bar-bg" style="height:12px; border-color:#2ecc71;">
+                    <div id="uni-hp-fill" class="bar-fill" style="background:#2ecc71; width:100%;"></div>
+                </div>
+            </div>
             <div style="color:var(--cyan);">KILLS: <span id="uni-kills">0</span></div>
             <div style="color:var(--yellow);">GOLD: <span id="uni-gold">0</span></div>
         </div>
