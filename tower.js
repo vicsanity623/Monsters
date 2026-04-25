@@ -91,29 +91,38 @@
     };
 
     function syncUI() {
-        const stats = getPlayerStats();
-        document.getElementById('ui-lvl').innerText = player.lvl;
-        document.getElementById('ui-hp').innerText = formatNum(stats.hp);
-        document.getElementById('ui-atk').innerText = formatNum(stats.atk);
-        document.getElementById('ui-def').innerText = formatNum(stats.def);
-        document.getElementById('ui-gold').innerText = formatNum(player.coins);
-        
-        document.getElementById('ui-xp-fill').style.width = (player.xp / player.nextXp * 100) + '%';
-        document.getElementById('ui-xp-text').innerText = `${formatNum(player.xp)} / ${formatNum(player.nextXp)}`;
-        document.getElementById('ui-eq-w').innerText = player.gear.w ? `+${formatNum(player.gear.w.val)}` : "NONE";
-        document.getElementById('ui-eq-a').innerText = player.gear.a ? `+${formatNum(player.gear.a.val)}` : "NONE";
-        document.getElementById('ui-keys').innerText = player.dungeonKeys;
-        document.getElementById('ui-senzu').innerText = player.senzuBeans;
-        document.getElementById('ui-max-floor').innerText = player.maxFloor;
+        try {
+            // --- SAFETY NET: Repair older save files so they don't crash the game! ---
+            if (!player.dStats) player.dStats = { dmg: 0, hit: 0, loot: 0, kills: 0 };
+            if (!player.shop) player.shop = { zsword: 0, potara: 0, godki: 0 };
+            if (!player.gear) player.gear = { w: null, a: null };
 
-        // Dungeon Dash
-        document.getElementById('dash-dmg').innerText = formatNum(player.dStats.dmg);
-        document.getElementById('dash-hit').innerText = formatNum(player.dStats.hit);
-        document.getElementById('dash-loot').innerText = formatNum(player.dStats.loot);
-        document.getElementById('dash-kills').innerText = formatNum(player.dStats.kills);
+            const stats = getPlayerStats();
+            document.getElementById('ui-lvl').innerText = player.lvl;
+            document.getElementById('ui-hp').innerText = formatNum(stats.hp);
+            document.getElementById('ui-atk').innerText = formatNum(stats.atk);
+            document.getElementById('ui-def').innerText = formatNum(stats.def);
+            document.getElementById('ui-gold').innerText = formatNum(player.coins);
+            
+            document.getElementById('ui-xp-fill').style.width = (player.xp / player.nextXp * 100) + '%';
+            document.getElementById('ui-xp-text').innerText = `${formatNum(player.xp)} / ${formatNum(player.nextXp)}`;
+            document.getElementById('ui-eq-w').innerText = player.gear.w ? `+${formatNum(player.gear.w.val)}` : "NONE";
+            document.getElementById('ui-eq-a').innerText = player.gear.a ? `+${formatNum(player.gear.a.val)}` : "NONE";
+            document.getElementById('ui-keys').innerText = player.dungeonKeys;
+            document.getElementById('ui-senzu').innerText = player.senzuBeans;
+            document.getElementById('ui-max-floor').innerText = player.maxFloor;
 
-        renderInventory();
-        renderDungeons();
+            // Dungeon Dash
+            document.getElementById('dash-dmg').innerText = formatNum(player.dStats.dmg);
+            document.getElementById('dash-hit').innerText = formatNum(player.dStats.hit);
+            document.getElementById('dash-loot').innerText = formatNum(player.dStats.loot);
+            document.getElementById('dash-kills').innerText = formatNum(player.dStats.kills);
+
+            renderInventory();
+            renderDungeons();
+        } catch (err) {
+            console.error("UI Sync Error (Save file likely corrupted): ", err);
+        }
     }
 
     // --- HUB ACTIONS ---
@@ -192,8 +201,8 @@
             const d = DUNGEONS[key];
             const el = document.createElement('div');
             
-            // FIXED: Added 'flex-shrink: 0;' and 'min-height: 90px;' to prevent the cards from disappearing
-            el.style.cssText = `background:rgba(20,20,30,0.9); border:2px solid ${d.color}; border-radius:10px; padding:15px; display:flex; align-items:center; gap:15px; box-shadow:0 5px 15px rgba(0,0,0,0.5); flex-shrink: 0; min-height: 90px;`;
+            // FIXED: Added flex-shrink: 0 and strict min-height so they cannot be squished out of existence
+            el.style.cssText = `background:rgba(20,20,30,0.9); border:2px solid ${d.color}; border-radius:10px; padding:15px; display:flex; align-items:center; gap:15px; box-shadow:0 5px 15px rgba(0,0,0,0.5); flex-shrink: 0; min-height: 90px; margin-bottom: 5px;`;
             
             el.innerHTML = `
                 <div style="width:60px; height:60px; border-radius:50%; background:black; border:2px solid #fff; overflow:hidden; flex-shrink:0;">
@@ -203,7 +212,7 @@
                     <div style="font-family:'Bangers'; font-size:1.5rem; color:${d.color}; text-shadow:1px 1px black;">${d.name}</div>
                     <div style="font-size:0.75rem; color:#aaa;">HP: ${formatNum(d.hp)} | ATK: ${formatNum(d.atk)}</div>
                 </div>
-                <button class="btn btn-gold" style="padding:10px; font-size:1.2rem;" onclick="uiClick(event); startCombat('dungeon', null, '${key}')">FIGHT (1🗝️)</button>
+                <button class="btn btn-gold" style="padding:10px; font-size:1.2rem; flex-shrink:0;" onclick="uiClick(event); startCombat('dungeon', null, '${key}')">FIGHT (1🗝️)</button>
             `;
             list.appendChild(el);
         });
