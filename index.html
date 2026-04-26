@@ -96,6 +96,9 @@
 
         @keyframes popUp { 0% { transform: scale(0.5) translateY(0); opacity: 1; } 50% { transform: scale(1.3) translateY(-30px); } 100% { transform: scale(1) translateY(-60px); opacity: 0; } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .stat-line { display: flex; justify-content: space-between; margin: 5px 0; font-size: 0.9rem; color: #ccc; }
+        .buff-text { color: var(--yellow); font-style: italic; font-size: 0.8rem; margin-top: 5px; display: block; }
     </style>
 </head>
 <body>
@@ -106,6 +109,29 @@
         <button id="tab-tower" onclick="showTab('tower')">TOWER</button>
         <button id="tab-universe" onclick="showTab('universe')">UNIVERSE</button>
     </nav>
+    
+    <!-- ITEM DETAIL MODAL -->
+    <div id="item-modal" class="modal">
+        <div class="modal-box" style="border-color: var(--cyan);">
+            <div id="item-icon" style="font-size: 4rem; margin-bottom: 10px;">⚔️</div>
+            <div id="item-name" class="title" style="font-size: 2rem; margin: 0; color: var(--cyan);">GEAR NAME</div>
+            <div id="item-rarity" style="font-size: 0.7rem; letter-spacing: 2px; margin-bottom: 15px; color: #aaa;">COMMON ITEM</div>
+            
+            <div style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; text-align: left; margin-bottom: 20px; border: 1px solid #333;">
+                <div class="stat-line"><span>Main Stat:</span> <span id="item-main-val" style="color:white; font-weight:bold;">+0</span></div>
+                <div id="item-buff-container">
+                    <!-- Buffs injected here -->
+                </div>
+            </div>
+    
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn btn-blue" id="modal-equip-btn">EQUIP</button>
+                <button class="btn btn-red" id="modal-sell-btn">SELL</button>
+                <button class="btn btn-gold" id="modal-merge-btn" style="grid-column: 1 / -1; display:none;">MERGE (3)</button>
+                <button class="btn" style="grid-column: 1 / -1; background: #333;" onclick="document.getElementById('item-modal').style.display='none'">CANCEL</button>
+            </div>
+        </div>
+    </div>
 
     <!-- HUB -->
     <div id="view-hub" class="screen active-screen">
