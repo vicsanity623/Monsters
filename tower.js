@@ -186,6 +186,9 @@
     window.addEventListener('resize', resizeTrails); resizeTrails();
 
     window.startCombat = function(type, floor = 1, bossKey = null) {
+        // If starting tower from button, always start at highest reached floor
+        if (type === 'tower') floor = player.maxFloor || 1; 
+
         if (type === 'dungeon' && player.dungeonKeys < 1) { alert("No Keys!"); return; }
         if (type === 'dungeon') player.dungeonKeys--;
         combatState.active = true; combatState.type = type; combatState.floor = floor; combatState.bossKey = bossKey; combatState.hitCooldown = 0;
@@ -198,10 +201,32 @@
     };
 
     function spawnEnemy() {
-        const c = combatState; let eName, eImg, eHp, eAtk;
-        if (c.type === 'dungeon') { const d = DUNGEONS[c.bossKey]; eName = d.name; eImg = d.img; eHp = d.hp; eAtk = d.atk; } 
-        else { const mult = Math.pow(1.15, c.floor - 1); eName = `Tower Guardian F${c.floor}`; eImg = "cell.png"; eHp = Math.floor(5000 * mult); eAtk = Math.floor(100 * mult); }
-        document.getElementById('combat-title').innerText = eName; document.getElementById('combat-subtitle').innerText = c.type === 'tower' ? `Floor ${c.floor}` : "Boss Fight"; document.getElementById('cb-enemy-img').src = eImg;
+        const c = combatState; 
+        let eName, eImg, eHp, eAtk;
+        
+        if (c.type === 'dungeon') { 
+            const d = DUNGEONS[c.bossKey]; 
+            eName = d.name; eImg = d.img; eHp = d.hp; eAtk = d.atk; 
+        } else { 
+            const mult = Math.pow(1.15, c.floor - 1);
+            // ENEMY ROTATION LOGIC
+            const towerEnemies = [
+                { n: "Cell Jr", i: "cell.png" },
+                { n: "Majin Buu", i: "majin_buu.png" },
+                { n: "Frieza", i: "freeza.png" }
+            ];
+            const enemyChoice = towerEnemies[(c.floor - 1) % towerEnemies.length];
+            
+            eName = `${enemyChoice.n} (F${c.floor})`; 
+            eImg = enemyChoice.i; 
+            eHp = Math.floor(5000 * mult); 
+            eAtk = Math.floor(100 * mult); 
+        }
+
+        document.getElementById('combat-title').innerText = eName; 
+        document.getElementById('combat-subtitle').innerText = c.type === 'tower' ? `Floor ${c.floor}` : "Boss Fight"; 
+        document.getElementById('cb-enemy-img').src = eImg;
+        
         c.e = { hp: eHp, maxHp: eHp, atk: eAtk, def: eAtk * 0.5, x: 80, y: 50, vx: 0, vy: 0, el: document.getElementById('cb-enemy'), stun: 0, history: [] };
     }
 
@@ -247,21 +272,41 @@
     }
 
     function handleEnemyDeath() {
-        if (combatState.type === 'dungeon') {
-            stopCombat(); player.dStats.kills++;
-            let baseVal = combatState.bossKey === 'cell' ? 15000 : (combatState.bossKey === 'frieza' ? 5000 : 1500);
+        const c = combatState;
+        stopCombat(); // Stop the loop and hide arena
+        player.dStats.kills++;
+
+        if (c.type === 'dungeon') {
+            let baseVal = c.bossKey === 'cell' ? 15000 : (c.bossKey === 'frieza' ? 5000 : 1500);
             addToInv({ n: "Boss Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: baseVal });
-            player.coins += baseVal * 2; player.dStats.lootFound++;
-            combatState.lastSweepData = { coins: baseVal*2, gearVal: baseVal };
-            showResult("VICTORY!", `Gained ${formatNum(baseVal*2)} Gold<br>Found Boss Gear!`, true);
+            player.coins += baseVal * 2; 
+            player.xp += (player.lvl * 50); // Add XP for dungeon
+            player.dStats.lootFound++;
+            c.lastSweepData = { coins: baseVal*2, gearVal: baseVal };
+            showResult("VICTORY!", `Gained ${formatNum(baseVal*2)} Gold & XP<br>Found Boss Gear!`, true);
         } else {
-            // FIXED: PROPER TOWER REWARDS & PERSISTENCE
-            player.senzuBeans += (combatState.floor * 2);
-            if (combatState.floor > player.maxFloor) player.maxFloor = combatState.floor;
-            combatState.floor++; spawnEnemy(); 
-            combatState.loopId = requestAnimationFrame(combatLoop);
+            // TOWER REWARDS & PROGRESSION
+            const beanGain = Math.floor(c.floor * 1.5);
+            const xpGain = Math.floor(c.floor * 25);
+            
+            player.senzuBeans += beanGain;
+            player.xp += xpGain;
+            
+            // Update Highest Floor
+            if (c.floor >= player.maxFloor) {
+                player.maxFloor = c.floor + 1;
+            }
+            
+            showResult(
+                "FLOOR CLEARED!", 
+                `Successfully climbed Floor ${c.floor}<br><br>Rewards:<br>🫘 +${beanGain} Senzu Beans<br>✨ +${formatNum(xpGain)} XP`, 
+                false
+            );
         }
-        saveGame(); syncUI();
+        
+        checkLevelUp();
+        saveGame(); 
+        syncUI();
     }
 
     function handlePlayerDeath() {
