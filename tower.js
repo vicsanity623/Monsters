@@ -348,7 +348,7 @@
         drawTrails(p.history, e.history);
 
         if (dist < 15 && combatState.hitCooldown <= 0) {
-            combatState.hitCooldown = 15;
+            combatState.hitCooldown = 10;
             
             // Player Attack (With Crit)
             let isCrit = Math.random() * 100 < pStats.crit;
