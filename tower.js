@@ -1,12 +1,13 @@
-// tower.js - Standalone Engine (Fixed Walls, Persistence, & Dashboards)
+// tower.js - Standalone Engine (Fixed Walls, Persistence, Dashboards, & RPG Stats)
 
 (function () {
 
     const SAVE_KEY = "dbz_tower_standalone_v1";
 
     const DEFAULT_PLAYER = {
-        lvl: 1, xp: 0, nextXp: 100, coins: 0,
-        bAtk: 50, bDef: 20, bHp: 1000, hp: 1000,
+        lvl: 1, xp: 0, nextXp: 100, coins: 0, sp: 0,
+        bAtk: 50, bDef: 20, bHp: 1000, 
+        stats: { hp: 0, regen: 0, atk: 0, def: 0, res: 0, xp: 0, gold: 0, crit: 0 },
         inv: [], gear: { w: null, a: null }, selected: -1,
         dungeonKeys: 10, senzuBeans: 0, maxFloor: 1, 
         shop: { zsword: 0, potara: 0, godki: 0 },
@@ -26,6 +27,7 @@
                 if(parsed.shop) window.player.shop = { ...DEFAULT_PLAYER.shop, ...parsed.shop };
                 if(parsed.dStats) window.player.dStats = { ...DEFAULT_PLAYER.dStats, ...parsed.dStats };
                 if(parsed.gear) window.player.gear = { ...DEFAULT_PLAYER.gear, ...parsed.gear };
+                if(parsed.stats) window.player.stats = { ...DEFAULT_PLAYER.stats, ...parsed.stats };
             }
         } catch (e) { console.error("Save corrupted, reset to default."); }
     }
@@ -48,13 +50,25 @@
     function getPlayerStats() {
         const wVal = player.gear.w ? player.gear.w.val : 0;
         const aVal = player.gear.a ? player.gear.a.val : 0;
+        
+        // Skill Point Multipliers
+        const skillHpMult = 1 + (player.stats.hp * 0.1);    
+        const skillAtkMult = 1 + (player.stats.atk * 0.1);  
+        const skillDefMult = 1 + (player.stats.def * 0.1);  
+        
         const shopW = player.shop.zsword * 500000;
         const shopA = player.shop.potara * 500000;
-        const mult = Math.pow(2, player.shop.godki);
+        const globalMult = Math.pow(2, player.shop.godki);
+
         return {
-            hp: Math.floor((player.bHp + (player.lvl * 100) + (aVal * 5)) * mult),
-            atk: Math.floor((player.bAtk + (player.lvl * 10) + wVal + shopW) * mult),
-            def: Math.floor((player.bDef + (player.lvl * 5) + aVal + shopA) * mult)
+            hp: Math.floor((player.bHp + (player.lvl * 100) + (aVal * 5)) * skillHpMult * globalMult),
+            atk: Math.floor((player.bAtk + (player.lvl * 10) + wVal + shopW) * skillAtkMult * globalMult),
+            def: Math.floor((player.bDef + (player.lvl * 5) + aVal + shopA) * skillDefMult * globalMult),
+            regen: player.stats.regen * 0.0005, // HP regen per frame
+            res: Math.min(0.5, player.stats.res * 0.02), // Max 50% damage reduction
+            crit: Math.min(20, player.stats.crit), // Max 20% crit chance
+            xpBonus: 1 + (player.stats.xp * 0.05),
+            goldBonus: 1 + (player.stats.gold * 0.05)
         };
     }
 
@@ -87,13 +101,19 @@
             document.getElementById('ui-gold').innerText = formatNum(player.coins);
             document.getElementById('ui-xp-fill').style.width = (player.xp / player.nextXp * 100) + '%';
             document.getElementById('ui-xp-text').innerText = `${formatNum(player.xp)} / ${formatNum(player.nextXp)}`;
-            document.getElementById('ui-eq-w').innerText = player.gear.w ? `+${formatNum(player.gear.w.val)}` : "NONE";
-            document.getElementById('ui-eq-a').innerText = player.gear.a ? `+${formatNum(player.gear.a.val)}` : "NONE";
+            
+            // Skill Points UI
+            if(document.getElementById('ui-sp-badge')) document.getElementById('ui-sp-badge').style.display = player.sp > 0 ? 'inline' : 'none';
+            if(document.getElementById('ui-sp-count')) document.getElementById('ui-sp-count').innerText = player.sp;
+
+            // Optional Gear Displays (Safe check to prevent crash)
+            if(document.getElementById('ui-eq-w')) document.getElementById('ui-eq-w').innerText = player.gear.w ? `+${formatNum(player.gear.w.val)}` : "0";
+            if(document.getElementById('ui-eq-a')) document.getElementById('ui-eq-a').innerText = player.gear.a ? `+${formatNum(player.gear.a.val)}` : "0";
+
             document.getElementById('ui-keys').innerText = player.dungeonKeys;
             document.getElementById('ui-senzu').innerText = player.senzuBeans;
             document.getElementById('ui-max-floor').innerText = player.maxFloor;
 
-            // Stats Dashboard Sync
             if(document.getElementById('stat-dmg-dealt')) document.getElementById('stat-dmg-dealt').innerText = formatNum(player.dStats.dmgDealt);
             if(document.getElementById('stat-hardest-hit')) document.getElementById('stat-hardest-hit').innerText = formatNum(player.dStats.hardestHit);
             if(document.getElementById('stat-loot-found')) document.getElementById('stat-loot-found').innerText = formatNum(player.dStats.lootFound);
@@ -104,15 +124,62 @@
         } catch(e) { console.warn("SyncUI error: ", e); }
     }
 
+    // --- RPG STAT UPGRADES ---
+    const STAT_DEFS = [
+        { id: 'hp', name: 'Health', desc: '+10% Max HP' },
+        { id: 'regen', name: 'Regen', desc: '+0.5% HP/tick' },
+        { id: 'atk', name: 'Attack Power', desc: '+10% Total ATK' },
+        { id: 'def', name: 'Defense', desc: '+10% Total DEF' },
+        { id: 'res', name: 'Damage Resistance', desc: '+2% (Max 50%)' },
+        { id: 'xp', name: 'XP Gain', desc: '+5% XP' },
+        { id: 'gold', name: 'Gold Gain', desc: '+5% Gold' },
+        { id: 'crit', name: 'Critical Chance', desc: '+1% (Max 20%)' }
+    ];
+
+    window.openStatPanel = function() {
+        const list = document.getElementById('stat-list');
+        if(!list) return;
+        list.innerHTML = '';
+        STAT_DEFS.forEach(s => {
+            const row = document.createElement('div');
+            row.style.cssText = "background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;";
+            row.innerHTML = `
+                <div style="text-align:left;">
+                    <div style="font-weight:bold; color:white; font-size:0.9rem;">${s.name} [Lv. ${player.stats[s.id]}]</div>
+                    <div style="font-size:0.65rem; color:#aaa;">${s.desc}</div>
+                </div>
+                <button class="btn btn-green" style="padding:5px 15px; font-size:1rem; flex:none;" onclick="upgradeStat('${s.id}')">UP</button>
+            `;
+            list.appendChild(row);
+        });
+        document.getElementById('stat-modal').style.display = 'flex';
+        document.getElementById('ui-sp-count').innerText = player.sp;
+    };
+
+    window.upgradeStat = function(statId) {
+        if (player.sp <= 0) return;
+        if (statId === 'crit' && player.stats.crit >= 20) return;
+        if (statId === 'res' && player.stats.res >= 25) return;
+        
+        player.sp--;
+        player.stats[statId]++;
+        syncUI();
+        openStatPanel();
+        saveGame();
+    };
+
     window.farmGold = function() {
-        player.coins += 100 * player.lvl;
-        player.xp += 15 * player.lvl;
+        const stats = getPlayerStats();
+        player.coins += Math.floor(100 * player.lvl * stats.goldBonus);
+        player.xp += Math.floor(15 * player.lvl * stats.xpBonus);
         checkLevelUp(); syncUI();
     };
 
     function checkLevelUp() {
         while(player.xp >= player.nextXp) {
-            player.xp -= player.nextXp; player.lvl++;
+            player.xp -= player.nextXp; 
+            player.lvl++;
+            player.sp++; 
             player.nextXp = Math.floor(player.nextXp * 1.5);
             player.bHp += 200; player.bAtk += 20; player.bDef += 10;
         }
@@ -127,15 +194,25 @@
     function renderInventory() {
         const grid = document.getElementById('inv-grid'); if(!grid) return;
         grid.innerHTML = '';
-        const mergeBtn = document.getElementById('btn-merge'); const equipBtn = document.getElementById('btn-equip');
-        mergeBtn.style.display = 'none'; equipBtn.style.display = 'block';
+        const mergeBtn = document.getElementById('btn-merge'); 
+        // Renamed level up button logic
+        const levelBtn = document.getElementById('btn-level-up'); 
+        
+        if(mergeBtn) mergeBtn.style.display = 'none';
+        
         player.inv.forEach((item, i) => {
             const el = document.createElement('div'); el.className = `inv-item ${player.selected === i ? 'selected' : ''}`;
             let color = (item.val > 20000) ? "var(--cyan)" : (item.val > 5000 ? "var(--red)" : "white");
             el.innerHTML = `<span style="font-size:1.5rem;">${item.type === 'w' ? '⚔️' : '🛡️'}</span><span style="color:${color}; font-weight:bold; margin-top:5px;">${formatNum(item.val)}</span>${item.qty > 1 ? `<div class="qty-badge">x${item.qty}</div>` : ''}`;
             el.onclick = () => { player.selected = i; syncUI(); }; grid.appendChild(el);
         });
-        if (player.selected !== -1 && player.inv[player.selected] && player.inv[player.selected].qty >= 3) { mergeBtn.style.display = 'block'; equipBtn.style.display = 'none'; }
+        
+        if (player.selected !== -1 && player.inv[player.selected] && player.inv[player.selected].qty >= 3) {
+            if(mergeBtn) mergeBtn.style.display = 'block';
+            if(levelBtn) levelBtn.style.display = 'none';
+        } else {
+            if(levelBtn) levelBtn.style.display = 'block';
+        }
     }
 
     window.equipSelected = function() {
@@ -159,7 +236,7 @@
         Object.keys(DUNGEONS).forEach(key => {
             const d = DUNGEONS[key]; const el = document.createElement('div');
             el.style.cssText = `background:rgba(20,20,30,0.9); border:2px solid ${d.color}; border-radius:10px; padding:15px; display:flex; align-items:center; gap:15px; flex-shrink: 0; min-height: 90px;`;
-            el.innerHTML = `<div style="width:60px; height:60px; border-radius:50%; background:black; border:2px solid #fff; overflow:hidden; flex-shrink:0;"><img src="${d.img}" style="width:100%; height:100%; object-fit:cover;"></div><div style="flex:1;"><div style="font-family:'Bangers'; font-size:1.5rem; color:${d.color};">${d.name}</div><div style="font-size:0.75rem; color:#aaa;">HP: ${formatNum(d.hp)} | ATK: ${formatNum(d.atk)}</div></div><button class="btn btn-gold" style="padding:10px; flex:none; width:100px;" onclick="startCombat('dungeon', null, '${key}')">FIGHT (1🗝️)</button>`;
+            el.innerHTML = `<div style="width:60px; height:60px; border-radius:50%; background:black; border:2px solid #fff; overflow:hidden; flex-shrink:0;"><img src="${d.img}" style="width:100%; height:100%; object-fit:cover;"></div><div style="flex:1;"><div style="font-family:'Bangers'; font-size:1.5rem; color:${d.color};">${d.name}</div><div style="font-size:0.75rem; color:#aaa;">HP: ${formatNum(d.hp)} | ATK: ${formatNum(d.atk)}</div></div><button class="btn btn-gold" style="padding:10px; flex:none; width:100px;" onclick="startCombat('dungeon', null, '${key}')">ENTER (1🗝️)</button>`;
             list.appendChild(el);
         });
     }
@@ -181,22 +258,44 @@
         player.senzuBeans -= cost; player.shop[id]++; syncUI(); openTowerShop(); saveGame();
     };
 
+    // --- EXPLOSION PARTICLES ---
+    function createExplosion(x, y, color) {
+        const fxContainer = document.getElementById('cb-fx');
+        if(!fxContainer) return;
+        const particleCount = 40;
+        for (let i = 0; i < particleCount; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.backgroundColor = color;
+            p.style.left = x + "%";
+            p.style.top = y + "%";
+            const dx = (Math.random() - 0.5) * 300 + "px";
+            const dy = (Math.random() - 0.5) * 300 + "px";
+            p.style.setProperty('--dx', dx);
+            p.style.setProperty('--dy', dy);
+            fxContainer.appendChild(p);
+            setTimeout(() => p.remove(), 1200);
+        }
+    }
+
     const trCanvas = document.getElementById('trail-canvas'); const trCtx = trCanvas.getContext('2d');
     function resizeTrails() { trCanvas.width = trCanvas.offsetWidth; trCanvas.height = trCanvas.offsetHeight; }
     window.addEventListener('resize', resizeTrails); resizeTrails();
 
     window.startCombat = function(type, floor = 1, bossKey = null) {
-        // If starting tower from button, always start at highest reached floor
         if (type === 'tower') floor = player.maxFloor || 1; 
-
         if (type === 'dungeon' && player.dungeonKeys < 1) { alert("No Keys!"); return; }
         if (type === 'dungeon') player.dungeonKeys--;
+        
         combatState.active = true; combatState.type = type; combatState.floor = floor; combatState.bossKey = bossKey; combatState.hitCooldown = 0;
         const stats = getPlayerStats();
         combatState.p = { hp: stats.hp, maxHp: stats.hp, atk: stats.atk, def: stats.def, x: 20, y: 50, vx: 0, vy: 0, el: document.getElementById('cb-player'), history: [] };
+        
         spawnEnemy();
         document.getElementById('combat-modal').style.display = 'flex';
-        document.getElementById('cb-fx').innerHTML = ''; updateCombatUI();
+        document.getElementById('cb-fx').innerHTML = ''; 
+        document.getElementById('cb-enemy').classList.remove('disintegrate');
+        updateCombatUI();
         if(combatState.loopId) cancelAnimationFrame(combatState.loopId); combatLoop();
     };
 
@@ -209,14 +308,12 @@
             eName = d.name; eImg = d.img; eHp = d.hp; eAtk = d.atk; 
         } else { 
             const mult = Math.pow(1.15, c.floor - 1);
-            // ENEMY ROTATION LOGIC
             const towerEnemies = [
                 { n: "Cell Jr", i: "cell.png" },
                 { n: "Majin Buu", i: "majin_buu.png" },
                 { n: "Frieza", i: "freeza.png" }
             ];
             const enemyChoice = towerEnemies[(c.floor - 1) % towerEnemies.length];
-            
             eName = `${enemyChoice.n} (F${c.floor})`; 
             eImg = enemyChoice.i; 
             eHp = Math.floor(5000 * mult); 
@@ -226,17 +323,20 @@
         document.getElementById('combat-title').innerText = eName; 
         document.getElementById('combat-subtitle').innerText = c.type === 'tower' ? `Floor ${c.floor}` : "Boss Fight"; 
         document.getElementById('cb-enemy-img').src = eImg;
-        
         c.e = { hp: eHp, maxHp: eHp, atk: eAtk, def: eAtk * 0.5, x: 80, y: 50, vx: 0, vy: 0, el: document.getElementById('cb-enemy'), stun: 0, history: [] };
     }
 
     function combatLoop() {
         if(!combatState.active) return;
         const p = combatState.p; const e = combatState.e; const dx = e.x - p.x; const dy = e.y - p.y; const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        const pStats = getPlayerStats();
+
+        // Regen
+        p.hp = Math.min(p.maxHp, p.hp + (p.maxHp * pStats.regen));
+
         if (dist > 10) { p.vx += (dx/dist)*0.7; p.vy += (dy/dist)*0.7; if(e.stun <= 0) { e.vx -= (dx/dist)*0.4; e.vy -= (dy/dist)*0.4; } else { e.stun--; e.vx *= 0.8; } }
         p.x += p.vx; p.y += p.vy; e.x += e.vx; e.y += e.vy; p.vx *= 0.88; p.vy *= 0.88; e.vx *= 0.88; e.vy *= 0.88;
 
-        // FIXED: WALL COLLISION PHYSICS
         if(p.x < 5) { p.x=5; p.vx *= -1.5; } if(p.x > 95) { p.x=95; p.vx *= -1.5; }
         if(p.y < 20) { p.y=20; p.vy *= -1.5; } if(p.y > 80) { p.y=80; p.vy *= -1.5; }
         if(e.x < 5) { e.x=5; e.vx *= -1.5; } if(e.x > 95) { e.x=95; e.vx *= -1.5; }
@@ -249,10 +349,16 @@
 
         if (dist < 15 && combatState.hitCooldown <= 0) {
             combatState.hitCooldown = 15;
-            const pDmg = Math.max(1, Math.floor(p.atk * (0.8 + Math.random() * 0.4)));
+            
+            // Player Attack (With Crit)
+            let isCrit = Math.random() * 100 < pStats.crit;
+            let pDmg = Math.max(1, Math.floor(p.atk * (0.8 + Math.random() * 0.4)));
+            if(isCrit) pDmg *= 2;
             e.hp -= pDmg; player.dStats.dmgDealt += pDmg; if (pDmg > player.dStats.hardestHit) player.dStats.hardestHit = pDmg;
-            spawnPop(formatNum(pDmg), e.x, e.y, 'gold'); e.vx += (dx/dist) * 10; e.vy += (dy/dist) * 10; e.stun = 20;
-            const eDmg = Math.max(1, Math.floor(e.atk * (0.8 + Math.random() * 0.4) - (p.def * 0.2)));
+            spawnPop(formatNum(pDmg), e.x, e.y, isCrit ? 'var(--orange)' : 'gold'); e.vx += (dx/dist) * 10; e.vy += (dy/dist) * 10; e.stun = 20;
+            
+            // Enemy Attack (With Resistance)
+            const eDmg = Math.max(1, Math.floor((e.atk * (0.8 + Math.random() * 0.4) - (p.def * 0.2)) * (1 - pStats.res)));
             p.hp -= eDmg; player.dStats.dmgTaken += eDmg; spawnPop(formatNum(eDmg), p.x, p.y, 'var(--red)'); p.vx -= (dx/dist) * 10; p.vy -= (dy/dist) * 10;
             const arena = document.getElementById('combat-arena'); arena.classList.remove('epic-shake'); void arena.offsetWidth; arena.classList.add('epic-shake');
         }
@@ -273,40 +379,37 @@
 
     function handleEnemyDeath() {
         const c = combatState;
-        stopCombat(); // Stop the loop and hide arena
-        player.dStats.kills++;
-
-        if (c.type === 'dungeon') {
-            let baseVal = c.bossKey === 'cell' ? 15000 : (c.bossKey === 'frieza' ? 5000 : 1500);
-            addToInv({ n: "Boss Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: baseVal });
-            player.coins += baseVal * 2; 
-            player.xp += (player.lvl * 50); // Add XP for dungeon
-            player.dStats.lootFound++;
-            c.lastSweepData = { coins: baseVal*2, gearVal: baseVal };
-            showResult("VICTORY!", `Gained ${formatNum(baseVal*2)} Gold & XP<br>Found Boss Gear!`, true);
-        } else {
-            // TOWER REWARDS & PROGRESSION
-            const beanGain = Math.floor(c.floor * 1.5);
-            const xpGain = Math.floor(c.floor * 25);
-            
-            player.senzuBeans += beanGain;
-            player.xp += xpGain;
-            
-            // Update Highest Floor
-            if (c.floor >= player.maxFloor) {
-                player.maxFloor = c.floor + 1;
-            }
-            
-            showResult(
-                "FLOOR CLEARED!", 
-                `Successfully climbed Floor ${c.floor}<br><br>Rewards:<br>🫘 +${beanGain} Senzu Beans<br>✨ +${formatNum(xpGain)} XP`, 
-                false
-            );
-        }
+        if(!c.active) return;
+        c.active = false; if (c.loopId) cancelAnimationFrame(c.loopId);
         
-        checkLevelUp();
-        saveGame(); 
-        syncUI();
+        const pStats = getPlayerStats();
+        let explosionColor = "#50fa7b";
+        if (c.bossKey === 'buu') explosionColor = "#ff79c6";
+        if (c.bossKey === 'frieza') explosionColor = "#bd93f9";
+
+        createExplosion(c.e.x, c.e.y, explosionColor);
+        c.e.el.classList.add('disintegrate');
+
+        setTimeout(() => {
+            player.dStats.kills++;
+            if (c.type === 'dungeon') {
+                let baseVal = c.bossKey === 'cell' ? 15000 : (c.bossKey === 'frieza' ? 5000 : 1500);
+                const gGain = Math.floor(baseVal * 2 * pStats.goldBonus);
+                const xGain = Math.floor(player.lvl * 50 * pStats.xpBonus);
+                addToInv({ n: "Boss Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: baseVal });
+                player.coins += gGain; player.xp += xGain; player.dStats.lootFound++;
+                c.lastSweepData = { coins: baseVal*2, gearVal: baseVal };
+                showResult("VICTORY!", `Gained ${formatNum(gGain)} Gold & ${formatNum(xGain)} XP`, true);
+            } else {
+                const beanGain = Math.floor(c.floor * 1.5);
+                const xpGain = Math.floor(c.floor * 25 * pStats.xpBonus);
+                player.senzuBeans += beanGain; player.xp += xpGain;
+                if (c.floor >= player.maxFloor) player.maxFloor = c.floor + 1;
+                showResult("FLOOR CLEARED!", `Rewards:<br>🫘 +${beanGain} Beans<br>✨ +${formatNum(xpGain)} XP`);
+            }
+            checkLevelUp(); saveGame(); syncUI();
+            document.getElementById('combat-modal').style.display = 'none';
+        }, 1000);
     }
 
     function handlePlayerDeath() {
@@ -317,6 +420,7 @@
 
     function updateCombatUI() {
         const c = combatState;
+        if(!document.getElementById('cb-player-hp')) return;
         document.getElementById('cb-player-hp').style.width = Math.max(0, (c.p.hp / c.p.maxHp) * 100) + "%";
         document.getElementById('cb-boss-hp').style.width = Math.max(0, (c.e.hp / c.e.maxHp) * 100) + "%";
         document.getElementById('cb-player-hp-text').innerText = Math.round(Math.max(0, (c.p.hp / c.p.maxHp) * 100)) + "%";
@@ -350,9 +454,11 @@
     };
 
     window.confirmSweep = function() {
+        const pStats = getPlayerStats();
         if (sweepCount < 1 || sweepCount > player.dungeonKeys) return;
         player.dungeonKeys -= sweepCount; const sd = combatState.lastSweepData;
-        player.coins += sd.coins * sweepCount; player.dStats.lootFound += sweepCount;
+        player.coins += Math.floor(sd.coins * sweepCount * pStats.goldBonus);
+        player.dStats.lootFound += sweepCount;
         for(let i=0; i<sweepCount; i++) addToInv({ n: "Boss Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: sd.gearVal });
         saveGame(); syncUI(); closeResult();
     };
@@ -361,9 +467,11 @@
     const uCan = document.getElementById('uni-canvas'); const uCtx = uCan.getContext('2d');
     let uniState = { active: false, cx: 0, cy: 0, px: 0, py: 0, vx: 0, vy: 0, enemies: [], stars: [], particles: [], texts: [], dead: false, joy: { active: false, nx: 0, ny: 0 } };
     const joyZone = document.getElementById('joystick-zone'); const joyKnob = document.getElementById('joystick-knob');
-    joyZone.addEventListener('touchstart', (e) => { e.preventDefault(); handleJoy(e); }, {passive: false});
-    joyZone.addEventListener('touchmove', (e) => { e.preventDefault(); handleJoy(e); }, {passive: false});
-    joyZone.addEventListener('touchend', () => { uniState.joy.active = false; joyKnob.style.transform = `translate(-50%, -50%)`; uniState.joy.nx = 0; uniState.joy.ny = 0; });
+    if(joyZone) {
+        joyZone.addEventListener('touchstart', (e) => { e.preventDefault(); handleJoy(e); }, {passive: false});
+        joyZone.addEventListener('touchmove', (e) => { e.preventDefault(); handleJoy(e); }, {passive: false});
+        joyZone.addEventListener('touchend', () => { uniState.joy.active = false; joyKnob.style.transform = `translate(-50%, -50%)`; uniState.joy.nx = 0; uniState.joy.ny = 0; });
+    }
 
     function handleJoy(e) {
         uniState.joy.active = true; const rect = joyZone.getBoundingClientRect();
@@ -400,10 +508,9 @@
             if(dist < 1500) { e.vx += (dx/dist)*0.6; e.vy += (dy/dist)*0.6; } e.vx *= 0.98; e.vy *= 0.98; e.x += e.vx; e.y += e.vy;
             uCtx.fillStyle = '#ff0055'; uCtx.beginPath(); uCtx.arc(e.x, e.y, 14, 0, Math.PI*2); uCtx.fill();
             if(dist < 35 && e.hitCooldown <= 0) { e.hp -= pStats.atk; player.hp -= (pStats.hp * 0.05); e.vx -= (dx/dist)*30; e.vy -= (dy/dist)*30; uniState.vx += (dx/dist)*15; uniState.vy += (dy/dist)*15; e.hitCooldown = 20; }
-            if(e.hp <= 0) { uniState.enemies.splice(i, 1); player.coins += 5000; spawnUniEnemy(e.x+100, e.y+100); spawnUniEnemy(e.x-100, e.y-100); }
+            if(e.hp <= 0) { uniState.enemies.splice(i, 1); player.coins += Math.floor(5000 * pStats.goldBonus); spawnUniEnemy(e.x+100, e.y+100); spawnUniEnemy(e.x-100, e.y-100); }
             if(e.hitCooldown > 0) e.hitCooldown--;
         }
-        if(player.hp <= 0) { uniState.dead = true; document.getElementById('respawn-overlay').style.display = 'flex'; setTimeout(() => { uniState.dead = false; player.hp = pStats.hp; document.getElementById('respawn-overlay').style.display = 'none'; uniState.px = 0; uniState.py = 0; }, 5000); }
         uCtx.restore(); requestAnimationFrame(universeLoop);
     }
 
